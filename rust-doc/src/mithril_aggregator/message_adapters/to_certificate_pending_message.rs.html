@@ -74,7 +74,7 @@
 <a href="#74" id="74">74</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::{
     entities::{CertificatePending, Signer},
-    messages::{CertificatePendingMessage, SignerMessage, ToMessageAdapter},
+    messages::{CertificatePendingMessage, SignerMessagePart, ToMessageAdapter},
 };
 
 <span class="doccomment">/// Adapter to turn [CertificatePending] instances into [CertificatePendingMessage].
@@ -97,10 +97,10 @@
 }
 
 <span class="kw">impl </span>ToCertificatePendingMessageAdapter {
-    <span class="kw">fn </span>adapt_signers(signers: Vec&lt;Signer&gt;) -&gt; Vec&lt;SignerMessage&gt; {
+    <span class="kw">fn </span>adapt_signers(signers: Vec&lt;Signer&gt;) -&gt; Vec&lt;SignerMessagePart&gt; {
         signers
             .into_iter()
-            .map(|signer| SignerMessage {
+            .map(|signer| SignerMessagePart {
                 party_id: signer.party_id,
                 verification_key: signer.verification_key.try_into().unwrap(),
                 verification_key_signature: signer

@@ -501,6 +501,10 @@
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
 <a href="#503" id="503">503</a>
+<a href="#504" id="504">504</a>
+<a href="#505" id="505">505</a>
+<a href="#506" id="506">506</a>
+<a href="#507" id="507">507</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::middlewares;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 <span class="kw">use </span>std::sync::Arc;
@@ -552,7 +556,7 @@
     <span class="kw">use </span>mithril_common::entities::Epoch;
     <span class="kw">use </span>mithril_common::messages::{RegisterSignerMessage, TryFromMessageAdapter};
     <span class="kw">use </span>mithril_common::BeaconProvider;
-    <span class="kw">use </span>slog_scope::{debug, warn};
+    <span class="kw">use </span>slog_scope::{debug, trace, warn};
     <span class="kw">use </span>std::convert::Infallible;
     <span class="kw">use </span>std::sync::Arc;
     <span class="kw">use </span>warp::http::StatusCode;
@@ -568,6 +572,10 @@
         <span class="macro">debug!</span>(
             <span class="string">&quot;⇄ HTTP SERVER: register_signer/{:?}&quot;</span>,
             register_signer_message
+        );
+        <span class="macro">trace!</span>(
+            <span class="string">&quot;⇄ HTTP SERVER: register_signer&quot;</span>;
+            <span class="string">&quot;complete_message&quot; </span>=&gt; #<span class="question-mark">?</span>register_signer_message
         );
 
         <span class="kw">let </span>registration_epoch = <span class="kw">match </span>register_signer_message.epoch {

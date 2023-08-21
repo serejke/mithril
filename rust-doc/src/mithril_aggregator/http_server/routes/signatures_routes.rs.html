@@ -293,6 +293,7 @@
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
 <a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::middlewares;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 <span class="kw">use </span>std::sync::Arc;
@@ -324,7 +325,7 @@
         messages::{RegisterSignatureMessage, TryFromMessageAdapter},
     };
 
-    <span class="kw">use </span>slog_scope::{debug, warn};
+    <span class="kw">use </span>slog_scope::{debug, trace, warn};
     <span class="kw">use </span>std::convert::Infallible;
     <span class="kw">use </span>std::sync::Arc;
     <span class="kw">use </span>warp::http::StatusCode;
@@ -342,6 +343,7 @@
         ticker_service: Arc&lt;<span class="kw">dyn </span>TickerService&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>warp::Reply, Infallible&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;⇄ HTTP SERVER: register_signatures/{:?}&quot;</span>, message);
+        <span class="macro">trace!</span>(<span class="string">&quot;⇄ HTTP SERVER: register_signatures&quot;</span>; <span class="string">&quot;complete_message&quot; </span>=&gt; #<span class="question-mark">?</span>message );
 
         <span class="kw">let </span>signed_entity_type = <span class="kw">match </span>message.signed_entity_type.clone() {
             <span class="prelude-val">Some</span>(signed_entity_type) =&gt; <span class="prelude-val">Ok</span>(signed_entity_type),

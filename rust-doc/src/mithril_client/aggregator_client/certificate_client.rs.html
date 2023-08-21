@@ -232,7 +232,7 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>mithril_common::entities::CertificateSignature;
-    <span class="kw">use </span>mithril_common::messages::{CertificateMetadataMessage, SignerWithStakeMessagePart};
+    <span class="kw">use </span>mithril_common::messages::{CertificateMetadataMessagePart, SignerWithStakeMessagePart};
     <span class="kw">use </span>mithril_common::test_utils::fake_data;
 
     <span class="kw">use </span><span class="kw">crate</span>::aggregator_client::MockAggregatorHTTPClient;
@@ -262,7 +262,7 @@
                     hash: certificate_hash.clone(),
                     previous_hash: previous_hash.clone(),
                     beacon: certificate.beacon.clone(),
-                    metadata: CertificateMetadataMessage {
+                    metadata: CertificateMetadataMessagePart {
                         protocol_version: certificate.metadata.protocol_version.clone(),
                         protocol_parameters: certificate.metadata.protocol_parameters.clone(),
                         initiated_at: certificate.metadata.initiated_at,

@@ -54,9 +54,11 @@
 <a href="#54" id="54">54</a>
 <a href="#55" id="55">55</a>
 <a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::{Certificate, CertificateSignature};
 <span class="kw">use </span>mithril_common::messages::{
-    CertificateMessage, CertificateMetadataMessage, SignerWithStakeMessagePart, ToMessageAdapter,
+    CertificateMessage, CertificateMetadataMessagePart, SignerWithStakeMessagePart,
+    ToMessageAdapter,
 };
 
 <span class="doccomment">/// Adapter to convert [Certificate] to [CertificateMessage] instances
@@ -65,7 +67,7 @@
 <span class="kw">impl </span>ToMessageAdapter&lt;Certificate, CertificateMessage&gt; <span class="kw">for </span>ToCertificateMessageAdapter {
     <span class="doccomment">/// Method to trigger the conversion
     </span><span class="kw">fn </span>adapt(certificate: Certificate) -&gt; CertificateMessage {
-        <span class="kw">let </span>metadata = CertificateMetadataMessage {
+        <span class="kw">let </span>metadata = CertificateMetadataMessagePart {
             protocol_version: certificate.metadata.protocol_version,
             protocol_parameters: certificate.metadata.protocol_parameters,
             initiated_at: certificate.metadata.initiated_at,

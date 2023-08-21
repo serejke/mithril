@@ -1831,7 +1831,7 @@ protocol_message, signers, initiated_at, sealed_at)&quot;</span>;
 
         <span class="kw">let </span>entity = <span class="self">self</span>.find(filters)<span class="question-mark">?</span>.next().unwrap_or_else(|| {
             <span class="macro">panic!</span>(
-                <span class="string">&quot;No entity returned by the persister, certificate_record = {certificate_record:?}&quot;
+                <span class="string">&quot;No entity returned by the persister, certificate_record = {certificate_record:#?}&quot;
             </span>)
         });
 

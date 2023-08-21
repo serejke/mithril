@@ -487,7 +487,7 @@
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::entities;
-    <span class="kw">use </span><span class="kw">crate</span>::messages::{CertificatePendingMessage, SignerMessage};
+    <span class="kw">use </span><span class="kw">crate</span>::messages::{CertificatePendingMessage, SignerMessagePart};
     <span class="kw">use </span><span class="kw">crate</span>::test_utils::fake_data;
 
     <span class="attr">#[test]
@@ -509,7 +509,7 @@
         </span><span class="macro">assert!</span>(APISpec::from_file(<span class="kw-2">&amp;</span>APISpec::get_defaut_spec_file())
             .method(Method::POST.as_str())
             .path(<span class="string">&quot;/register-signer&quot;</span>)
-            .validate_request(<span class="kw-2">&amp;</span>SignerMessage::dummy())
+            .validate_request(<span class="kw-2">&amp;</span>SignerMessagePart::dummy())
             .unwrap()
             .validate_response(<span class="kw-2">&amp;</span>Response::&lt;Bytes&gt;::new(Bytes::new()))
             .is_err());

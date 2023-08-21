@@ -183,14 +183,39 @@
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
 <a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>std::fmt::{Debug, Formatter};
 
-<span class="kw">use </span><span class="kw">crate</span>::entities::Beacon;
-<span class="kw">use </span><span class="kw">crate</span>::entities::ProtocolMessage;
-<span class="kw">use </span><span class="kw">crate</span>::entities::ProtocolMessagePartKey;
-<span class="kw">use </span><span class="kw">crate</span>::entities::ProtocolParameters;
-<span class="kw">use </span><span class="kw">crate</span>::entities::ProtocolVersion;
+<span class="kw">use </span><span class="kw">crate</span>::entities::{
+    Beacon, ProtocolMessage, ProtocolMessagePartKey, ProtocolParameters, ProtocolVersion,
+};
 
 <span class="doccomment">/// Message structure of a certificate list
 </span><span class="kw">pub type </span>CertificateListMessage = Vec&lt;CertificateListItemMessage&gt;;
@@ -225,7 +250,7 @@
 }
 
 <span class="doccomment">/// Message structure of a certificate list item
-</span><span class="attr">#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+</span><span class="attr">#[derive(Clone, PartialEq, Default, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>CertificateListItemMessage {
     <span class="doccomment">/// Hash of the current certificate
     /// Computed from the other fields of the certificate
@@ -290,6 +315,33 @@
             protocol_message: protocol_message.clone(),
             signed_message: <span class="string">&quot;signed_message&quot;</span>.to_string(),
             aggregate_verification_key: <span class="string">&quot;aggregate_verification_key&quot;</span>.to_string(),
+        }
+    }
+}
+
+<span class="kw">impl </span>Debug <span class="kw">for </span>CertificateListItemMessage {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">let </span>should_be_exhaustive = f.alternate();
+        <span class="kw">let </span><span class="kw-2">mut </span>debug = f.debug_struct(<span class="string">&quot;Certificate&quot;</span>);
+        debug
+            .field(<span class="string">&quot;hash&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.hash)
+            .field(<span class="string">&quot;previous_hash&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.previous_hash)
+            .field(<span class="string">&quot;beacon&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.beacon))
+            .field(<span class="string">&quot;metadata&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.metadata))
+            .field(
+                <span class="string">&quot;protocol_message&quot;</span>,
+                <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.protocol_message),
+            )
+            .field(<span class="string">&quot;signed_message&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.signed_message);
+
+        <span class="kw">match </span>should_be_exhaustive {
+            <span class="bool-val">true </span>=&gt; debug
+                .field(
+                    <span class="string">&quot;aggregate_verification_key&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.aggregate_verification_key,
+                )
+                .finish(),
+            <span class="bool-val">false </span>=&gt; debug.finish_non_exhaustive(),
         }
     }
 }

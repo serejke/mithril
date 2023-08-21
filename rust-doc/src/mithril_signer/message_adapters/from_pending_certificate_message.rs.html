@@ -85,14 +85,14 @@
         ProtocolOpCert, ProtocolSignerVerificationKey, ProtocolSignerVerificationKeySignature,
     },
     entities::{CertificatePending, Signer},
-    messages::{CertificatePendingMessage, SignerMessage, TryFromMessageAdapter},
+    messages::{CertificatePendingMessage, SignerMessagePart, TryFromMessageAdapter},
     StdResult,
 };
 
 <span class="doccomment">/// Adapter to turn [CertificatePendingMessage] instances into [CertificatePending].
 </span><span class="kw">pub struct </span>FromPendingCertificateMessageAdapter;
 
-<span class="kw">fn </span>to_signers(messages: <span class="kw-2">&amp;</span>[SignerMessage]) -&gt; StdResult&lt;Vec&lt;Signer&gt;&gt; {
+<span class="kw">fn </span>to_signers(messages: <span class="kw-2">&amp;</span>[SignerMessagePart]) -&gt; StdResult&lt;Vec&lt;Signer&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>signers: Vec&lt;Signer&gt; = Vec::new();
 
     <span class="kw">for </span>msg <span class="kw">in </span>messages {
@@ -155,7 +155,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>adapt_signers() {
         <span class="kw">let </span><span class="kw-2">mut </span>message = CertificatePendingMessage::dummy();
-        message.signers = <span class="macro">vec!</span>[SignerMessage::dummy(), SignerMessage::dummy()];
+        message.signers = <span class="macro">vec!</span>[SignerMessagePart::dummy(), SignerMessagePart::dummy()];
         <span class="kw">let </span>certificate_pending = FromPendingCertificateMessageAdapter::try_adapt(message).unwrap();
 
         <span class="macro">assert_eq!</span>(<span class="number">2</span>, certificate_pending.signers.len());
