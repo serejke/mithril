@@ -6,7 +6,7 @@ use crate::{
     crypto_helper,
     entities::{
         self, CertificateMetadata, CertificateSignature, Epoch, LotteryIndex, ProtocolMessage,
-        ProtocolMessagePartKey, SignedEntityType, SingleSignatures,
+        ProtocolMessagePart, SignedEntityType, SingleSignatures,
     },
     test_utils::MithrilFixtureBuilder,
 };
@@ -126,11 +126,10 @@ pub fn certificate(certificate_hash: String) -> entities::Certificate {
     let next_aggregate_verification_key = fake_keys::aggregate_verification_key()[2].to_owned();
     let mut protocol_message = ProtocolMessage::new();
     let snapshot_digest = format!("1{}", beacon.immutable_file_number).repeat(20);
-    protocol_message.set_message_part(ProtocolMessagePartKey::SnapshotDigest, snapshot_digest);
-    protocol_message.set_message_part(
-        ProtocolMessagePartKey::NextAggregateVerificationKey,
-        next_aggregate_verification_key,
-    );
+    protocol_message.set_message_part(ProtocolMessagePart::SnapshotDigest(snapshot_digest));
+    protocol_message.set_message_part(ProtocolMessagePart::NextAggregateVerificationKey(
+        next_aggregate_verification_key.try_into().unwrap(),
+    ));
 
     // Certificate
     let previous_hash = format!("{certificate_hash}0");

@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
 
-use crate::entities::{
-    Beacon, ProtocolMessage, ProtocolMessagePartKey, ProtocolParameters, ProtocolVersion,
-};
+use crate::entities::{Beacon, ProtocolParameters, ProtocolVersion};
+use crate::messages::{ProtocolMessage, ProtocolMessagePartKey};
 
 /// Message structure of a certificate list
 pub type CertificateListMessage = Vec<CertificateListItemMessage>;
@@ -77,15 +77,17 @@ pub struct CertificateListItemMessage {
 impl CertificateListItemMessage {
     /// Return a dummy test entity (test-only).
     pub fn dummy() -> Self {
-        let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
-            "snapshot-digest-123".to_string(),
-        );
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "next-avk-123".to_string(),
-        );
+        let protocol_message = ProtocolMessage::new(BTreeMap::from([
+            (
+                ProtocolMessagePartKey::SnapshotDigest,
+                "snapshot-digest-123".to_string(),
+            ),
+            (
+                ProtocolMessagePartKey::NextAggregateVerificationKey,
+                "next-avk-123".to_string(),
+            ),
+        ]));
+
         Self {
             hash: "hash".to_string(),
             previous_hash: "previous_hash".to_string(),
@@ -140,15 +142,17 @@ mod tests {
     use super::*;
 
     fn golden_message() -> CertificateListMessage {
-        let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
-            "snapshot-digest-123".to_string(),
-        );
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "next-avk-123".to_string(),
-        );
+        let protocol_message = ProtocolMessage::new(BTreeMap::from([
+            (
+                ProtocolMessagePartKey::SnapshotDigest,
+                "snapshot-digest-123".to_string(),
+            ),
+            (
+                ProtocolMessagePartKey::NextAggregateVerificationKey,
+                "next-avk-123".to_string(),
+            ),
+        ]));
+
         vec![CertificateListItemMessage {
             hash: "hash".to_string(),
             previous_hash: "previous_hash".to_string(),

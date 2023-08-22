@@ -12,7 +12,7 @@ use crate::{
     },
     entities::{
         Beacon, Certificate, CertificateMetadata, CertificateSignature, ProtocolMessage,
-        ProtocolMessagePartKey, ProtocolParameters,
+        ProtocolMessagePart, ProtocolParameters,
     },
     StdError,
 };
@@ -45,14 +45,10 @@ impl CertificateGenesisProducer {
     pub fn create_genesis_protocol_message(
         genesis_avk: &ProtocolAggregateVerificationKey,
     ) -> Result<ProtocolMessage, CertificateGenesisProducerError> {
-        let genesis_avk = genesis_avk
-            .to_json_hex()
-            .map_err(CertificateGenesisProducerError::Codec)?;
         let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            genesis_avk,
-        );
+        protocol_message.set_message_part(ProtocolMessagePart::NextAggregateVerificationKey(
+            genesis_avk.clone(),
+        ));
         Ok(protocol_message)
     }
 

@@ -171,7 +171,7 @@ impl Debug for Certificate {
 mod tests {
     use super::*;
     use crate::{
-        entities::{ProtocolMessagePartKey, ProtocolParameters, SignerWithStake},
+        entities::{ProtocolMessagePart, ProtocolParameters, SignerWithStake},
         test_utils::fake_keys,
     };
     use chrono::{DateTime, Duration, Utc};
@@ -199,14 +199,14 @@ mod tests {
 
     fn get_protocol_message() -> ProtocolMessage {
         let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
+        protocol_message.set_message_part(ProtocolMessagePart::SnapshotDigest(
             "snapshot-digest-123".to_string(),
-        );
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            fake_keys::aggregate_verification_key()[1].to_owned(),
-        );
+        ));
+        protocol_message.set_message_part(ProtocolMessagePart::NextAggregateVerificationKey(
+            fake_keys::aggregate_verification_key()[1]
+                .try_into()
+                .unwrap(),
+        ));
 
         protocol_message
     }
@@ -278,10 +278,11 @@ mod tests {
                 protocol_message: {
                     let mut protocol_message_modified = certificate.protocol_message.clone();
                     protocol_message_modified.set_message_part(
-                        ProtocolMessagePartKey::NextAggregateVerificationKey,
-                        fake_keys::aggregate_verification_key()[2]
-                            .try_into()
-                            .unwrap(),
+                        ProtocolMessagePart::NextAggregateVerificationKey(
+                            fake_keys::aggregate_verification_key()[2]
+                                .try_into()
+                                .unwrap(),
+                        ),
                     );
 
                     protocol_message_modified

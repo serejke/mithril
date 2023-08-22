@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     digesters::ImmutableDigester,
-    entities::{Beacon, ProtocolMessage, ProtocolMessagePartKey},
+    entities::{Beacon, ProtocolMessage, ProtocolMessagePart},
     signable_builder::SignableBuilder,
     StdResult,
 };
@@ -44,7 +44,7 @@ impl SignableBuilder<Beacon> for CardanoImmutableFilesFullSignableBuilder {
             .await?;
         info!(self.logger, "SignableBuilder: digest = '{digest}'.");
         let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(ProtocolMessagePartKey::SnapshotDigest, digest);
+        protocol_message.set_message_part(ProtocolMessagePart::SnapshotDigest(digest));
 
         Ok(protocol_message)
     }
@@ -94,11 +94,6 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            &"immutable 0".to_string(),
-            protocol_message
-                .get_message_part(&ProtocolMessagePartKey::SnapshotDigest)
-                .unwrap()
-        );
+        assert_eq!(Some("immutable 0"), protocol_message.get_snapshot_digest());
     }
 }

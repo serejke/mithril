@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
 
-use crate::entities::{Beacon, ProtocolMessage, ProtocolMessagePartKey};
-use crate::messages::CertificateMetadataMessagePart;
+use crate::entities::Beacon;
+use crate::messages::{CertificateMetadataMessagePart, ProtocolMessage, ProtocolMessagePartKey};
 use crate::test_utils::fake_keys;
 
 /// Message structure of a certificate
@@ -52,15 +53,17 @@ pub struct CertificateMessage {
 impl CertificateMessage {
     /// Return a dummy test entity (test-only).
     pub fn dummy() -> Self {
-        let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
-            "snapshot-digest-123".to_string(),
-        );
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            fake_keys::aggregate_verification_key()[1].to_owned(),
-        );
+        let protocol_message = ProtocolMessage::new(BTreeMap::from([
+            (
+                ProtocolMessagePartKey::SnapshotDigest,
+                "snapshot-digest-123".to_string(),
+            ),
+            (
+                ProtocolMessagePartKey::NextAggregateVerificationKey,
+                fake_keys::aggregate_verification_key()[1].to_owned(),
+            ),
+        ]));
+
         Self {
             hash: "hash".to_string(),
             previous_hash: "previous_hash".to_string(),
@@ -111,15 +114,17 @@ mod tests {
     use chrono::{DateTime, Utc};
 
     fn golden_message() -> CertificateMessage {
-        let mut protocol_message = ProtocolMessage::new();
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
-            "snapshot-digest-123".to_string(),
-        );
-        protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "next-avk-123".to_string(),
-        );
+        let protocol_message = ProtocolMessage::new(BTreeMap::from([
+            (
+                ProtocolMessagePartKey::SnapshotDigest,
+                "snapshot-digest-123".to_string(),
+            ),
+            (
+                ProtocolMessagePartKey::NextAggregateVerificationKey,
+                "next-avk-123".to_string(),
+            ),
+        ]));
+
         CertificateMessage {
             hash: "hash".to_string(),
             previous_hash: "previous_hash".to_string(),

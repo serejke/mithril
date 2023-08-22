@@ -3,10 +3,10 @@ use super::{genesis::*, types::*, OpCert, SerDeShelleyFileFormat};
 use crate::{
     certificate_chain::CertificateGenesisProducer,
     entities::{
-        Certificate, CertificateSignature, Epoch, ProtocolMessage, ProtocolMessagePartKey,
+        Certificate, CertificateSignature, Epoch, ProtocolMessage, ProtocolMessagePart,
         SignerWithStake, Stake,
     },
-    test_utils::{fake_data, MithrilFixtureBuilder, SignerFixture},
+    test_utils::{fake_data, fake_keys, MithrilFixtureBuilder, SignerFixture},
 };
 
 use rand_chacha::ChaCha20Rng;
@@ -30,14 +30,14 @@ pub fn setup_temp_directory_for_signer(
 /// Instantiate a [ProtocolMessage] using fake data, use this for tests only.
 pub fn setup_message() -> ProtocolMessage {
     let mut protocol_message = ProtocolMessage::new();
-    protocol_message.set_message_part(
-        ProtocolMessagePartKey::SnapshotDigest,
+    protocol_message.set_message_part(ProtocolMessagePart::SnapshotDigest(
         "message_to_sign_123".to_string(),
-    );
-    protocol_message.set_message_part(
-        ProtocolMessagePartKey::NextAggregateVerificationKey,
-        "next-avk-123".to_string(),
-    );
+    ));
+    protocol_message.set_message_part(ProtocolMessagePart::NextAggregateVerificationKey(
+        fake_keys::aggregate_verification_key()[0]
+            .try_into()
+            .unwrap(),
+    ));
     protocol_message
 }
 
@@ -221,10 +221,9 @@ pub fn setup_certificate_chain(
             fake_certificate.beacon.immutable_file_number = immutable_file_number;
             fake_certificate
                 .protocol_message
-                .set_message_part(ProtocolMessagePartKey::SnapshotDigest, digest);
+                .set_message_part(ProtocolMessagePart::SnapshotDigest(digest));
             fake_certificate.protocol_message.set_message_part(
-                ProtocolMessagePartKey::NextAggregateVerificationKey,
-                next_avk.to_json_hex().unwrap(),
+                ProtocolMessagePart::NextAggregateVerificationKey(next_avk.clone()),
             );
             fake_certificate.aggregate_verification_key = avk;
             fake_certificate.signed_message = fake_certificate.protocol_message.compute_hash();

@@ -92,7 +92,7 @@ impl MultiSigner {
 #[cfg(test)]
 mod test {
     use crate::{
-        entities::{ProtocolMessagePartKey, ProtocolParameters},
+        entities::{ProtocolMessagePart, ProtocolParameters},
         protocol::SignerBuilder,
         test_utils::fake_keys,
         test_utils::{MithrilFixture, MithrilFixtureBuilder, StakeDistributionGenerationMethod},
@@ -203,10 +203,8 @@ mod test {
         let fixture = MithrilFixtureBuilder::default().with_signers(1).build();
         let multi_signer = build_multi_signer(&fixture);
         let mut signed_message = ProtocolMessage::default();
-        signed_message.set_message_part(
-            ProtocolMessagePartKey::SnapshotDigest,
-            "a_digest".to_string(),
-        );
+        signed_message
+            .set_message_part(ProtocolMessagePart::SnapshotDigest("a_digest".to_string()));
         let single_signature = fixture
             .signers_fixture()
             .first()

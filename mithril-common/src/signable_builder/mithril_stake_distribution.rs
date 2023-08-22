@@ -31,6 +31,6 @@ mod tests {
             .await
             .unwrap();
         let signable_expected = ProtocolMessage::new();
-        assert_eq!(signable_expected, signable);
+        assert_eq!(format!("{signable_expected:?}"), format!("{signable:?}"));
     }
 }

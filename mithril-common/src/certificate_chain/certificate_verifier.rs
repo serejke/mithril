@@ -12,9 +12,7 @@ use crate::crypto_helper::{
     ProtocolAggregateVerificationKey, ProtocolGenesisError, ProtocolGenesisVerifier,
     ProtocolMultiSignature,
 };
-use crate::entities::{
-    Certificate, CertificateSignature, ProtocolMessage, ProtocolMessagePartKey, ProtocolParameters,
-};
+use crate::entities::{Certificate, CertificateSignature, ProtocolMessage, ProtocolParameters};
 use crate::StdError;
 
 #[cfg(test)]
@@ -218,11 +216,13 @@ impl MithrilCertificateVerifier {
 
         match previous_certificate
             .protocol_message
-            .get_message_part(&ProtocolMessagePartKey::NextAggregateVerificationKey)
+            .get_aggregate_verification_key()
         {
             Some(next_aggregate_verification_key)
                 if valid_certificate_has_different_epoch_as_previous(
-                    next_aggregate_verification_key,
+                    &next_aggregate_verification_key
+                        .to_json_hex()
+                        .map_err(CertificateVerifierError::Codec)?,
                 ) =>
             {
                 Ok(Some(previous_certificate.to_owned()))
@@ -312,7 +312,8 @@ mod tests {
     use super::*;
 
     use crate::crypto_helper::{tests_setup::*, ProtocolClerk};
-    use crate::test_utils::MithrilFixtureBuilder;
+    use crate::entities::ProtocolMessagePart;
+    use crate::test_utils::{fake_keys, MithrilFixtureBuilder};
 
     mock! {
         pub CertificateRetrieverImpl { }
@@ -462,8 +463,11 @@ mod tests {
         let mut fake_certificate1 = fake_certificates[0].clone();
         let mut fake_certificate2 = fake_certificates[1].clone();
         fake_certificate2.protocol_message.set_message_part(
-            ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "another-avk".to_string(),
+            ProtocolMessagePart::NextAggregateVerificationKey(
+                fake_keys::aggregate_verification_key()[2]
+                    .try_into()
+                    .unwrap(),
+            ),
         );
         fake_certificate2.hash = fake_certificate2.compute_hash();
         fake_certificate1.previous_hash = fake_certificate2.hash.clone();

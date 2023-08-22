@@ -27,7 +27,7 @@ pub use epoch::{Epoch, EpochError};
 pub use epoch_settings::EpochSettings;
 pub use http_server_error::{ClientError, InternalServerError};
 pub use mithril_stake_distribution::MithrilStakeDistribution;
-pub use protocol_message::{ProtocolMessage, ProtocolMessagePartKey, ProtocolMessagePartValue};
+pub use protocol_message::{ProtocolMessage, ProtocolMessagePart, ProtocolMessagePartKey};
 pub use protocol_parameters::ProtocolParameters;
 pub use signed_entity::*;
 pub use signed_entity_type::*;
