@@ -749,13 +749,6 @@
 <a href="#749" id="749">749</a>
 <a href="#750" id="750">750</a>
 <a href="#751" id="751">751</a>
-<a href="#752" id="752">752</a>
-<a href="#753" id="753">753</a>
-<a href="#754" id="754">754</a>
-<a href="#755" id="755">755</a>
-<a href="#756" id="756">756</a>
-<a href="#757" id="757">757</a>
-<a href="#758" id="758">758</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, warn};
 <span class="kw">use </span>std::sync::Arc;
@@ -763,9 +756,8 @@
 
 <span class="kw">use </span>mithril_common::{
     crypto_helper::{
-        key_encode_hex, ProtocolAggregateVerificationKey, ProtocolAggregationError,
-        ProtocolMultiSignature, ProtocolParameters, ProtocolRegistrationError,
-        ProtocolStakeDistribution,
+        ProtocolAggregateVerificationKey, ProtocolAggregationError, ProtocolMultiSignature,
+        ProtocolParameters, ProtocolRegistrationError, ProtocolStakeDistribution,
     },
     entities::{<span class="self">self</span>, Epoch, SignerWithStake, StakeDistribution},
     protocol::{MultiSigner <span class="kw">as </span>ProtocolMultiSigner, SignerBuilder},
@@ -795,10 +787,6 @@
     <span class="doccomment">/// Single signature already recorded.
     </span><span class="attr">#[error(<span class="string">&quot;single signature already recorded&quot;</span>)]
     </span>ExistingSingleSignature(entities::PartyId),
-
-    <span class="doccomment">/// Codec error.
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
 
     <span class="doccomment">/// Mithril STM library returned an error.
     </span><span class="attr">#[error(<span class="string">&quot;core error: &#39;{0}&#39;&quot;</span>)]
@@ -880,31 +868,29 @@
     <span class="doccomment">/// Compute stake distribution aggregate verification key
     </span><span class="kw">async fn </span>compute_stake_distribution_aggregate_verification_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ProtocolError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAggregateVerificationKey, ProtocolError&gt; {
         <span class="kw">let </span>signers_with_stake = <span class="self">self</span>.get_signers_with_stake().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
             </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
-        <span class="kw">let </span>avk = <span class="self">self
+        <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.compute_aggregate_verification_key(<span class="kw-2">&amp;</span>signers_with_stake, <span class="kw-2">&amp;</span>protocol_parameters)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(key_encode_hex(avk).map_err(ProtocolError::Codec)<span class="question-mark">?</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Compute next stake distribution aggregate verification key
     </span><span class="kw">async fn </span>compute_next_stake_distribution_aggregate_verification_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ProtocolError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAggregateVerificationKey, ProtocolError&gt; {
         <span class="kw">let </span>next_signers_with_stake = <span class="self">self</span>.get_next_signers_with_stake().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_next_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
             </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
-        <span class="kw">let </span>next_avk = <span class="self">self
+        <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.compute_aggregate_verification_key(<span class="kw-2">&amp;</span>next_signers_with_stake, <span class="kw-2">&amp;</span>protocol_parameters)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(key_encode_hex(next_avk).map_err(ProtocolError::Codec)<span class="question-mark">?</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Get signers

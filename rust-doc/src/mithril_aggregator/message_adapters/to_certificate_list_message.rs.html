@@ -64,6 +64,12 @@
 <a href="#64" id="64">64</a>
 <a href="#65" id="65">65</a>
 <a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::Certificate;
 <span class="kw">use </span>mithril_common::messages::{
     CertificateListItemMessage, CertificateListItemMessageMetadata, CertificateListMessage,
@@ -93,7 +99,10 @@
                 },
                 protocol_message: certificate.protocol_message,
                 signed_message: certificate.signed_message,
-                aggregate_verification_key: certificate.aggregate_verification_key,
+                aggregate_verification_key: certificate
+                    .aggregate_verification_key
+                    .to_json_hex()
+                    .unwrap(),
             })
             .collect()
     }
@@ -124,7 +133,10 @@
             },
             protocol_message: certificate.protocol_message,
             signed_message: certificate.signed_message,
-            aggregate_verification_key: certificate.aggregate_verification_key,
+            aggregate_verification_key: certificate
+                .aggregate_verification_key
+                .to_json_hex()
+                .unwrap(),
         }];
 
         <span class="macro">assert_eq!</span>(certificate_list_message_expected, certificate_list_message);

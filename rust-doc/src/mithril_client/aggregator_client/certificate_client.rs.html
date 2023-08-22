@@ -163,6 +163,9 @@
 <a href="#163" id="163">163</a>
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
@@ -273,7 +276,10 @@
                     },
                     protocol_message: certificate.protocol_message.clone(),
                     signed_message: certificate.signed_message.clone(),
-                    aggregate_verification_key: certificate.aggregate_verification_key.clone(),
+                    aggregate_verification_key: certificate
+                        .aggregate_verification_key
+                        .try_into()
+                        .unwrap(),
                     multi_signature,
                     genesis_signature,
                 };

@@ -288,7 +288,7 @@
 
     <span class="doccomment">/// Compute aggregate verification key from stake distribution
     </span><span class="kw">pub fn </span>compute_aggregate_verification_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProtocolAggregateVerificationKey {
-        <span class="self">self</span>.protocol_clerk.compute_avk()
+        <span class="self">self</span>.protocol_clerk.compute_avk().into()
     }
 
     <span class="doccomment">/// Verify a single signature

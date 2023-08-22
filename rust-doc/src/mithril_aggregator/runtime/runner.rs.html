@@ -1079,7 +1079,11 @@
 <a href="#1079" id="1079">1079</a>
 <a href="#1080" id="1080">1080</a>
 <a href="#1081" id="1081">1081</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#1082" id="1082">1082</a>
+<a href="#1083" id="1083">1083</a>
+<a href="#1084" id="1084">1084</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, warn};
 <span class="kw">use </span>std::{path::Path, path::PathBuf, sync::Arc};
 
@@ -1450,7 +1454,9 @@
             ProtocolMessagePartKey::NextAggregateVerificationKey,
             multi_signer
                 .compute_next_stake_distribution_aggregate_verification_key()
-                .<span class="kw">await</span><span class="question-mark">?</span>,
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.to_json_hex()
+                .with_context(|| <span class="string">&quot;convert next avk to json hex failure&quot;</span>)<span class="question-mark">?</span>,
         );
 
         <span class="prelude-val">Ok</span>(protocol_message)

@@ -220,9 +220,7 @@
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span>mithril_common::crypto_helper::{
-    key_encode_hex, KESPeriod, ProtocolInitializer, ProtocolInitializerError,
-};
+<span class="kw">use </span>mithril_common::crypto_helper::{KESPeriod, ProtocolInitializer, ProtocolInitializerError};
 <span class="kw">use </span>mithril_common::entities::{
     PartyId, ProtocolMessage, ProtocolParameters, SignerWithStake, SingleSignatures, Stake,
 };
@@ -286,8 +284,8 @@
     </span>ProtocolSignerCreationFailure(String),
 
     <span class="doccomment">/// Encoding / Decoding error.
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
+    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0:?}&#39;&quot;</span>)]
+    </span>Codec(StdError),
 
     <span class="doccomment">/// Signature Error
     </span><span class="attr">#[error(<span class="string">&quot;Signature Error: {0:?}&quot;</span>)]
@@ -357,7 +355,9 @@
         )
         .map_err(SingleSignerError::AggregateVerificationKeyComputationFailed)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>encoded_avk = key_encode_hex(signer_builder.compute_aggregate_verification_key())
+        <span class="kw">let </span>encoded_avk = signer_builder
+            .compute_aggregate_verification_key()
+            .to_json_hex()
             .map_err(SingleSignerError::Codec)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(encoded_avk))

@@ -287,12 +287,8 @@
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
 <a href="#289" id="289">289</a>
-<a href="#290" id="290">290</a>
-<a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Test data builders for Mithril STM types, for testing purpose.
-</span><span class="kw">use super</span>::{genesis::<span class="kw-2">*</span>, key_encode_hex, types::<span class="kw-2">*</span>, OpCert, SerDeShelleyFileFormat};
+</span><span class="kw">use super</span>::{genesis::<span class="kw-2">*</span>, types::<span class="kw-2">*</span>, OpCert, SerDeShelleyFileFormat};
 <span class="kw">use crate</span>::{
     certificate_chain::CertificateGenesisProducer,
     entities::{
@@ -304,9 +300,7 @@
 
 <span class="kw">use </span>rand_chacha::ChaCha20Rng;
 <span class="kw">use </span>rand_core::SeedableRng;
-<span class="kw">use </span>std::{cmp::min, fs, sync::Arc};
-
-<span class="kw">use </span>std::{collections::HashMap, path::PathBuf};
+<span class="kw">use </span>std::{cmp::min, collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 <span class="doccomment">/// Create or retrieve a temporary directory for storing cryptographic material for a signer, use this for tests only.
 </span><span class="kw">pub fn </span>setup_temp_directory_for_signer(
@@ -497,10 +491,8 @@
     };
     <span class="kw">let </span>avk_for_signers = |signers: <span class="kw-2">&amp;</span>[SignerFixture]| -&gt; ProtocolAggregateVerificationKey {
         <span class="kw">let </span>clerk = clerk_for_signers(signers);
-        clerk.compute_avk()
+        clerk.compute_avk().into()
     };
-    <span class="kw">let </span>avk_encode =
-        |avk: <span class="kw-2">&amp;</span>ProtocolAggregateVerificationKey| -&gt; String { key_encode_hex(avk).unwrap() };
     epochs.pop();
     <span class="kw">let </span>certificates = epochs
         .into_iter()
@@ -521,9 +513,9 @@
                 .set_message_part(ProtocolMessagePartKey::SnapshotDigest, digest);
             fake_certificate.protocol_message.set_message_part(
                 ProtocolMessagePartKey::NextAggregateVerificationKey,
-                avk_encode(<span class="kw-2">&amp;</span>next_avk),
+                next_avk.to_json_hex().unwrap(),
             );
-            fake_certificate.aggregate_verification_key = avk_encode(<span class="kw-2">&amp;</span>avk);
+            fake_certificate.aggregate_verification_key = avk;
             fake_certificate.signed_message = fake_certificate.protocol_message.compute_hash();
             fake_certificate.previous_hash = <span class="string">&quot;&quot;</span>.to_string();
             <span class="kw">match </span>i {

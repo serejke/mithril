@@ -274,7 +274,7 @@
         );
         protocol_message.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
-            <span class="string">&quot;next-avk-123&quot;</span>.to_string(),
+            fake_keys::aggregate_verification_key()[<span class="number">1</span>].to_owned(),
         );
         <span class="self">Self </span>{
             hash: <span class="string">&quot;hash&quot;</span>.to_string(),
@@ -283,7 +283,7 @@
             metadata: CertificateMetadataMessagePart::dummy(),
             protocol_message: protocol_message.clone(),
             signed_message: <span class="string">&quot;signed_message&quot;</span>.to_string(),
-            aggregate_verification_key: <span class="string">&quot;aggregate_verification_key&quot;</span>.to_string(),
+            aggregate_verification_key: fake_keys::aggregate_verification_key()[<span class="number">0</span>].to_owned(),
             multi_signature: fake_keys::multi_signature()[<span class="number">0</span>].to_owned(),
             genesis_signature: String::new(),
         }

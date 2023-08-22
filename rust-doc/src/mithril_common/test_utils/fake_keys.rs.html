@@ -434,6 +434,34 @@
 <a href="#434" id="434">434</a>
 <a href="#435" id="435">435</a>
 <a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Pre hex encoded StmTypes for testing.
 
 /// A list of pre json hex encoded [MithrilStm:StmSig](type@mithril_stm::stm::StmSig)
@@ -768,11 +796,32 @@
     ]
 }
 
+<span class="doccomment">/// A list of pre json hex encoded [MithrilStm:StmAggrVerificationKey](struct@mithril_stm::stm::StmAggrVerificationKey)
+</span><span class="kw">pub const fn </span>aggregate_verification_key&lt;<span class="lifetime">&#39;a</span>&gt;() -&gt; [<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str; <span class="number">3</span>] {
+    [
+        <span class="string">&quot;7b226d745f636f6d6d69746d656e74223a7b22726f6f74223a5b3134302c31332c3135352c3134312c3136332c\
+        372c38362c3232372c34372c31392c3138302c3132372c3139362c3130382c3137312c3135382c3134302c37372\
+        c3137352c3135392c3133362c3139332c3130382c34322c3134322c3234342c38352c3131362c3235322c313536\
+        2c3233352c35305d2c226e725f6c6561766573223a312c22686173686572223a6e756c6c7d2c22746f74616c5f7\
+        374616b65223a313030393439373433323536397d&quot;</span>,
+        <span class="string">&quot;7b226d745f636f6d6d69746d656e74223a7b22726f6f74223a5b37332c37342c3232392c3235302c3132322c32\
+        32362c38392c33372c3233312c3234352c3130362c3138332c3132372c332c39392c3137372c3231372c36352c3\
+        135322c3133352c33322c36372c3232332c33352c3134312c35312c342c3132352c3230332c33382c3139362c32\
+        31325d2c226e725f6c6561766573223a32342c22686173686572223a6e756c6c7d2c22746f74616c5f7374616b6\
+        5223a35323337353137363336353838327d&quot;</span>,
+        <span class="string">&quot;7b226d745f636f6d6d69746d656e74223a7b22726f6f74223a5b39382c3234312c3132322c37382c3230322c33\
+        2c3230322c37322c36372c3231352c3139302c3135322c3130332c3135392c39372c35352c32362c3232312c313\
+        7372c38352c3233392c3132372c39322c35332c3131332c3235322c39302c39372c39352c3133342c3233342c36\
+        375d2c226e725f6c6561766573223a36342c22686173686572223a6e756c6c7d2c22746f74616c5f7374616b652\
+        23a313236393036323837373536363033367d&quot;</span>,
+    ]
+}
+
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span>kes_summed_ed25519::kes::Sum6KesSig;
-    <span class="kw">use </span>mithril_stm::stm::{StmAggrSig, StmSig, StmVerificationKeyPoP};
+    <span class="kw">use </span>mithril_stm::stm::{StmAggrSig, StmAggrVerificationKey, StmSig, StmVerificationKeyPoP};
     <span class="kw">use </span>serde::{de::DeserializeOwned, Serialize};
     <span class="kw">use </span>std::any::type_name;
 
@@ -868,6 +917,13 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>assert_encoded_operational_certificate_are_still_matching_concrete_type() {
         assert_can_deserialize_using_key_decode_hex::&lt;OpCert&gt;(<span class="kw-2">&amp;</span>operational_certificate());
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>assert_encoded_aggregate_verification_key_are_still_matching_concrete_type() {
+        assert_can_deserialize_using_key_decode_hex::&lt;StmAggrVerificationKey&lt;D&gt;&gt;(
+            <span class="kw-2">&amp;</span>aggregate_verification_key(),
+        );
     }
 }
 </code></pre></div></section></main></body></html>

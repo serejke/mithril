@@ -555,9 +555,33 @@
 <a href="#555" id="555">555</a>
 <a href="#556" id="556">556</a>
 <a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A module used to validate the Certificate Chain created by an aggregator
 //!
-</span><span class="kw">use </span>async_trait::async_trait;
+</span><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>hex::ToHex;
 <span class="kw">use </span>slog::{debug, Logger};
 <span class="kw">use </span>std::sync::Arc;
@@ -565,11 +589,13 @@
 
 <span class="kw">use super</span>::{CertificateRetriever, CertificateRetrieverError};
 <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{
-    key_decode_hex, ProtocolGenesisError, ProtocolGenesisVerifier, ProtocolMultiSignature,
+    ProtocolAggregateVerificationKey, ProtocolGenesisError, ProtocolGenesisVerifier,
+    ProtocolMultiSignature,
 };
 <span class="kw">use </span><span class="kw">crate</span>::entities::{
     Certificate, CertificateSignature, ProtocolMessage, ProtocolMessagePartKey, ProtocolParameters,
 };
+<span class="kw">use </span><span class="kw">crate</span>::StdError;
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
@@ -582,8 +608,8 @@
     </span>VerifyMultiSignature(String),
 
     <span class="doccomment">/// Error raised when encoding or decoding of data to hex fails.
-    </span><span class="attr">#[error(<span class="string">&quot;codec hex error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
+    </span><span class="attr">#[error(<span class="string">&quot;codec hex error: &#39;{0:?}&#39;&quot;</span>)]
+    </span>Codec(StdError),
 
     <span class="doccomment">/// Error raised when encoding or decoding of data to genesis type.
     </span><span class="attr">#[error(<span class="string">&quot;codec genesis error: &#39;{0}&#39;&quot;</span>)]
@@ -699,7 +725,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         message: <span class="kw-2">&amp;</span>[u8],
         multi_signature: <span class="kw-2">&amp;</span>ProtocolMultiSignature,
-        aggregate_verification_key: <span class="kw-2">&amp;</span>str,
+        aggregate_verification_key: <span class="kw-2">&amp;</span>ProtocolAggregateVerificationKey,
         protocol_parameters: <span class="kw-2">&amp;</span>ProtocolParameters,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CertificateVerifierError&gt; {
         <span class="macro">debug!</span>(
@@ -707,13 +733,11 @@
             <span class="string">&quot;Verify multi signature for {:?}&quot;</span>,
             message.encode_hex::&lt;String&gt;()
         );
-        <span class="kw">let </span>aggregate_verification_key =
-            key_decode_hex(aggregate_verification_key).map_err(CertificateVerifierError::Codec)<span class="question-mark">?</span>;
 
         multi_signature
             .verify(
                 message,
-                <span class="kw-2">&amp;</span>aggregate_verification_key,
+                aggregate_verification_key,
                 <span class="kw-2">&amp;</span>protocol_parameters.to_owned().into(),
             )
             .map_err(|e| CertificateVerifierError::VerifyMultiSignature(e.to_string()))
@@ -735,21 +759,44 @@
         <span class="kw">let </span>previous_certificate = certificate_retriever
             .get_certificate_details(<span class="kw-2">&amp;</span>certificate.previous_hash)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>valid_certificate_has_different_epoch_as_previous =
-            |next_aggregate_verification_key: <span class="kw-2">&amp;</span>String| -&gt; bool {
-                next_aggregate_verification_key == <span class="kw-2">&amp;</span>certificate.aggregate_verification_key
-                    &amp;&amp; previous_certificate.beacon.epoch != certificate.beacon.epoch
-            };
-        <span class="kw">let </span>valid_certificate_has_same_epoch_as_previous = || -&gt; bool {
-            previous_certificate.aggregate_verification_key
-                == certificate.aggregate_verification_key
-                &amp;&amp; previous_certificate.beacon.epoch == certificate.beacon.epoch
-        };
+
         <span class="kw">if </span>previous_certificate.hash != certificate.previous_hash {
             <span class="kw">return </span><span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainPreviousHashUnmatch);
         }
 
-        <span class="kw">match </span><span class="kw-2">&amp;</span>previous_certificate
+        <span class="kw">let </span>current_certificate_avk: String = certificate
+            .aggregate_verification_key
+            .to_json_hex()
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;avk to string conversion error for certificate: `{}`&quot;</span>,
+                    certificate.hash
+                )
+            })
+            .map_err(CertificateVerifierError::Codec)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>previous_certificate_avk: String = previous_certificate
+            .aggregate_verification_key
+            .to_json_hex()
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;avk to string conversion error for previous certificate: `{}`&quot;</span>,
+                    certificate.hash
+                )
+            })
+            .map_err(CertificateVerifierError::Codec)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>valid_certificate_has_different_epoch_as_previous =
+            |next_aggregate_verification_key: <span class="kw-2">&amp;</span>str| -&gt; bool {
+                next_aggregate_verification_key == current_certificate_avk
+                    &amp;&amp; previous_certificate.beacon.epoch != certificate.beacon.epoch
+            };
+        <span class="kw">let </span>valid_certificate_has_same_epoch_as_previous = || -&gt; bool {
+            previous_certificate_avk == current_certificate_avk
+                &amp;&amp; previous_certificate.beacon.epoch == certificate.beacon.epoch
+        };
+
+        <span class="kw">match </span>previous_certificate
             .protocol_message
             .get_message_part(<span class="kw-2">&amp;</span>ProtocolMessagePartKey::NextAggregateVerificationKey)
         {
@@ -844,8 +891,7 @@
     <span class="kw">use </span><span class="kw">super</span>::CertificateRetriever;
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::tests_setup::<span class="kw-2">*</span>;
-    <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{key_encode_hex, ProtocolClerk};
+    <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{tests_setup::<span class="kw-2">*</span>, ProtocolClerk};
     <span class="kw">use </span><span class="kw">crate</span>::test_utils::MithrilFixtureBuilder;
 
     <span class="macro">mock! </span>{
@@ -878,7 +924,7 @@
 
         <span class="kw">let </span>first_signer = <span class="kw-2">&amp;</span>signers[<span class="number">0</span>].protocol_signer;
         <span class="kw">let </span>clerk = ProtocolClerk::from_signer(first_signer);
-        <span class="kw">let </span>aggregate_verification_key = clerk.compute_avk();
+        <span class="kw">let </span>aggregate_verification_key = clerk.compute_avk().into();
         <span class="kw">let </span>multi_signature = clerk
             .aggregate(<span class="kw-2">&amp;</span>single_signatures, <span class="kw-2">&amp;</span>message_hash)
             .unwrap()
@@ -891,7 +937,7 @@
                 .verify_multi_signature(
                     <span class="kw-2">&amp;</span>message_tampered,
                     <span class="kw-2">&amp;</span>multi_signature,
-                    <span class="kw-2">&amp;</span>key_encode_hex(<span class="kw-2">&amp;</span>aggregate_verification_key).unwrap(),
+                    <span class="kw-2">&amp;</span>aggregate_verification_key,
                     <span class="kw-2">&amp;</span>fixture.protocol_parameters(),
                 )
                 .is_err(),
@@ -901,7 +947,7 @@
             .verify_multi_signature(
                 <span class="kw-2">&amp;</span>message_hash,
                 <span class="kw-2">&amp;</span>multi_signature,
-                <span class="kw-2">&amp;</span>key_encode_hex(<span class="kw-2">&amp;</span>aggregate_verification_key).unwrap(),
+                <span class="kw-2">&amp;</span>aggregate_verification_key,
                 <span class="kw-2">&amp;</span>fixture.protocol_parameters(),
             )
             .expect(<span class="string">&quot;multi signature verification should have succeeded&quot;</span>);

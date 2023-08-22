@@ -58,6 +58,8 @@
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
 <a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::{Certificate, CertificateMetadata, CertificateSignature};
 <span class="kw">use </span>mithril_common::messages::{
     CertificateMessage, SignerWithStakeMessagePart, TryFromMessageAdapter,
@@ -87,7 +89,9 @@
             metadata,
             protocol_message: certificate_message.protocol_message,
             signed_message: certificate_message.signed_message,
-            aggregate_verification_key: certificate_message.aggregate_verification_key,
+            aggregate_verification_key: certificate_message
+                .aggregate_verification_key
+                .try_into()<span class="question-mark">?</span>,
             signature: <span class="kw">if </span>certificate_message.genesis_signature.is_empty() {
                 CertificateSignature::MultiSignature(
                     certificate_message.multi_signature.try_into()<span class="question-mark">?</span>,

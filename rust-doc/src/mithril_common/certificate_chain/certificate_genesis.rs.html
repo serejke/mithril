@@ -107,21 +107,22 @@
 
 <span class="kw">use crate</span>::{
     crypto_helper::{
-        key_encode_hex, ProtocolAggregateVerificationKey, ProtocolGenesisSignature,
-        ProtocolGenesisSigner, PROTOCOL_VERSION,
+        ProtocolAggregateVerificationKey, ProtocolGenesisSignature, ProtocolGenesisSigner,
+        PROTOCOL_VERSION,
     },
     entities::{
         Beacon, Certificate, CertificateMetadata, CertificateSignature, ProtocolMessage,
         ProtocolMessagePartKey, ProtocolParameters,
     },
+    StdError,
 };
 
 <span class="doccomment">/// [CertificateGenesisProducer] related errors.
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>CertificateGenesisProducerError {
     <span class="doccomment">/// Error raised when a Codec error occurs
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
+    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0:?}&#39;&quot;</span>)]
+    </span>Codec(StdError),
 
     <span class="doccomment">/// Error raised when there is no genesis signer available
     </span><span class="attr">#[error(<span class="string">&quot;missing genesis signer error&quot;</span>)]
@@ -144,8 +145,9 @@
     </span><span class="kw">pub fn </span>create_genesis_protocol_message(
         genesis_avk: <span class="kw-2">&amp;</span>ProtocolAggregateVerificationKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolMessage, CertificateGenesisProducerError&gt; {
-        <span class="kw">let </span>genesis_avk =
-            key_encode_hex(genesis_avk).map_err(CertificateGenesisProducerError::Codec)<span class="question-mark">?</span>;
+        <span class="kw">let </span>genesis_avk = genesis_avk
+            .to_json_hex()
+            .map_err(CertificateGenesisProducerError::Codec)<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>protocol_message = ProtocolMessage::new();
         protocol_message.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
@@ -186,8 +188,6 @@
         );
         <span class="kw">let </span>previous_hash = <span class="string">&quot;&quot;</span>.to_string();
         <span class="kw">let </span>genesis_protocol_message = <span class="self">Self</span>::create_genesis_protocol_message(<span class="kw-2">&amp;</span>genesis_avk)<span class="question-mark">?</span>;
-        <span class="kw">let </span>genesis_avk =
-            key_encode_hex(<span class="kw-2">&amp;</span>genesis_avk).map_err(CertificateGenesisProducerError::Codec)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(Certificate::new(
             previous_hash,
             beacon,

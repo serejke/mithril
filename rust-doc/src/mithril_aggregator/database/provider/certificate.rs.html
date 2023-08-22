@@ -1503,7 +1503,7 @@
             parent_certificate_id: <span class="prelude-val">Some</span>(parent_id.to_string()),
             message: <span class="string">&quot;message&quot;</span>.to_string(),
             signature: fake_keys::multi_signature()[<span class="number">0</span>].to_owned(),
-            aggregate_verification_key: <span class="string">&quot;avk&quot;</span>.to_string(),
+            aggregate_verification_key: fake_keys::aggregate_verification_key()[<span class="number">0</span>].to_owned(),
             epoch: beacon.epoch,
             beacon,
             protocol_version: <span class="string">&quot;protocol_version&quot;</span>.to_string(),
@@ -1534,7 +1534,7 @@
             parent_certificate_id,
             message: other.signed_message,
             signature,
-            aggregate_verification_key: other.aggregate_verification_key,
+            aggregate_verification_key: other.aggregate_verification_key.to_json_hex().unwrap(),
             epoch: other.beacon.epoch,
             beacon: other.beacon,
             protocol_version: other.metadata.protocol_version,
@@ -1574,7 +1574,7 @@
             metadata: certificate_metadata,
             signed_message: other.protocol_message.compute_hash(),
             protocol_message: other.protocol_message,
-            aggregate_verification_key: other.aggregate_verification_key,
+            aggregate_verification_key: other.aggregate_verification_key.try_into().unwrap(),
             signature,
         }
     }

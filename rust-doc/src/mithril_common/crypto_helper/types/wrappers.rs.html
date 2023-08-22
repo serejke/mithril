@@ -79,10 +79,14 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>hex::{FromHex, ToHex};
 <span class="kw">use </span>kes_summed_ed25519::kes::Sum6KesSig;
-<span class="kw">use </span>mithril_stm::stm::{StmAggrSig, StmSig, StmVerificationKeyPoP};
+<span class="kw">use </span>mithril_stm::stm::{StmAggrSig, StmAggrVerificationKey, StmSig, StmVerificationKeyPoP};
 
 <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{OpCert, ProtocolKey, ProtocolKeyCodec, D};
 <span class="kw">use </span><span class="kw">crate</span>::StdResult;
@@ -112,6 +116,9 @@
 
 <span class="doccomment">/// Alias of [Ed25519:SecretKey](https://docs.rs/ed25519-dalek/latest/ed25519_dalek/struct.SecretKey.html).
 </span><span class="kw">pub type </span>ProtocolGenesisSecretKey = ProtocolKey&lt;ed25519_dalek::SecretKey&gt;;
+
+<span class="doccomment">/// Alias of [MithrilStm:StmAggrVerificationKey](struct@mithril_stm::stm::StmAggrVerificationKey).
+</span><span class="kw">pub type </span>ProtocolAggregateVerificationKey = ProtocolKey&lt;StmAggrVerificationKey&lt;D&gt;&gt;;
 
 <span class="kw">impl </span>ProtocolGenesisSignature {
     <span class="doccomment">/// Create an instance from a bytes hex representation
@@ -157,7 +164,8 @@
 }
 
 <span class="macro">impl_codec_and_type_conversions_for_protocol_key!</span>(
-    json_hex_codec =&gt; StmVerificationKeyPoP, Sum6KesSig, StmSig, StmAggrSig&lt;D&gt;, OpCert, ed25519_dalek::PublicKey, ed25519_dalek::SecretKey
+    json_hex_codec =&gt; StmVerificationKeyPoP, Sum6KesSig, StmSig, StmAggrSig&lt;D&gt;, OpCert,
+        ed25519_dalek::PublicKey, ed25519_dalek::SecretKey, StmAggrVerificationKey&lt;D&gt;
 );
 <span class="macro">impl_codec_and_type_conversions_for_protocol_key!</span>(no_default_codec =&gt; ed25519_dalek::Signature);
 </code></pre></div></section></main></body></html>
