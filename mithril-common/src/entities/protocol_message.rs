@@ -75,11 +75,13 @@ impl ProtocolMessage {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::fake_keys;
+
     use super::*;
 
     #[test]
     fn test_protocol_message_compute_hash() {
-        let hash_expected = "71dee1e558cd647cdbc219a24b766940f568e7e8287c30a8292209ef11666e03";
+        let hash_expected = "07f1938b6f1ef9a3bb4b9b12f66866e96a4e918c1e6b22e9720e0c895a925d01";
 
         let mut protocol_message = ProtocolMessage::new();
         protocol_message.set_message_part(
@@ -88,14 +90,14 @@ mod tests {
         );
         protocol_message.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "next-avk-123".to_string(),
+            fake_keys::aggregate_verification_key()[0].to_owned(),
         );
         assert_eq!(hash_expected, protocol_message.compute_hash());
 
         let mut protocol_message_modified = protocol_message.clone();
         protocol_message_modified.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
-            "next-avk-456".to_string(),
+            fake_keys::aggregate_verification_key()[1].to_owned(),
         );
         assert_ne!(hash_expected, protocol_message_modified.compute_hash());
 
