@@ -369,7 +369,7 @@
 <a href="#369" id="369">369</a>
 <a href="#370" id="370">370</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>config::{ConfigError, Map, Source, Value, ValueKind};
-<span class="kw">use </span>mithril_common::crypto_helper::{key_encode_hex, ProtocolGenesisSigner};
+<span class="kw">use </span>mithril_common::crypto_helper::ProtocolGenesisSigner;
 <span class="kw">use </span>mithril_common::era::adapters::EraReaderAdapterType;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::path::PathBuf;
@@ -513,7 +513,7 @@
             db_directory: PathBuf::new(),
             snapshot_directory: PathBuf::new(),
             data_stores_directory: PathBuf::from(<span class="string">&quot;:memory:&quot;</span>),
-            genesis_verification_key: key_encode_hex(genesis_verification_key).unwrap(),
+            genesis_verification_key: genesis_verification_key.to_json_hex().unwrap(),
             reset_digests_cache: <span class="bool-val">false</span>,
             disable_digests_cache: <span class="bool-val">false</span>,
             store_retention_limit: <span class="prelude-val">None</span>,

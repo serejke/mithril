@@ -305,7 +305,9 @@
 <a href="#305" id="305">305</a>
 <a href="#306" id="306">306</a>
 <a href="#307" id="307">307</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>std::{fs::File, io::prelude::<span class="kw-2">*</span>, io::Write, path::Path, sync::Arc};
 <span class="kw">use </span>tokio::sync::RwLock;
 
@@ -446,8 +448,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>genesis_secret_key_serialized = String::new();
         genesis_secret_key_file.read_to_string(<span class="kw-2">&amp;mut </span>genesis_secret_key_serialized)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>genesis_secret_key = key_decode_hex(genesis_secret_key_serialized.trim())
-            .map_err(|e| <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;Genesis secret key decode error&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>genesis_secret_key = genesis_secret_key_serialized
+            .trim()
+            .try_into()
+            .with_context(|| <span class="string">&quot;Genesis secret key decode error&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>genesis_signer = ProtocolGenesisSigner::from_secret_key(genesis_secret_key);
 
         <span class="kw">let </span><span class="kw-2">mut </span>to_sign_payload_file = File::open(to_sign_payload_path).unwrap();

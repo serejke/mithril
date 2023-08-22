@@ -499,12 +499,12 @@
 
     <span class="doccomment">/// Decode this signer verification key certificate
     </span><span class="kw">pub fn </span>verification_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProtocolSignerVerificationKey {
-        <span class="self">self</span>.signer_with_stake.verification_key.clone()
+        <span class="self">self</span>.signer_with_stake.verification_key
     }
 
     <span class="doccomment">/// Decode this signer verification key signature certificate if any
     </span><span class="kw">pub fn </span>verification_key_signature(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;ProtocolSignerVerificationKeySignature&gt; {
-        <span class="self">self</span>.signer_with_stake.verification_key_signature.clone()
+        <span class="self">self</span>.signer_with_stake.verification_key_signature
     }
 
     <span class="doccomment">/// Get the path to this signer kes secret key

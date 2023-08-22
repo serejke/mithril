@@ -1119,13 +1119,18 @@
 <a href="#1119" id="1119">1119</a>
 <a href="#1120" id="1120">1120</a>
 <a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>mithril_common::{
     api_version::APIVersionProvider,
     certificate_chain::{CertificateVerifier, MithrilCertificateVerifier},
     chain_observer::{CardanoCliChainObserver, CardanoCliRunner, ChainObserver, FakeObserver},
-    crypto_helper::{key_decode_hex, ProtocolGenesisSigner, ProtocolGenesisVerifier},
+    crypto_helper::{
+        ProtocolGenesisSigner, ProtocolGenesisVerificationKey, ProtocolGenesisVerifier,
+    },
     database::{ApplicationNodeType, DatabaseVersionChecker},
     digesters::{
         cache::{ImmutableFileDigestCacheProvider, JsonImmutableFileDigestCacheProviderBuilder},
@@ -1738,14 +1743,15 @@
     <span class="kw">async fn </span>build_genesis_verifier(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;ProtocolGenesisVerifier&gt;&gt; {
         <span class="kw">let </span>genesis_verifier: ProtocolGenesisVerifier = <span class="kw">match </span><span class="self">self</span>.configuration.environment {
             ExecutionEnvironment::Production =&gt; ProtocolGenesisVerifier::from_verification_key(
-                key_decode_hex(<span class="kw-2">&amp;</span><span class="self">self</span>.configuration.genesis_verification_key).map_err(|e| {
-                    DependenciesBuilderError::Initialization {
-                        message: <span class="macro">format!</span>(
-                            <span class="string">&quot;Could not decode hex key to build genesis verifier: &#39;{}&#39; Error: {e}.&quot;</span>,
-                            <span class="self">self</span>.configuration.genesis_verification_key
-                        ),
-                        error: <span class="prelude-val">None</span>,
-                    }
+                ProtocolGenesisVerificationKey::from_json_hex(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.configuration.genesis_verification_key,
+                )
+                .map_err(|e| DependenciesBuilderError::Initialization {
+                    message: <span class="macro">format!</span>(
+                        <span class="string">&quot;Could not decode hex key to build genesis verifier: &#39;{}&#39;&quot;</span>,
+                        <span class="self">self</span>.configuration.genesis_verification_key
+                    ),
+                    error: <span class="prelude-val">Some</span>(e),
                 })<span class="question-mark">?</span>,
             ),
             <span class="kw">_ </span>=&gt; ProtocolGenesisSigner::create_deterministic_genesis_signer()

@@ -379,9 +379,9 @@
                 .register(
                     <span class="prelude-val">Some</span>(signer.party_id.to_owned()),
                     signer.operational_certificate.clone(),
-                    signer.verification_key_signature.clone(),
+                    signer.verification_key_signature,
                     signer.kes_period,
-                    signer.verification_key.clone(),
+                    signer.verification_key,
                 )
                 .with_context(|| {
                     <span class="macro">format!</span>(<span class="string">&quot;Registration failed for signer: &#39;{}&#39;&quot;</span>, signer.party_id)

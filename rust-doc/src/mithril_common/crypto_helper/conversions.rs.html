@@ -84,7 +84,6 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::entities;
 <span class="kw">use </span><span class="kw">super</span>::types;
 <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{ProtocolPartyId, ProtocolStake};
@@ -156,8 +155,7 @@
             .with_signers(<span class="number">1</span>)
             .build()
             .signers_with_stake()[<span class="number">0</span>]
-            .verification_key
-            .clone();
+            .verification_key;
         <span class="kw">let </span>signer_with_stake_expected = <span class="kw-2">&amp;</span>entities::SignerWithStake::new(
             <span class="string">&quot;1&quot;</span>.to_string(),
             verification_key,

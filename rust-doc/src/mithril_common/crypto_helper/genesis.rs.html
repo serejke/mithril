@@ -182,17 +182,6 @@
 <a href="#182" id="182">182</a>
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
-<a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
-<a href="#189" id="189">189</a>
-<a href="#190" id="190">190</a>
-<a href="#191" id="191">191</a>
-<a href="#192" id="192">192</a>
-<a href="#193" id="193">193</a>
-<a href="#194" id="194">194</a>
-<a href="#195" id="195">195</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::StdResult;
 <span class="kw">use </span>ed25519_dalek::{ExpandedSecretKey, SignatureError};
 <span class="kw">use </span>rand_chacha_dalek_compat::rand_core::{<span class="self">self</span>, CryptoRng, RngCore, SeedableRng};
@@ -201,10 +190,7 @@
 <span class="kw">use </span>std::{fs::File, io::Write, path::Path};
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use super</span>::{
-    key_encode_hex, ProtocolGenesisSecretKey, ProtocolGenesisSignature,
-    ProtocolGenesisVerificationKey,
-};
+<span class="kw">use super</span>::{ProtocolGenesisSecretKey, ProtocolGenesisSignature, ProtocolGenesisVerificationKey};
 
 <span class="attr">#[derive(Error, Debug)]
 </span><span class="doccomment">/// [ProtocolGenesisSigner] and [ProtocolGenesisVerifier] related errors.
@@ -228,8 +214,8 @@
     </span><span class="kw">where
         </span>R: CryptoRng + RngCore,
     {
-        <span class="kw">let </span>secret_key = ProtocolGenesisSecretKey::generate(<span class="kw-2">&amp;mut </span>rng);
-        <span class="self">Self</span>::from_secret_key(secret_key)
+        <span class="kw">let </span>secret_key = ed25519_dalek::SecretKey::generate(<span class="kw-2">&amp;mut </span>rng);
+        <span class="self">Self</span>::from_secret_key(secret_key.into())
     }
 
     <span class="doccomment">/// ProtocolGenesisSigner deterministic
@@ -251,7 +237,7 @@
 
     <span class="doccomment">/// Create a an expanded secret key
     </span><span class="kw">fn </span>create_expanded_secret_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ExpandedSecretKey {
-        ExpandedSecretKey::from(<span class="kw-2">&amp;</span><span class="self">self</span>.secret_key)
+        ExpandedSecretKey::from(<span class="kw-2">&amp;*</span><span class="self">self</span>.secret_key)
     }
 
     <span class="doccomment">/// Create a ProtocolGenesisVerificationKey
@@ -259,8 +245,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         expanded_secret_key: <span class="kw-2">&amp;</span>ExpandedSecretKey,
     ) -&gt; ProtocolGenesisVerificationKey {
-        <span class="kw">let </span>verification_key: ProtocolGenesisVerificationKey = expanded_secret_key.into();
-        verification_key
+        ProtocolGenesisVerificationKey::new(expanded_secret_key.into())
     }
 
     <span class="doccomment">/// Create a ProtocolGenesisVerifier
@@ -281,11 +266,7 @@
     </span><span class="attr">#[doc(hidden)]
     </span><span class="kw">pub fn </span>export_to_file(<span class="kw-2">&amp;</span><span class="self">self</span>, secret_key_path: <span class="kw-2">&amp;</span>Path) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>genesis_secret_key_file = File::create(secret_key_path)<span class="question-mark">?</span>;
-        genesis_secret_key_file.write_all(
-            key_encode_hex(<span class="self">self</span>.secret_key.as_bytes())
-                .unwrap()
-                .as_bytes(),
-        )<span class="question-mark">?</span>;
+        genesis_secret_key_file.write_all(<span class="self">self</span>.secret_key.to_json_hex().unwrap().as_bytes())<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -321,7 +302,6 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::codec::{key_decode_hex, key_encode_hex};
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="attr">#[test]
@@ -341,11 +321,11 @@
 
         <span class="macro">println!</span>(
             <span class="string">&quot;Deterministic Genesis Verification Key={}&quot;</span>,
-            key_encode_hex(genesis_verifier.verification_key.as_bytes()).unwrap()
+            genesis_verifier.verification_key.to_json_hex().unwrap()
         );
         <span class="macro">println!</span>(
             <span class="string">&quot;Deterministic Genesis Secret Key=={}&quot;</span>,
-            key_encode_hex(genesis_signer.secret_key.as_bytes()).unwrap()
+            genesis_signer.secret_key.to_json_hex().unwrap()
         );
     }
 
@@ -356,11 +336,11 @@
 
         <span class="macro">println!</span>(
             <span class="string">&quot;Non Deterministic Genesis Verification Key={}&quot;</span>,
-            key_encode_hex(genesis_verifier.verification_key.as_bytes()).unwrap()
+            genesis_verifier.verification_key.to_json_hex().unwrap()
         );
         <span class="macro">println!</span>(
             <span class="string">&quot;Non Deterministic Genesis Secret Key=={}&quot;</span>,
-            key_encode_hex(genesis_signer.secret_key.as_bytes()).unwrap()
+            genesis_signer.secret_key.to_json_hex().unwrap()
         );
     }
 
@@ -368,13 +348,11 @@
     </span><span class="kw">fn </span>test_codec_genesis_keypair() {
         <span class="kw">let </span>genesis_signer = ProtocolGenesisSigner::create_deterministic_genesis_signer();
         <span class="kw">let </span>genesis_verifier = genesis_signer.create_genesis_verifier();
-        <span class="kw">let </span>secret_key_encoded = key_encode_hex(genesis_signer.secret_key.as_bytes()).unwrap();
-        <span class="kw">let </span>verification_key_encoded =
-            key_encode_hex(genesis_verifier.verification_key.as_bytes()).unwrap();
-        <span class="kw">let </span>secret_key_decoded: ProtocolGenesisSecretKey =
-            key_decode_hex(<span class="kw-2">&amp;</span>secret_key_encoded).unwrap();
+        <span class="kw">let </span>secret_key_encoded = genesis_signer.secret_key.to_json_hex().unwrap();
+        <span class="kw">let </span>verification_key_encoded = genesis_verifier.verification_key.to_json_hex().unwrap();
+        <span class="kw">let </span>secret_key_decoded: ProtocolGenesisSecretKey = secret_key_encoded.try_into().unwrap();
         <span class="kw">let </span>verification_key_decoded: ProtocolGenesisVerificationKey =
-            key_decode_hex(<span class="kw-2">&amp;</span>verification_key_encoded).unwrap();
+            verification_key_encoded.try_into().unwrap();
         <span class="kw">let </span>genesis_signer_decoded = ProtocolGenesisSigner::from_secret_key(secret_key_decoded);
         <span class="kw">let </span>genesis_verifier_decoded =
             ProtocolGenesisVerifier::from_verification_key(verification_key_decoded);

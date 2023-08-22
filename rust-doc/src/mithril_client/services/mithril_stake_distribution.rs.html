@@ -464,6 +464,8 @@
 <a href="#464" id="464">464</a>
 <a href="#465" id="465">465</a>
 <a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::{
@@ -475,7 +477,8 @@
 <span class="kw">use </span>mithril_common::{
     certificate_chain::CertificateVerifier,
     crypto_helper::{
-        key_decode_hex, key_encode_hex, ProtocolAggregateVerificationKey, ProtocolGenesisVerifier,
+        key_encode_hex, ProtocolAggregateVerificationKey, ProtocolGenesisVerificationKey,
+        ProtocolGenesisVerifier,
     },
     entities::{MithrilStakeDistribution, ProtocolMessagePartKey},
     messages::MithrilStakeDistributionListItemMessage,
@@ -607,11 +610,12 @@
                 )
             })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>genesis_verification_key = key_decode_hex(genesis_verification_key).map_err(|e| {
-            MithrilStakeDistributionServiceError::InvalidParameters(<span class="macro">anyhow!</span>(e).context(<span class="macro">format!</span>(
-                <span class="string">&quot;Invalid genesis verification key &#39;{genesis_verification_key}&#39;&quot;
-            </span>)))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>genesis_verification_key =
+            ProtocolGenesisVerificationKey::from_json_hex(genesis_verification_key)
+                .with_context(|| {
+                    <span class="macro">format!</span>(<span class="string">&quot;Invalid genesis verification key &#39;{genesis_verification_key}&#39;&quot;</span>)
+                })
+                .map_err(MithrilStakeDistributionServiceError::InvalidParameters)<span class="question-mark">?</span>;
         <span class="self">self</span>.certificate_verifier
             .verify_certificate_chain(
                 certificate.clone(),
@@ -775,7 +779,7 @@
             .download(
                 <span class="string">&quot;hash-123&quot;</span>,
                 <span class="kw-2">&amp;</span>dirpath,
-                <span class="kw-2">&amp;</span>key_encode_hex(genesis_verification_key).unwrap(),
+                <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
             )
             .<span class="kw">await
             </span>.unwrap();
@@ -828,7 +832,7 @@
             .download(
                 <span class="string">&quot;hash-123&quot;</span>,
                 <span class="kw-2">&amp;</span>dirpath,
-                <span class="kw-2">&amp;</span>key_encode_hex(genesis_verification_key).unwrap(),
+                <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
             )
             .<span class="kw">await
             </span>.unwrap_err();
