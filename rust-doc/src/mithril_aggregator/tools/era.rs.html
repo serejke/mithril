@@ -93,14 +93,10 @@
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
 <a href="#95" id="95">95</a>
-<a href="#96" id="96">96</a>
-<a href="#97" id="97">97</a>
-<a href="#98" id="98">98</a>
-<a href="#99" id="99">99</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>mithril_common::{
     chain_observer::{TxDatumBuilder, TxDatumFieldValue},
-    crypto_helper::{key_encode_hex, EraMarkersSigner},
+    crypto_helper::EraMarkersSigner,
     entities::Epoch,
     era::{adapters::EraMarkersPayloadCardanoChain, EraMarker, SupportedEra},
     StdResult,
@@ -151,11 +147,7 @@
         .sign(era_markers_signer)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>tx_datum = TxDatumBuilder::new()
-            .add_field(TxDatumFieldValue::Bytes(
-                key_encode_hex(era_markers_payload).map_err(|e| {
-                    <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;era markerspayload could not be hex encoded&quot;</span>)
-                })<span class="question-mark">?</span>,
-            ))
+            .add_field(TxDatumFieldValue::Bytes(era_markers_payload.to_json_hex()<span class="question-mark">?</span>))
             .build()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(tx_datum.<span class="number">0</span>)
     }

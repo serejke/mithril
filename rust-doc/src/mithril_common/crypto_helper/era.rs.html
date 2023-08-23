@@ -175,20 +175,39 @@
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>ed25519_dalek::{ExpandedSecretKey, SignatureError};
 <span class="kw">use </span>rand_chacha_dalek_compat::rand_core::{<span class="self">self</span>, CryptoRng, RngCore, SeedableRng};
 <span class="kw">use </span>rand_chacha_dalek_compat::ChaCha20Rng;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>thiserror::Error;
 
+<span class="kw">use </span><span class="kw">super</span>::ProtocolKey;
+
 <span class="doccomment">/// Alias of [Ed25519:PublicKey](https://docs.rs/ed25519-dalek/latest/ed25519_dalek/struct.PublicKey.html).
-</span><span class="kw">pub type </span>EraMarkersVerifierVerificationKey = ed25519_dalek::PublicKey;
+</span><span class="kw">pub type </span>EraMarkersVerifierVerificationKey = ProtocolKey&lt;ed25519_dalek::PublicKey&gt;;
 
 <span class="doccomment">/// Alias of [Ed25519:SecretKey](https://docs.rs/ed25519-dalek/latest/ed25519_dalek/struct.SecretKey.html).
-</span><span class="kw">pub type </span>EraMarkersVerifierSecretKey = ed25519_dalek::SecretKey;
+</span><span class="kw">pub type </span>EraMarkersVerifierSecretKey = ProtocolKey&lt;ed25519_dalek::SecretKey&gt;;
 
 <span class="doccomment">/// Alias of [Ed25519:Signature](https://docs.rs/ed25519-dalek/latest/ed25519_dalek/struct.Signature.html).
-</span><span class="kw">pub type </span>EraMarkersVerifierSignature = ed25519_dalek::Signature;
+</span><span class="kw">pub type </span>EraMarkersVerifierSignature = ProtocolKey&lt;ed25519_dalek::Signature&gt;;
 
 <span class="attr">#[derive(Error, Debug)]
 </span><span class="doccomment">/// [EraMarkersSigner] and [EraMarkersVerifier] related errors.
@@ -198,7 +217,7 @@
     </span>SignatureVerification(<span class="attr">#[from] </span>SignatureError),
 }
 
-<span class="doccomment">/// A cryptographic signer that is responsible for signing the EreMarkers
+<span class="doccomment">/// A cryptographic signer that is responsible for signing the EraMarkers
 </span><span class="attr">#[derive(Debug, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>EraMarkersSigner {
     <span class="kw">pub</span>(<span class="kw">crate</span>) secret_key: EraMarkersVerifierSecretKey,
@@ -210,8 +229,8 @@
     </span><span class="kw">where
         </span>R: CryptoRng + RngCore,
     {
-        <span class="kw">let </span>secret_key = EraMarkersVerifierSecretKey::generate(<span class="kw-2">&amp;mut </span>rng);
-        <span class="self">Self</span>::from_secret_key(secret_key)
+        <span class="kw">let </span>secret_key = ed25519_dalek::SecretKey::generate(<span class="kw-2">&amp;mut </span>rng);
+        <span class="self">Self</span>::from_secret_key(secret_key.into())
     }
 
     <span class="doccomment">/// EraMarkersSigner deterministic
@@ -233,7 +252,7 @@
 
     <span class="doccomment">/// Create a an expanded secret key
     </span><span class="kw">fn </span>create_expanded_secret_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ExpandedSecretKey {
-        ExpandedSecretKey::from(<span class="kw-2">&amp;</span><span class="self">self</span>.secret_key)
+        ExpandedSecretKey::from(<span class="kw-2">&amp;*</span><span class="self">self</span>.secret_key)
     }
 
     <span class="doccomment">/// Create a EraMarkersVerifierVerificationKey
@@ -241,8 +260,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         expanded_secret_key: <span class="kw-2">&amp;</span>ExpandedSecretKey,
     ) -&gt; EraMarkersVerifierVerificationKey {
-        <span class="kw">let </span>verification_key: EraMarkersVerifierVerificationKey = expanded_secret_key.into();
-        verification_key
+        EraMarkersVerifierVerificationKey::new(expanded_secret_key.into())
     }
 
     <span class="doccomment">/// Create a EraMarkersVerifier
@@ -256,7 +274,7 @@
     </span><span class="kw">pub fn </span>sign(<span class="kw-2">&amp;</span><span class="self">self</span>, message: <span class="kw-2">&amp;</span>[u8]) -&gt; EraMarkersVerifierSignature {
         <span class="kw">let </span>expanded_secret_key = <span class="self">self</span>.create_expanded_secret_key();
         <span class="kw">let </span>verification_key = <span class="self">self</span>.create_verification_key(<span class="kw-2">&amp;</span>expanded_secret_key);
-        expanded_secret_key.sign(message, <span class="kw-2">&amp;</span>verification_key)
+        expanded_secret_key.sign(message, <span class="kw-2">&amp;</span>verification_key).into()
     }
 }
 
@@ -289,8 +307,25 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::codec::{key_decode_hex, key_encode_hex};
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="kw">const </span>GOLDEN_ERA_MARKERS_VERIFICATION_KEY: <span class="kw-2">&amp;</span>str =
+        <span class="string">&quot;5b32332c32372c3131322c362c35372c38342c3138302c342c3135302c3233322c3233372c3132362c3131392c\
+        3231342c33352c35342c38312c3230382c3231372c39392c3137302c3233312c3133392c362c3132322c39342c3\
+        9322c3137322c32332c3130322c3135372c3136375d&quot;</span>;
+    <span class="kw">const </span>GOLDEN_ERA_MARKERS_SECRET_KEY: <span class="kw-2">&amp;</span>str =
+        <span class="string">&quot;5b34332c3133322c3232312c3138382c3235332c3132372c3235352c38362c3136322c3133312c3233332c3131\
+        362c3134322c3233352c3131312c3133332c3134312c3138332c302c33392c3132302c3139372c39322c3133302\
+        c3233342c34362c3135372c32352c3133322c31352c3234312c3235345d&quot;</span>;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>golden_master() {
+        EraMarkersVerifierVerificationKey::from_json_hex(GOLDEN_ERA_MARKERS_VERIFICATION_KEY)
+            .expect(<span class="string">&quot;Decoding golden verification key should not fail&quot;</span>);
+
+        EraMarkersVerifierSecretKey::from_json_hex(GOLDEN_ERA_MARKERS_SECRET_KEY)
+            .expect(<span class="string">&quot;Decoding golden secret key should not fail&quot;</span>);
+    }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_generate_test_deterministic_keypair() {
@@ -306,11 +341,11 @@
 
         <span class="macro">println!</span>(
             <span class="string">&quot;Deterministic Verification Key={}&quot;</span>,
-            key_encode_hex(verifier.verification_key.as_bytes()).unwrap()
+            verifier.verification_key.to_json_hex().unwrap()
         );
         <span class="macro">println!</span>(
             <span class="string">&quot;Deterministic Secret Key=={}&quot;</span>,
-            key_encode_hex(signer.secret_key.as_bytes()).unwrap()
+            signer.secret_key.to_json_hex().unwrap()
         );
     }
 
@@ -321,11 +356,11 @@
 
         <span class="macro">println!</span>(
             <span class="string">&quot;Non Deterministic Verification Key={}&quot;</span>,
-            key_encode_hex(verifier.verification_key.as_bytes()).unwrap()
+            verifier.verification_key.to_json_hex().unwrap()
         );
         <span class="macro">println!</span>(
             <span class="string">&quot;Non Deterministic Secret Key=={}&quot;</span>,
-            key_encode_hex(signer.secret_key.as_bytes()).unwrap()
+            signer.secret_key.to_json_hex().unwrap()
         );
     }
 
@@ -333,13 +368,12 @@
     </span><span class="kw">fn </span>test_codec_keypair() {
         <span class="kw">let </span>signer = EraMarkersSigner::create_deterministic_signer();
         <span class="kw">let </span>verifier = signer.create_verifier();
-        <span class="kw">let </span>secret_key_encoded = key_encode_hex(signer.secret_key.as_bytes()).unwrap();
-        <span class="kw">let </span>verification_key_encoded =
-            key_encode_hex(verifier.verification_key.as_bytes()).unwrap();
+        <span class="kw">let </span>secret_key_encoded = signer.secret_key.to_json_hex().unwrap();
+        <span class="kw">let </span>verification_key_encoded = verifier.verification_key.to_json_hex().unwrap();
         <span class="kw">let </span>secret_key_decoded: EraMarkersVerifierSecretKey =
-            key_decode_hex(<span class="kw-2">&amp;</span>secret_key_encoded).unwrap();
+            secret_key_encoded.try_into().unwrap();
         <span class="kw">let </span>verification_key_decoded: EraMarkersVerifierVerificationKey =
-            key_decode_hex(<span class="kw-2">&amp;</span>verification_key_encoded).unwrap();
+            verification_key_encoded.try_into().unwrap();
         <span class="kw">let </span>signer_decoded = EraMarkersSigner::from_secret_key(secret_key_decoded);
         <span class="kw">let </span>verifier_decoded = EraMarkersVerifier::from_verification_key(verification_key_decoded);
 

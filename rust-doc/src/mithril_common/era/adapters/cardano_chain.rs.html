@@ -208,18 +208,33 @@
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
 <a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
     chain_observer::{ChainAddress, ChainObserver, TxDatumFieldTypeName},
     crypto_helper::{
-        key_decode_hex, EraMarkersSigner, EraMarkersVerifier, EraMarkersVerifierSignature,
-        EraMarkersVerifierVerificationKey,
+        key_decode_hex, key_encode_hex, EraMarkersSigner, EraMarkersVerifier,
+        EraMarkersVerifierSignature, EraMarkersVerifierVerificationKey,
     },
-    entities::HexEncodedEraMarkersSignature,
     era::{EraMarker, EraReaderAdapter},
     StdError, StdResult,
 };
+<span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>hex::{FromHex, ToHex};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>thiserror::Error;
@@ -255,7 +270,7 @@
     </span><span class="kw">pub </span>markers: Vec&lt;EraMarker&gt;,
 
     <span class="doccomment">/// Era markers signature
-    </span><span class="kw">pub </span>signature: <span class="prelude-ty">Option</span>&lt;HexEncodedEraMarkersSignature&gt;,
+    </span><span class="kw">pub </span>signature: <span class="prelude-ty">Option</span>&lt;EraMarkersVerifierSignature&gt;,
 }
 
 <span class="kw">impl </span>EraMarkersPayload {
@@ -264,16 +279,18 @@
             .map_err(|e| EraMarkersPayloadError::SerializeMessage(e.into()))
     }
 
-    <span class="kw">fn </span>deserialize_signature(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EraMarkersVerifierSignature, EraMarkersPayloadError&gt; {
-        EraMarkersVerifierSignature::from_bytes(
-            <span class="kw-2">&amp;</span>Vec::from_hex(
-                <span class="self">self</span>.signature
-                    .as_ref()
-                    .ok_or(EraMarkersPayloadError::MissingSignature)<span class="question-mark">?</span>,
-            )
-            .map_err(|e| EraMarkersPayloadError::DeserializeSignature(e.into()))<span class="question-mark">?</span>,
-        )
-        .map_err(|e| EraMarkersPayloadError::DeserializeSignature(e.into()))
+    <span class="doccomment">/// Encode this payload to a json hex string
+    </span><span class="kw">pub fn </span>to_json_hex(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;String&gt; {
+        key_encode_hex(<span class="self">self</span>)
+            .map_err(|e| <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;era markers payload could not be json hex encoded&quot;</span>))
+    }
+
+    <span class="doccomment">/// Decode a [EraMarkersPayload] from a json hex string
+    </span><span class="kw">pub fn </span>from_json_hex(payload: <span class="kw-2">&amp;</span>str) -&gt; StdResult&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>payload = key_decode_hex(payload).map_err(|e| {
+            <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;era markers payload could not be decoded from json hex&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(payload)
     }
 
     <span class="doccomment">/// Verify the signature an era markers payload
@@ -281,22 +298,24 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         verification_key: EraMarkersVerifierVerificationKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), EraMarkersPayloadError&gt; {
-        <span class="kw">let </span>markers_verifier = EraMarkersVerifier::from_verification_key(verification_key);
+        <span class="kw">let </span>signature = <span class="self">self
+            </span>.signature
+            .ok_or(EraMarkersPayloadError::MissingSignature)<span class="question-mark">?</span>;
+        <span class="kw">let </span>markers_verifier: EraMarkersVerifier =
+            EraMarkersVerifier::from_verification_key(verification_key);
 
         markers_verifier
-            .verify(<span class="kw-2">&amp;</span><span class="self">self</span>.message_to_bytes()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.deserialize_signature()<span class="question-mark">?</span>)
+            .verify(<span class="kw-2">&amp;</span><span class="self">self</span>.message_to_bytes()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>signature)
             .map_err(|e| EraMarkersPayloadError::VerifySignature(e.into()))
     }
 
     <span class="doccomment">/// Sign an era markers payload
     </span><span class="kw">pub fn </span>sign(<span class="self">self</span>, signer: <span class="kw-2">&amp;</span>EraMarkersSigner) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, EraMarkersPayloadError&gt; {
-        <span class="kw">let </span>signature = signer
-            .sign(
-                <span class="kw-2">&amp;</span><span class="self">self
-                    </span>.message_to_bytes()
-                    .map_err(|e| EraMarkersPayloadError::CreateSignature(e.into()))<span class="question-mark">?</span>,
-            )
-            .encode_hex::&lt;String&gt;();
+        <span class="kw">let </span>signature = signer.sign(
+            <span class="kw-2">&amp;</span><span class="self">self
+                </span>.message_to_bytes()
+                .map_err(|e| EraMarkersPayloadError::CreateSignature(e.into()))<span class="question-mark">?</span>,
+        );
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             markers: <span class="self">self</span>.markers,
@@ -344,8 +363,8 @@
                     .collect::&lt;Vec&lt;String&gt;&gt;()
                     .join(<span class="string">&quot;&quot;</span>)
             })
-            .filter_map(|field_value_str| key_decode_hex(<span class="kw-2">&amp;</span>field_value_str).ok())
-            .filter_map(|era_markers_payload: EraMarkersPayload| {
+            .filter_map(|field_value_str| EraMarkersPayload::from_json_hex(<span class="kw-2">&amp;</span>field_value_str).ok())
+            .filter_map(|era_markers_payload| {
                 era_markers_payload
                     .verify_signature(<span class="self">self</span>.verification_key)
                     .ok()
@@ -360,21 +379,34 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
     <span class="kw">use </span><span class="kw">crate</span>::chain_observer::{FakeObserver, TxDatum, TxDatumBuilder, TxDatumFieldValue};
-    <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{key_encode_hex, EraMarkersSigner};
+    <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::EraMarkersSigner;
     <span class="kw">use </span><span class="kw">crate</span>::entities::Epoch;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="kw">const </span>GOLDEN_ERA_MARKERS_PAYLOAD_WITH_SIGNATURE: <span class="kw-2">&amp;</span>str =
+        <span class="string">&quot;7b226d61726b657273223a5b7b226e616d65223a227468616c6573222c2265706f6368223a317d2c7b226e616d\
+        65223a227079746861676f726173222c2265706f6368223a327d5d2c227369676e6174757265223a22633539373\
+        9653333663163336234376361306162353239386536353562316264653235656564303866356232653536663361\
+        6439623964373638316164663138653164656562623731616135616132636234363564643831323239633637656\
+        33030326463396632663563363664663931333164366561633039666565373065227d&quot;</span>;
 
     <span class="kw">fn </span>dummy_tx_datums_from_markers_payload(payloads: Vec&lt;EraMarkersPayload&gt;) -&gt; Vec&lt;TxDatum&gt; {
         payloads
             .into_iter()
             .map(|payload| {
                 TxDatumBuilder::new()
-                    .add_field(TxDatumFieldValue::Bytes(key_encode_hex(payload).unwrap()))
+                    .add_field(TxDatumFieldValue::Bytes(payload.to_json_hex().unwrap()))
                     .build()
                     .unwrap()
             })
             .collect()
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>golden_markers_payload_with_signature() {
+        EraMarkersPayload::from_json_hex(GOLDEN_ERA_MARKERS_PAYLOAD_WITH_SIGNATURE)
+            .expect(<span class="string">&quot;Decoding golden markers payload should not fail&quot;</span>);
     }
 
     <span class="attr">#[tokio::test]

@@ -125,14 +125,34 @@
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::{path::PathBuf, sync::Arc};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     chain_observer::{ChainAddress, ChainObserver},
-    crypto_helper::key_decode_hex,
-    entities::HexEncodedEraMarkersSignature,
+    crypto_helper::EraMarkersVerifierVerificationKey,
     era::{
         adapters::{
             EraReaderBootstrapAdapter, EraReaderCardanoChainAdapter, EraReaderDummyAdapter,
@@ -140,6 +160,7 @@
         },
         EraMarker, EraReaderAdapter,
     },
+    StdError,
 };
 
 <span class="doccomment">/// Type of era reader adapaters available
@@ -170,7 +191,7 @@
 
     <span class="doccomment">/// Parameters decode error.
     </span><span class="attr">#[error(<span class="string">&quot;era reader adapter parameters decode error: {0:?}&quot;</span>)]
-    </span>Decode(String),
+    </span>Decode(StdError),
 }
 
 <span class="doccomment">/// Era adapter builder
@@ -198,7 +219,7 @@
                 <span class="attr">#[derive(Deserialize)]
                 </span><span class="kw">struct </span>CardanoChainAdapterConfig {
                     address: ChainAddress,
-                    verification_key: HexEncodedEraMarkersSignature,
+                    verification_key: EraMarkersVerifierVerificationKey,
                 }
 
                 <span class="kw">let </span>adapter_config: CardanoChainAdapterConfig = serde_json::from_str(
@@ -211,8 +232,7 @@
                 <span class="prelude-val">Ok</span>(Arc::new(EraReaderCardanoChainAdapter::new(
                     adapter_config.address,
                     chain_observer,
-                    key_decode_hex(<span class="kw-2">&amp;</span>adapter_config.verification_key)
-                        .map_err(AdapterBuilderError::Decode)<span class="question-mark">?</span>,
+                    adapter_config.verification_key,
                 )))
             }
             AdapterType::File =&gt; {
@@ -250,6 +270,28 @@
             }
             AdapterType::Bootstrap =&gt; <span class="prelude-val">Ok</span>(Arc::new(EraReaderBootstrapAdapter)),
         }
+    }
+}
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>test {
+    <span class="kw">use </span><span class="kw">crate</span>::chain_observer::MockChainObserver;
+
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="kw">const </span>GOLDEN_ADAPTER_PARAMS: <span class="kw-2">&amp;</span>str = <span class="string">r#&quot;{
+        &quot;address&quot;:&quot;addr_test1qrv5xfwh043mlc3vk5d97s4nmhxu7cmleyssvhx37gkfyejfe8d38v3vsfgetjafgrsdc49krug8wf04h5rmtengtejqlxrksk&quot;,
+        &quot;verification_key&quot;:&quot;5b35352c3232382c3134342c38372c3133382c3133362c34382c382c31342c3138372c38352c3134382c39372c3233322c3235352c3232392c33382c3234342c3234372c3230342c3139382c31332c33312c3232322c32352c3136342c35322c3130322c39312c3132302c3230382c3134375d&quot;
+    }&quot;#</span>;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>golden_test_for_cardano_chain() {
+        AdapterBuilder::new(
+            <span class="kw-2">&amp;</span>AdapterType::CardanoChain,
+            <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(GOLDEN_ADAPTER_PARAMS.to_owned()),
+        )
+        .build(Arc::new(MockChainObserver::new()))
+        .expect(<span class="string">&quot;building an cardano chain era reader with golden params should not fail&quot;</span>);
     }
 }
 </code></pre></div></section></main></body></html>
