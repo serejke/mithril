@@ -76,14 +76,16 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::PathBuf, sync::Arc};
-
-<span class="kw">use </span>clap::Parser;
+<a href="#79" id="79">79</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>config::{builder::DefaultState, Config, ConfigBuilder};
-<span class="kw">use </span>indicatif::ProgressDrawTarget;
+<span class="kw">use </span>std::{path::PathBuf, sync::Arc};
+
 <span class="kw">use </span>mithril_common::{messages::FromMessageAdapter, StdResult};
 
-<span class="kw">use crate</span>::{dependencies::DependenciesBuilder, FromSnapshotMessageAdapter};
+<span class="kw">use crate</span>::{
+    dependencies::DependenciesBuilder, utils::ProgressOutputType, FromSnapshotMessageAdapter,
+};
 
 <span class="doccomment">/// Clap command to download the snapshot and verify the certificate.
 </span><span class="attr">#[derive(Parser, Debug, Clone)]
@@ -114,17 +116,17 @@
         <span class="kw">let </span>snapshot_service = dependencies_builder.get_snapshot_service().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>snapshot_entity =
             FromSnapshotMessageAdapter::adapt(snapshot_service.show(<span class="kw-2">&amp;</span><span class="self">self</span>.digest).<span class="kw">await</span><span class="question-mark">?</span>);
-        <span class="kw">let </span>progress_target = <span class="kw">if </span><span class="self">self</span>.json {
-            ProgressDrawTarget::hidden()
+        <span class="kw">let </span>progress_output_type = <span class="kw">if </span><span class="self">self</span>.json {
+            ProgressOutputType::JsonReporter
         } <span class="kw">else </span>{
-            ProgressDrawTarget::stdout()
+            ProgressOutputType::TTY
         };
         <span class="kw">let </span>filepath = snapshot_service
             .download(
                 <span class="kw-2">&amp;</span>snapshot_entity,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.download_dir,
                 <span class="kw-2">&amp;</span>config.get_string(<span class="string">&quot;genesis_verification_key&quot;</span>)<span class="question-mark">?</span>,
-                progress_target,
+                progress_output_type,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 

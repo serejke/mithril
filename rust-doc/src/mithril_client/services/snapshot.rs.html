@@ -799,10 +799,17 @@
 <a href="#799" id="799">799</a>
 <a href="#800" id="800">800</a>
 <a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
-<span class="kw">use </span>indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressState, ProgressStyle};
+<span class="kw">use </span>indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
 <span class="kw">use </span>slog_scope::{debug, warn};
 <span class="kw">use </span>std::{
     fmt::Write,
@@ -825,7 +832,10 @@
 
 <span class="kw">use crate</span>::{
     aggregator_client::{AggregatorHTTPClientError, CertificateClient, SnapshotClient},
-    utils::{SnapshotUnpacker, SnapshotUnpackerError},
+    utils::{
+        DownloadProgressReporter, ProgressOutputType, ProgressPrinter, SnapshotUnpacker,
+        SnapshotUnpackerError,
+    },
 };
 
 <span class="doccomment">/// [SnapshotService] related errors.
@@ -873,7 +883,7 @@
         snapshot_entity: <span class="kw-2">&amp;</span>SignedEntity&lt;Snapshot&gt;,
         pathdir: <span class="kw-2">&amp;</span>Path,
         genesis_verification_key: <span class="kw-2">&amp;</span>str,
-        progress_target: ProgressDrawTarget,
+        progress_output_type: ProgressOutputType,
     ) -&gt; StdResult&lt;PathBuf&gt;;
 }
 
@@ -1011,20 +1021,20 @@
         snapshot_entity: <span class="kw-2">&amp;</span>SignedEntity&lt;Snapshot&gt;,
         download_dir: <span class="kw-2">&amp;</span>Path,
         genesis_verification_key: <span class="kw-2">&amp;</span>str,
-        progress_target: ProgressDrawTarget,
+        progress_output_type: ProgressOutputType,
     ) -&gt; StdResult&lt;PathBuf&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;Snapshot service: download.&quot;</span>);
 
         <span class="kw">let </span>db_dir = download_dir.join(<span class="string">&quot;db&quot;</span>);
-        <span class="kw">let </span>progress_bar = MultiProgress::with_draw_target(progress_target);
-        progress_bar.println(<span class="string">&quot;1/7 - Checking local disk info…&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>progress_bar = ProgressPrinter::new(progress_output_type, <span class="number">7</span>);
+        progress_bar.report_step(<span class="number">1</span>, <span class="string">&quot;Checking local disk info…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>unpacker = SnapshotUnpacker;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = unpacker.check_prerequisites(<span class="kw-2">&amp;</span>db_dir, snapshot_entity.artifact.size) {
             <span class="self">self</span>.check_disk_space_error(e)<span class="question-mark">?</span>;
         }
 
-        progress_bar.println(<span class="string">&quot;2/7 - Fetching the certificate&#39;s information…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">2</span>, <span class="string">&quot;Fetching the certificate&#39;s information…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>certificate = <span class="self">self
             </span>.certificate_client
             .get(<span class="kw-2">&amp;</span>snapshot_entity.certificate_id)
@@ -1035,11 +1045,11 @@
                 )
             })<span class="question-mark">?</span>;
 
-        progress_bar.println(<span class="string">&quot;3/7 - Verifying the certificate chain…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">3</span>, <span class="string">&quot;Verifying the certificate chain…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>verifier = <span class="self">self</span>.verify_certificate_chain(genesis_verification_key, <span class="kw-2">&amp;</span>certificate);
         <span class="self">self</span>.wait_spinner(<span class="kw-2">&amp;</span>progress_bar, verifier).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        progress_bar.println(<span class="string">&quot;4/7 - Downloading the snapshot…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">4</span>, <span class="string">&quot;Downloading the snapshot…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>pb = progress_bar.add(ProgressBar::new(snapshot_entity.artifact.size));
         pb.set_style(ProgressStyle::with_template(<span class="string">&quot;{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})&quot;</span>)
             .unwrap()
@@ -1047,11 +1057,15 @@
             .progress_chars(<span class="string">&quot;#&gt;-&quot;</span>));
         <span class="kw">let </span>snapshot_path = <span class="self">self
             </span>.snapshot_client
-            .download(<span class="kw-2">&amp;</span>snapshot_entity.artifact, download_dir, pb)
+            .download(
+                <span class="kw-2">&amp;</span>snapshot_entity.artifact,
+                download_dir,
+                DownloadProgressReporter::new(pb, progress_output_type),
+            )
             .<span class="kw">await
             </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Could not download file in &#39;{}&#39;&quot;</span>, download_dir.display()))<span class="question-mark">?</span>;
 
-        progress_bar.println(<span class="string">&quot;5/7 - Unpacking the snapshot…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">5</span>, <span class="string">&quot;Unpacking the snapshot…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>unpacker = unpacker.unpack_snapshot(<span class="kw-2">&amp;</span>snapshot_path, <span class="kw-2">&amp;</span>db_dir);
         <span class="self">self</span>.wait_spinner(<span class="kw-2">&amp;</span>progress_bar, unpacker).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1063,14 +1077,14 @@
             );
         };
 
-        progress_bar.println(<span class="string">&quot;6/7 - Computing the snapshot digest…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">6</span>, <span class="string">&quot;Computing the snapshot digest…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>unpacked_snapshot_digest = <span class="self">self
             </span>.immutable_digester
             .compute_digest(<span class="kw-2">&amp;</span>db_dir, <span class="kw-2">&amp;</span>certificate.beacon)
             .<span class="kw">await
             </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Could not compute digest in &#39;{}&#39;&quot;</span>, db_dir.display()))<span class="question-mark">?</span>;
 
-        progress_bar.println(<span class="string">&quot;7/7 - Verifying the snapshot signature…&quot;</span>)<span class="question-mark">?</span>;
+        progress_bar.report_step(<span class="number">7</span>, <span class="string">&quot;Verifying the snapshot signature…&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>expected_message = {
             <span class="kw">let </span><span class="kw-2">mut </span>protocol_message = certificate.protocol_message.clone();
             protocol_message.set_message_part(
@@ -1351,7 +1365,7 @@
                 <span class="kw-2">&amp;</span>snapshot,
                 <span class="kw-2">&amp;</span>test_path,
                 <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
-                ProgressDrawTarget::hidden(),
+                ProgressOutputType::Hidden,
             )
             .<span class="kw">await
             </span>.expect(<span class="string">&quot;Snapshot download should succeed.&quot;</span>);
@@ -1391,7 +1405,7 @@
                 <span class="kw-2">&amp;</span>snapshot,
                 <span class="kw-2">&amp;</span>test_path,
                 <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
-                ProgressDrawTarget::hidden(),
+                ProgressOutputType::Hidden,
             )
             .<span class="kw">await
             </span>.expect(<span class="string">&quot;Snapshot download should succeed.&quot;</span>);
@@ -1437,7 +1451,7 @@
                 <span class="kw-2">&amp;</span>signed_entity,
                 <span class="kw-2">&amp;</span>test_path,
                 <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
-                ProgressDrawTarget::hidden(),
+                ProgressOutputType::Hidden,
             )
             .<span class="kw">await
             </span>.expect_err(<span class="string">&quot;Snapshot digest comparison should fail.&quot;</span>);
@@ -1485,7 +1499,7 @@
                 <span class="kw-2">&amp;</span>snapshot,
                 <span class="kw-2">&amp;</span>test_path,
                 <span class="kw-2">&amp;</span>genesis_verification_key.to_json_hex().unwrap(),
-                ProgressDrawTarget::hidden(),
+                ProgressOutputType::Hidden,
             )
             .<span class="kw">await
             </span>.expect_err(<span class="string">&quot;Snapshot download should fail.&quot;</span>);

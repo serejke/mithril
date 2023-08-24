@@ -241,15 +241,13 @@
 <a href="#241" id="241">241</a>
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::Path, sync::Arc};
-
-<span class="kw">use </span>async_recursion::async_recursion;
+</pre></div><pre class="rust"><code><span class="kw">use </span>async_recursion::async_recursion;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::StreamExt;
-<span class="kw">use </span>indicatif::ProgressBar;
 <span class="kw">use </span>reqwest::{Client, Response, StatusCode};
 <span class="kw">use </span>semver::Version;
 <span class="kw">use </span>slog_scope::debug;
+<span class="kw">use </span>std::{path::Path, sync::Arc};
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tokio::{fs, io::AsyncWriteExt, sync::RwLock};
 
@@ -257,6 +255,8 @@
 </span><span class="kw">use </span>mockall::automock;
 
 <span class="kw">use </span>mithril_common::{StdError, MITHRIL_API_VERSION_HEADER};
+
+<span class="kw">use </span><span class="kw">crate</span>::utils::DownloadProgressReporter;
 
 <span class="doccomment">/// Error tied with the Aggregator client
 </span><span class="attr">#[derive(Error, Debug)]
@@ -299,7 +299,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         url: <span class="kw-2">&amp;</span>str,
         filepath: <span class="kw-2">&amp;</span>Path,
-        progress_bar: ProgressBar,
+        progress_reporter: DownloadProgressReporter,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AggregatorHTTPClientError&gt;;
 
     <span class="doccomment">/// Test if the given URL points to a valid location &amp; existing content.
@@ -426,7 +426,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         url: <span class="kw-2">&amp;</span>str,
         filepath: <span class="kw-2">&amp;</span>Path,
-        progress_bar: ProgressBar,
+        progress_reporter: DownloadProgressReporter,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AggregatorHTTPClientError&gt; {
         <span class="kw">let </span>response = <span class="self">self</span>.get(url).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>local_file = fs::File::create(filepath).<span class="kw">await</span>.map_err(|e| {
@@ -458,7 +458,7 @@
                 }
             })<span class="question-mark">?</span>;
             downloaded_bytes += chunk.len() <span class="kw">as </span>u64;
-            progress_bar.set_position(downloaded_bytes);
+            progress_reporter.report(downloaded_bytes);
         }
 
         <span class="prelude-val">Ok</span>(())

@@ -97,21 +97,21 @@
 <a href="#97" id="97">97</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module contains a struct to exchange snapshot information with the Aggregator
 
-</span><span class="kw">use </span>std::{
+</span><span class="kw">use </span>slog_scope::warn;
+<span class="kw">use </span>std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+<span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span>indicatif::ProgressBar;
 <span class="kw">use </span>mithril_common::{
     entities::Snapshot,
     messages::{SnapshotListItemMessage, SnapshotListMessage, SnapshotMessage},
     StdResult,
 };
-<span class="kw">use </span>slog_scope::warn;
-<span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span><span class="kw">super</span>::AggregatorClient;
+<span class="kw">use </span><span class="kw">crate</span>::aggregator_client::AggregatorClient;
+<span class="kw">use </span><span class="kw">crate</span>::utils::DownloadProgressReporter;
 
 <span class="doccomment">/// Error for the Snapshot client
 </span><span class="attr">#[derive(Error, Debug)]
@@ -161,7 +161,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         snapshot: <span class="kw-2">&amp;</span>Snapshot,
         download_dir: <span class="kw-2">&amp;</span>Path,
-        progress_bar: ProgressBar,
+        progress_reporter: DownloadProgressReporter,
     ) -&gt; StdResult&lt;PathBuf&gt; {
         <span class="kw">let </span>filepath = PathBuf::new()
             .join(download_dir)
@@ -171,7 +171,7 @@
             <span class="kw">if </span><span class="self">self</span>.http_client.probe(url).<span class="kw">await</span>.is_ok() {
                 <span class="kw">match </span><span class="self">self
                     </span>.http_client
-                    .download(url, <span class="kw-2">&amp;</span>filepath, progress_bar)
+                    .download(url, <span class="kw-2">&amp;</span>filepath, progress_reporter)
                     .<span class="kw">await
                 </span>{
                     <span class="prelude-val">Ok</span>(()) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(filepath),
