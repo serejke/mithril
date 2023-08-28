@@ -492,7 +492,7 @@ returning {projection}
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_upsertion() {
         <span class="kw">let </span>provider = TestEntityUpdateProvider::new(init_database());
-        <span class="kw">let </span>params = <span class="macro">vec!</span>[
+        <span class="kw">let </span>params = [
             Value::String(<span class="string">&quot;row 1&quot;</span>.to_string()),
             Value::Float(<span class="number">1.234</span>),
             Value::Integer(<span class="number">0</span>),
