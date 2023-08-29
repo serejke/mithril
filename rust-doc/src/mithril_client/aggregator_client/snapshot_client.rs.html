@@ -88,20 +88,10 @@
 <a href="#88" id="88">88</a>
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
-<a href="#91" id="91">91</a>
-<a href="#92" id="92">92</a>
-<a href="#93" id="93">93</a>
-<a href="#94" id="94">94</a>
-<a href="#95" id="95">95</a>
-<a href="#96" id="96">96</a>
-<a href="#97" id="97">97</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module contains a struct to exchange snapshot information with the Aggregator
 
 </span><span class="kw">use </span>slog_scope::warn;
-<span class="kw">use </span>std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+<span class="kw">use </span>std::{path::Path, sync::Arc};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span>mithril_common::{
@@ -156,28 +146,24 @@
         <span class="prelude-val">Ok</span>(message)
     }
 
-    <span class="doccomment">/// Download the snapshot identified by the given snapshot in the given directory
-    </span><span class="kw">pub async fn </span>download(
+    <span class="doccomment">/// Download and unpack the given snapshot to the given directory
+    </span><span class="kw">pub async fn </span>download_unpack(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         snapshot: <span class="kw-2">&amp;</span>Snapshot,
-        download_dir: <span class="kw-2">&amp;</span>Path,
+        target_dir: <span class="kw-2">&amp;</span>Path,
         progress_reporter: DownloadProgressReporter,
-    ) -&gt; StdResult&lt;PathBuf&gt; {
-        <span class="kw">let </span>filepath = PathBuf::new()
-            .join(download_dir)
-            .join(<span class="macro">format!</span>(<span class="string">&quot;snapshot-{}.tar.gz&quot;</span>, snapshot.digest));
-
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">for </span>url <span class="kw">in </span>snapshot.locations.as_slice() {
             <span class="kw">if </span><span class="self">self</span>.http_client.probe(url).<span class="kw">await</span>.is_ok() {
-                <span class="kw">match </span><span class="self">self
+                <span class="kw">return match </span><span class="self">self
                     </span>.http_client
-                    .download(url, <span class="kw-2">&amp;</span>filepath, progress_reporter)
+                    .download_unpack(url, target_dir, progress_reporter)
                     .<span class="kw">await
                 </span>{
-                    <span class="prelude-val">Ok</span>(()) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(filepath),
+                    <span class="prelude-val">Ok</span>(()) =&gt; <span class="prelude-val">Ok</span>(()),
                     <span class="prelude-val">Err</span>(e) =&gt; {
                         <span class="macro">warn!</span>(<span class="string">&quot;Failed downloading snapshot from &#39;{url}&#39; Error: {e}.&quot;</span>);
-                        <span class="kw">return </span><span class="prelude-val">Err</span>(e.into());
+                        <span class="prelude-val">Err</span>(e.into())
                     }
                 };
             }
