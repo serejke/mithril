@@ -250,11 +250,7 @@
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
 <span class="kw">use </span>std::any::type_name;
 <span class="kw">use </span>std::ops::Deref;
@@ -300,14 +296,12 @@
 
     <span class="doccomment">/// Create an instance from a JSON hex representation
     </span><span class="kw">pub fn </span>from_json_hex(hex_string: <span class="kw-2">&amp;</span>str) -&gt; StdResult&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>key = key_decode_hex::&lt;T&gt;(hex_string)
-            .map_err(|e| <span class="macro">anyhow!</span>(e))
-            .with_context(|| {
-                <span class="macro">format!</span>(
-                    <span class="string">&quot;Could not deserialize a ProtocolKey from JSON hex string. Inner key type: {}&quot;</span>,
-                    type_name::&lt;T&gt;()
-                )
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>key = key_decode_hex::&lt;T&gt;(hex_string).with_context(|| {
+            <span class="macro">format!</span>(
+                <span class="string">&quot;Could not deserialize a ProtocolKey from JSON hex string. Inner key type: {}&quot;</span>,
+                type_name::&lt;T&gt;()
+            )
+        })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ key })
     }
@@ -319,14 +313,12 @@
 
     <span class="doccomment">/// Create a JSON hash representation of the given key
     </span><span class="kw">pub fn </span>key_to_json_hex(key: <span class="kw-2">&amp;</span>T) -&gt; StdResult&lt;String&gt; {
-        key_encode_hex(key)
-            .map_err(|e| <span class="macro">anyhow!</span>(e))
-            .with_context(|| {
-                <span class="macro">format!</span>(
-                    <span class="string">&quot;Could not serialize a ProtocolKey to JSON hex key string. Inner key type: {}&quot;</span>,
-                    type_name::&lt;T&gt;()
-                )
-            })
+        key_encode_hex(key).with_context(|| {
+            <span class="macro">format!</span>(
+                <span class="string">&quot;Could not serialize a ProtocolKey to JSON hex key string. Inner key type: {}&quot;</span>,
+                type_name::&lt;T&gt;()
+            )
+        })
     }
 }
 

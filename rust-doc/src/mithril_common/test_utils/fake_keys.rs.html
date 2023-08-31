@@ -462,6 +462,8 @@
 <a href="#462" id="462">462</a>
 <a href="#463" id="463">463</a>
 <a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Pre hex encoded StmTypes for testing.
 
 /// A list of pre json hex encoded [MithrilStm:StmSig](type@mithril_stm::stm::StmSig)
@@ -858,7 +860,9 @@
         encoded_types: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str],
     ) {
         assert_decode_all(encoded_types, |encoded_type| {
-            key_decode_hex::&lt;T&gt;(encoded_type).map(|<span class="kw">_</span>| ())
+            key_decode_hex::&lt;T&gt;(encoded_type)
+                .map(|<span class="kw">_</span>| ())
+                .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;{e:?}&quot;</span>))
         })
     }
 

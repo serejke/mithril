@@ -53,34 +53,86 @@
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
 <a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::entities::{HexEncodedKey, HexEncodedKeySlice};
 
 <span class="kw">use </span>hex::{FromHex, ToHex};
 <span class="kw">use </span>serde::de::DeserializeOwned;
 <span class="kw">use </span>serde::Serialize;
+<span class="kw">use </span>thiserror::Error;
+
+<span class="doccomment">/// Error raised when the encoding or decoding fails
+</span><span class="attr">#[derive(Error, Debug)]
+#[error(<span class="string">&quot;Codec error: {msg}&quot;</span>)]
+</span><span class="kw">pub struct </span>CodecError {
+    msg: String,
+    <span class="attr">#[source]
+    </span>source: anyhow::Error,
+}
+
+<span class="kw">impl </span>CodecError {
+    <span class="doccomment">/// [CodecError] factory.
+    </span><span class="kw">pub fn </span>new(msg: <span class="kw-2">&amp;</span>str, source: anyhow::Error) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            msg: msg.to_string(),
+            source,
+        }
+    }
+}
 
 <span class="doccomment">/// Encode key to hex helper
-</span><span class="kw">pub fn </span>key_encode_hex&lt;T&gt;(from: T) -&gt; <span class="prelude-ty">Result</span>&lt;HexEncodedKey, String&gt;
+</span><span class="kw">pub fn </span>key_encode_hex&lt;T&gt;(from: T) -&gt; <span class="prelude-ty">Result</span>&lt;HexEncodedKey, CodecError&gt;
 <span class="kw">where
     </span>T: Serialize,
 {
     <span class="prelude-val">Ok</span>(serde_json::to_string(<span class="kw-2">&amp;</span>from)
-        .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;can&#39;t convert to hex: {e}&quot;</span>))<span class="question-mark">?
+        .map_err(|e| CodecError::new(<span class="string">&quot;Key encode hex: can not convert to hex&quot;</span>, e.into()))<span class="question-mark">?
         </span>.encode_hex::&lt;String&gt;())
 }
 
 <span class="doccomment">/// Decode key from hex helper
-</span><span class="kw">pub fn </span>key_decode_hex&lt;T&gt;(from: HexEncodedKeySlice) -&gt; <span class="prelude-ty">Result</span>&lt;T, String&gt;
+</span><span class="kw">pub fn </span>key_decode_hex&lt;T&gt;(from: HexEncodedKeySlice) -&gt; <span class="prelude-ty">Result</span>&lt;T, CodecError&gt;
 <span class="kw">where
     </span>T: DeserializeOwned,
 {
     <span class="kw">let </span>from_vec = Vec::from_hex(from).map_err(|e| {
-        <span class="macro">format!</span>(<span class="string">&quot;Key decode hex: can not turn hexadecimal value into bytes, error: {e}&quot;</span>)
+        CodecError::new(
+            <span class="string">&quot;Key decode hex: can not turn hexadecimal value into bytes&quot;</span>,
+            e.into(),
+        )
     })<span class="question-mark">?</span>;
     serde_json::from_slice(from_vec.as_slice()).map_err(|e| {
-        <span class="macro">format!</span>(
-            <span class="string">&quot;Key decode hex: can not deserialize to type &#39;{}&#39; from binary JSON: error {e}&quot;</span>,
-            std::any::type_name::&lt;T&gt;()
+        CodecError::new(
+            <span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                <span class="string">&quot;Key decode hex: can not deserialize to type &#39;{}&#39; from binary JSON&quot;</span>,
+                std::any::type_name::&lt;T&gt;()
+            ),
+            e.into(),
         )
     })
 }
