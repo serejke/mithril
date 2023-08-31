@@ -800,7 +800,6 @@
 <a href="#800" id="800">800</a>
 <a href="#801" id="801">801</a>
 <a href="#802" id="802">802</a>
-<a href="#803" id="803">803</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
@@ -910,16 +909,14 @@
         }
     }
 
-    <span class="kw">fn </span>check_disk_space_error(<span class="kw-2">&amp;</span><span class="self">self</span>, error: StdError) -&gt; StdResult&lt;()&gt; {
+    <span class="kw">fn </span>check_disk_space_error(<span class="kw-2">&amp;</span><span class="self">self</span>, error: StdError) -&gt; StdResult&lt;StdError&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(SnapshotUnpackerError::NotEnoughSpace {
             left_space: <span class="kw">_</span>,
             pathdir: <span class="kw">_</span>,
             archive_size: <span class="kw">_</span>,
         }) = error.downcast_ref::&lt;SnapshotUnpackerError&gt;()
         {
-            <span class="macro">warn!</span>(<span class="string">&quot;{error}&quot;</span>);
-
-            <span class="prelude-val">Ok</span>(())
+            <span class="prelude-val">Ok</span>(error)
         } <span class="kw">else </span>{
             <span class="prelude-val">Err</span>(error)
         }
@@ -1023,7 +1020,8 @@
         <span class="kw">let </span>unpacker = SnapshotUnpacker;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = unpacker.check_prerequisites(<span class="kw-2">&amp;</span>db_dir, snapshot_entity.artifact.size) {
-            <span class="self">self</span>.check_disk_space_error(e)<span class="question-mark">?</span>;
+            progress_bar
+                .report_step(<span class="number">1</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Warning: {}&quot;</span>, <span class="self">self</span>.check_disk_space_error(e)<span class="question-mark">?</span>))<span class="question-mark">?</span>;
         }
 
         std::fs::create_dir_all(<span class="kw-2">&amp;</span>db_dir).with_context(|| {
