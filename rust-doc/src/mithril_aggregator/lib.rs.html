@@ -57,6 +57,10 @@
 <a href="#57" id="57">57</a>
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
 </pre></div><pre class="rust"><code><span class="attr">#![warn(missing_docs)]
 </span><span class="doccomment">//! Mithril aggregator
 //! The Aggregator is responsible for:
@@ -91,6 +95,7 @@
 <span class="kw">pub use </span><span class="kw">crate</span>::artifact_builder::ArtifactBuilder;
 <span class="kw">pub use </span><span class="kw">crate</span>::configuration::{
     Configuration, DefaultConfiguration, ExecutionEnvironment, SnapshotUploaderType,
+    ZstandardCompressionParameters,
 };
 <span class="kw">pub use </span><span class="kw">crate</span>::multi_signer::{MultiSigner, MultiSignerImpl, ProtocolError};
 <span class="kw">pub use </span>commands::MainOpts;
@@ -108,7 +113,10 @@
 <span class="kw">pub use </span>snapshot_uploaders::{
     DumbSnapshotUploader, LocalSnapshotUploader, RemoteSnapshotUploader, SnapshotUploader,
 };
-<span class="kw">pub use </span>snapshotter::{DumbSnapshotter, GzipSnapshotter, SnapshotError, Snapshotter};
+<span class="kw">pub use </span>snapshotter::{
+    CompressedArchiveSnapshotter, DumbSnapshotter, SnapshotError, Snapshotter,
+    SnapshotterCompressionAlgorithm,
+};
 <span class="kw">pub use </span>store::{
     CertificatePendingStore, ProtocolParametersStore, ProtocolParametersStorer,
     VerificationKeyStore, VerificationKeyStorer,

@@ -1122,6 +1122,19 @@
 <a href="#1122" id="1122">1122</a>
 <a href="#1123" id="1123">1123</a>
 <a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>mithril_common::{
@@ -1137,7 +1150,7 @@
         CardanoImmutableDigester, DumbImmutableFileObserver, ImmutableDigester,
         ImmutableFileObserver, ImmutableFileSystemObserver,
     },
-    entities::{CertificatePending, Epoch},
+    entities::{CertificatePending, CompressionAlgorithm, Epoch},
     era::{
         adapters::{EraReaderAdapterBuilder, EraReaderDummyAdapter},
         EraChecker, EraMarker, EraReader, EraReaderAdapter, SupportedEra,
@@ -1180,11 +1193,11 @@
     },
     signer_registerer::SignerRecorder,
     tools::{GcpFileUploader, GenesisToolsDependency},
-    AggregatorConfig, AggregatorRunner, AggregatorRuntime, CertificatePendingStore, Configuration,
-    DependencyContainer, DumbSnapshotUploader, DumbSnapshotter, GzipSnapshotter,
-    LocalSnapshotUploader, MithrilSignerRegisterer, MultiSigner, MultiSignerImpl,
+    AggregatorConfig, AggregatorRunner, AggregatorRuntime, CertificatePendingStore,
+    CompressedArchiveSnapshotter, Configuration, DependencyContainer, DumbSnapshotUploader,
+    DumbSnapshotter, LocalSnapshotUploader, MithrilSignerRegisterer, MultiSigner, MultiSignerImpl,
     ProtocolParametersStorer, RemoteSnapshotUploader, SnapshotUploader, SnapshotUploaderType,
-    Snapshotter, VerificationKeyStorer,
+    Snapshotter, SnapshotterCompressionAlgorithm, VerificationKeyStorer,
 };
 
 <span class="kw">use super</span>::{DependenciesBuilderError, <span class="prelude-ty">Result</span>};
@@ -1705,9 +1718,19 @@
                     .snapshot_directory
                     .join(<span class="string">&quot;pending_snapshot&quot;</span>);
 
-                Arc::new(GzipSnapshotter::new(
+                <span class="kw">let </span>algorithm = <span class="kw">match </span><span class="self">self</span>.configuration.snapshot_compression_algorithm {
+                    CompressionAlgorithm::Gzip =&gt; SnapshotterCompressionAlgorithm::Gzip,
+                    CompressionAlgorithm::Zstandard =&gt; <span class="self">self
+                        </span>.configuration
+                        .zstandard_parameters
+                        .unwrap_or_default()
+                        .into(),
+                };
+
+                Arc::new(CompressedArchiveSnapshotter::new(
                     <span class="self">self</span>.configuration.db_directory.clone(),
                     ongoing_snapshot_directory,
+                    algorithm,
                 )<span class="question-mark">?</span>)
             }
             <span class="kw">_ </span>=&gt; Arc::new(DumbSnapshotter::new()),
@@ -2008,9 +2031,12 @@
             Arc::new(MithrilStakeDistributionArtifactBuilder::new(multi_signer));
         <span class="kw">let </span>snapshotter = <span class="self">self</span>.build_snapshotter().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>snapshot_uploader = <span class="self">self</span>.build_snapshot_uploader().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>cardano_immutable_files_full_artifact_builder = Arc::new(
-            CardanoImmutableFilesFullArtifactBuilder::new(snapshotter, snapshot_uploader),
-        );
+        <span class="kw">let </span>cardano_immutable_files_full_artifact_builder =
+            Arc::new(CardanoImmutableFilesFullArtifactBuilder::new(
+                snapshotter,
+                snapshot_uploader,
+                <span class="self">self</span>.configuration.snapshot_compression_algorithm,
+            ));
         <span class="kw">let </span>signed_entity_service = Arc::new(MithrilSignedEntityService::new(
             signed_entity_storer,
             mithril_stake_distribution_artifact_builder,

@@ -368,6 +368,47 @@
 <a href="#368" id="368">368</a>
 <a href="#369" id="369">369</a>
 <a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>config::{ConfigError, Map, Source, Value, ValueKind};
 <span class="kw">use </span>mithril_common::crypto_helper::ProtocolGenesisSigner;
 <span class="kw">use </span>mithril_common::era::adapters::EraReaderAdapterType;
@@ -376,7 +417,9 @@
 <span class="kw">use </span>std::str::FromStr;
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>mithril_common::entities::{HexEncodedGenesisVerificationKey, ProtocolParameters};
+<span class="kw">use </span>mithril_common::entities::{
+    CompressionAlgorithm, HexEncodedGenesisVerificationKey, ProtocolParameters,
+};
 <span class="kw">use </span>mithril_common::{CardanoNetwork, StdResult};
 
 <span class="kw">use </span><span class="kw">crate</span>::tools::GcpFileUploader;
@@ -475,16 +518,42 @@
 
     <span class="doccomment">/// Era reader adapter parameters
     </span><span class="kw">pub </span>era_reader_adapter_params: <span class="prelude-ty">Option</span>&lt;String&gt;,
+
+    <span class="doccomment">/// Compression algorithm used for the snapshot archive artifacts.
+    </span><span class="kw">pub </span>snapshot_compression_algorithm: CompressionAlgorithm,
+
+    <span class="doccomment">/// Specific parameters when [snapshot_compression_algorithm][Self::snapshot_compression_algorithm]
+    /// is set to [zstandard][CompressionAlgorithm::Zstandard].
+    </span><span class="kw">pub </span>zstandard_parameters: <span class="prelude-ty">Option</span>&lt;ZstandardCompressionParameters&gt;,
 }
 
 <span class="doccomment">/// Uploader needed to copy the snapshot once computed.
-</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+</span><span class="attr">#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = <span class="string">&quot;lowercase&quot;</span>)]
 </span><span class="kw">pub enum </span>SnapshotUploaderType {
     <span class="doccomment">/// Uploader to GCP storage.
     </span>Gcp,
     <span class="doccomment">/// Uploader to local storage.
     </span>Local,
+}
+
+<span class="doccomment">/// [Zstandard][CompressionAlgorithm::Zstandard] specific parameters
+</span><span class="attr">#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+</span><span class="kw">pub struct </span>ZstandardCompressionParameters {
+    <span class="doccomment">/// Level of compression, default to 9.
+    </span><span class="kw">pub </span>level: i32,
+
+    <span class="doccomment">/// Number of workers when compressing, 0 will disable multithreading, default to 4.
+    </span><span class="kw">pub </span>number_of_workers: u32,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>ZstandardCompressionParameters {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            level: <span class="number">9</span>,
+            number_of_workers: <span class="number">4</span>,
+        }
+    }
 }
 
 <span class="kw">impl </span>Configuration {
@@ -519,6 +588,8 @@
             store_retention_limit: <span class="prelude-val">None</span>,
             era_reader_adapter_type: EraReaderAdapterType::Bootstrap,
             era_reader_adapter_params: <span class="prelude-val">None</span>,
+            snapshot_compression_algorithm: CompressionAlgorithm::Zstandard,
+            zstandard_parameters: <span class="prelude-val">Some</span>(ZstandardCompressionParameters::default()),
         }
     }
 
@@ -606,6 +677,9 @@
 
     <span class="doccomment">/// ImmutableDigesterCacheProvider default setting
     </span><span class="kw">pub </span>disable_digests_cache: String,
+
+    <span class="doccomment">/// Snapshot compression algorithm default setting
+    </span><span class="kw">pub </span>snapshot_compression_algorithm: String,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>DefaultConfiguration {
@@ -621,6 +695,7 @@
             era_reader_adapter_type: <span class="string">&quot;bootstrap&quot;</span>.to_string(),
             reset_digests_cache: <span class="string">&quot;false&quot;</span>.to_string(),
             disable_digests_cache: <span class="string">&quot;false&quot;</span>.to_string(),
+            snapshot_compression_algorithm: <span class="string">&quot;zstandard&quot;</span>.to_string(),
         }
     }
 }
@@ -696,6 +771,13 @@
             Value::new(
                 <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>namespace),
                 ValueKind::from(myself.disable_digests_cache),
+            ),
+        );
+        result.insert(
+            <span class="string">&quot;snapshot_compression_algorithm&quot;</span>.to_string(),
+            Value::new(
+                <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>namespace),
+                ValueKind::from(myself.snapshot_compression_algorithm),
             ),
         );
 

@@ -88,6 +88,11 @@
 <a href="#88" id="88">88</a>
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module contains a struct to exchange snapshot information with the Aggregator
 
 </span><span class="kw">use </span>slog_scope::warn;
@@ -157,7 +162,12 @@
             <span class="kw">if </span><span class="self">self</span>.http_client.probe(url).<span class="kw">await</span>.is_ok() {
                 <span class="kw">return match </span><span class="self">self
                     </span>.http_client
-                    .download_unpack(url, target_dir, progress_reporter)
+                    .download_unpack(
+                        url,
+                        target_dir,
+                        snapshot.compression_algorithm,
+                        progress_reporter,
+                    )
                     .<span class="kw">await
                 </span>{
                     <span class="prelude-val">Ok</span>(()) =&gt; <span class="prelude-val">Ok</span>(()),

@@ -211,8 +211,8 @@
 <span class="kw">use crate</span>::{
     crypto_helper,
     entities::{
-        <span class="self">self</span>, CertificateMetadata, CertificateSignature, Epoch, LotteryIndex, ProtocolMessage,
-        ProtocolMessagePartKey, SignedEntityType, SingleSignatures,
+        <span class="self">self</span>, CertificateMetadata, CertificateSignature, CompressionAlgorithm, Epoch, LotteryIndex,
+        ProtocolMessage, ProtocolMessagePartKey, SignedEntityType, SingleSignatures,
     },
     test_utils::MithrilFixtureBuilder,
 };
@@ -392,7 +392,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>locations = Vec::new();
             locations.push(<span class="macro">format!</span>(<span class="string">&quot;http://{certificate_hash}&quot;</span>));
             locations.push(<span class="macro">format!</span>(<span class="string">&quot;http2://{certificate_hash}&quot;</span>));
-            entities::Snapshot::new(digest, beacon, size, locations)
+            entities::Snapshot::new(digest, beacon, size, locations, CompressionAlgorithm::Gzip)
         })
         .collect::&lt;Vec&lt;entities::Snapshot&gt;&gt;()
 }

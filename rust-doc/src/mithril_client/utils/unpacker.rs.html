@@ -102,7 +102,29 @@
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>flate2::read::GzDecoder;
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>flate2::read::GzDecoder;
 <span class="kw">use </span>flume::Receiver;
 <span class="kw">use </span>human_bytes::human_bytes;
 <span class="kw">use </span>std::{
@@ -113,13 +135,7 @@
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">crate</span>::utils::StreamReader;
-<span class="kw">use </span>mithril_common::{StdError, StdResult};
-
-<span class="doccomment">/// This ratio will be multiplied by the snapshot size to check if the available
-/// disk space is sufficient to store the archive plus the extracted files. If
-/// the available space is lower than that, a warning is raised. This ratio has
-/// been experimentally established.
-</span><span class="kw">pub const </span>FREE_SPACE_SNAPSHOT_SIZE_RATIO: f64 = <span class="number">2.5</span>;
+<span class="kw">use </span>mithril_common::{entities::CompressionAlgorithm, StdError, StdResult};
 
 <span class="doccomment">/// Check and unpack a downloaded archive in a given directory.
 </span><span class="attr">#[derive(Default)]
@@ -128,7 +144,8 @@
 <span class="doccomment">/// Errors tied with the SnapshotUnpacker.
 </span><span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>SnapshotUnpackerError {
-    <span class="doccomment">/// Not enough space on the disk. There should be at least [FREE_SPACE_SNAPSHOT_SIZE_RATIO] times
+    <span class="doccomment">/// Not enough space on the disk. There should be at least the ratio given for the
+    /// used algorithm (see [CompressionAlgorithm::free_space_snapshot_ratio]) times
     /// the size of the archive to download to ensure it could be unpacked safely.
     </span><span class="attr">#[error(<span class="string">&quot;There is only {} remaining in directory &#39;{}&#39; to store and unpack a {} large archive.&quot;</span>, human_bytes(<span class="kw-2">*</span>left_space), pathdir.display(), human_bytes(<span class="kw-2">*</span>archive_size))]
     </span>NotEnoughSpace {
@@ -166,7 +183,12 @@
 <span class="kw">impl </span>SnapshotUnpacker {
     <span class="doccomment">/// Check all prerequisites are met before starting to download and unpack
     /// big snapshot archive.
-    </span><span class="kw">pub fn </span>check_prerequisites(<span class="kw-2">&amp;</span><span class="self">self</span>, pathdir: <span class="kw-2">&amp;</span>Path, size: u64) -&gt; StdResult&lt;()&gt; {
+    </span><span class="kw">pub fn </span>check_prerequisites(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        pathdir: <span class="kw-2">&amp;</span>Path,
+        size: u64,
+        compressionn_algorithm: CompressionAlgorithm,
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">if </span>pathdir.exists() {
             <span class="kw">return </span><span class="prelude-val">Err</span>(
                 SnapshotUnpackerError::UnpackDirectoryAlreadyExists(pathdir.to_owned()).into(),
@@ -178,7 +200,7 @@
         <span class="kw">let </span>free_space = fs2::available_space(pathdir)<span class="question-mark">? </span><span class="kw">as </span>f64;
         remove_dir(pathdir)<span class="question-mark">?</span>;
 
-        <span class="kw">if </span>free_space &lt; FREE_SPACE_SNAPSHOT_SIZE_RATIO * size <span class="kw">as </span>f64 {
+        <span class="kw">if </span>free_space &lt; compressionn_algorithm.free_space_snapshot_ratio() * size <span class="kw">as </span>f64 {
             <span class="kw">return </span><span class="prelude-val">Err</span>(SnapshotUnpackerError::NotEnoughSpace {
                 left_space: free_space,
                 pathdir: pathdir.to_owned(),
@@ -191,17 +213,37 @@
     }
 
     <span class="doccomment">/// Unpack the snapshot from the given stream into the given directory.
-    </span><span class="kw">pub fn </span>unpack_snapshot(<span class="kw-2">&amp;</span><span class="self">self</span>, stream: Receiver&lt;Vec&lt;u8&gt;&gt;, unpack_dir: <span class="kw-2">&amp;</span>Path) -&gt; StdResult&lt;()&gt; {
+    </span><span class="kw">pub fn </span>unpack_snapshot(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        stream: Receiver&lt;Vec&lt;u8&gt;&gt;,
+        compression_algorithm: CompressionAlgorithm,
+        unpack_dir: <span class="kw-2">&amp;</span>Path,
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span>input = StreamReader::new(stream);
 
-        <span class="kw">let </span>gunzip_decoder = GzDecoder::new(input);
-        <span class="kw">let </span><span class="kw-2">mut </span>snapshot_archive = Archive::new(gunzip_decoder);
-        snapshot_archive
-            .unpack(unpack_dir)
-            .map_err(|e| SnapshotUnpackerError::UnpackFailed {
-                dirpath: unpack_dir.to_owned(),
-                error: e.into(),
-            })<span class="question-mark">?</span>;
+        <span class="kw">match </span>compression_algorithm {
+            CompressionAlgorithm::Gzip =&gt; {
+                <span class="kw">let </span>gzip_decoder = GzDecoder::new(input);
+                <span class="kw">let </span><span class="kw-2">mut </span>snapshot_archive = Archive::new(gzip_decoder);
+                snapshot_archive.unpack(unpack_dir).map_err(|e| {
+                    SnapshotUnpackerError::UnpackFailed {
+                        dirpath: unpack_dir.to_owned(),
+                        error: e.into(),
+                    }
+                })<span class="question-mark">?</span>;
+            }
+            CompressionAlgorithm::Zstandard =&gt; {
+                <span class="kw">let </span>zstandard_decoder = zstd::Decoder::new(input)
+                    .with_context(|| <span class="string">&quot;Unpack failed: Create Zstandard decoder error&quot;</span>)<span class="question-mark">?</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>snapshot_archive = Archive::new(zstandard_decoder);
+                snapshot_archive.unpack(unpack_dir).map_err(|e| {
+                    SnapshotUnpackerError::UnpackFailed {
+                        dirpath: unpack_dir.to_owned(),
+                        error: e.into(),
+                    }
+                })<span class="question-mark">?</span>;
+            }
+        };
 
         <span class="prelude-val">Ok</span>(())
     }

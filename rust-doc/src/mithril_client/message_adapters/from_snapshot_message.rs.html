@@ -43,6 +43,7 @@
 <a href="#43" id="43">43</a>
 <a href="#44" id="44">44</a>
 <a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::{
     entities::{SignedEntity, SignedEntityType, Snapshot},
     messages::{FromMessageAdapter, SnapshotMessage},
@@ -59,6 +60,7 @@
             beacon: snapshot_message.beacon.clone(),
             size: snapshot_message.size,
             locations: snapshot_message.locations,
+            compression_algorithm: snapshot_message.compression_algorithm.unwrap_or_default(),
         };
 
         SignedEntity {

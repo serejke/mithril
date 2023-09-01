@@ -92,10 +92,16 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="kw">use </span><span class="kw">crate</span>::entities::{Beacon, Epoch};
+<span class="kw">use </span><span class="kw">crate</span>::entities::{Beacon, CompressionAlgorithm, Epoch};
 
 <span class="doccomment">/// Message structure of a snapshot
 </span><span class="attr">#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -117,6 +123,10 @@
 
     <span class="doccomment">/// Locations where the binary content of the snapshot can be retrieved
     </span><span class="kw">pub </span>locations: Vec&lt;String&gt;,
+
+    <span class="doccomment">/// Compression algorithm of the snapshot archive
+    </span><span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;Option::is_none&quot;</span>)]
+    </span><span class="kw">pub </span>compression_algorithm: <span class="prelude-ty">Option</span>&lt;CompressionAlgorithm&gt;,
 }
 
 <span class="kw">impl </span>SnapshotMessage {
@@ -136,6 +146,7 @@
                 .unwrap()
                 .with_timezone(<span class="kw-2">&amp;</span>Utc),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;https://host/certificate.tar.gz&quot;</span>.to_string()],
+            compression_algorithm: <span class="prelude-val">Some</span>(CompressionAlgorithm::Gzip),
         }
     }
 }
@@ -159,6 +170,7 @@
                 .unwrap()
                 .with_timezone(<span class="kw-2">&amp;</span>Utc),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;https://host/certificate.tar.gz&quot;</span>.to_string()],
+            compression_algorithm: <span class="prelude-val">None</span>,
         }
     }
 
