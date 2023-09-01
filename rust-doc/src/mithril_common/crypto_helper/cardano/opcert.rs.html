@@ -222,6 +222,10 @@
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to (de)serialise, OpCert using the same structure as used in Cardano.  
 
 </span><span class="kw">use </span><span class="kw">super</span>::SerDeShelleyFileFormat;
@@ -230,9 +234,12 @@
 
 <span class="kw">use </span>bech32::{<span class="self">self</span>, ToBase32, Variant};
 <span class="kw">use </span>blake2::{digest::consts::U28, Blake2b, Digest};
-<span class="kw">use </span>ed25519_dalek::{Keypair <span class="kw">as </span>EdKeypair, Signer};
-<span class="kw">use </span>ed25519_dalek::{PublicKey <span class="kw">as </span>EdPublicKey, Signature <span class="kw">as </span>EdSignature, Verifier};
+<span class="kw">use </span>ed25519_dalek::{
+    Signature <span class="kw">as </span>EdSignature, Signer, SigningKey <span class="kw">as </span>EdSecretKey, Verifier,
+    VerifyingKey <span class="kw">as </span>EdVerificationKey,
+};
 <span class="kw">use </span>kes_summed_ed25519::PublicKey <span class="kw">as </span>KesPublicKey;
+<span class="kw">use </span>nom::AsBytes;
 <span class="kw">use </span>serde::de::Error;
 <span class="kw">use </span>serde::{Deserialize, Deserializer, Serialize, Serializer};
 <span class="kw">use </span>sha2::Sha256;
@@ -246,7 +253,7 @@
     </span>PoolAddressEncoding,
 }
 
-<span class="doccomment">/// Raw Fields of the operational certificates (without incluiding the cold VK)
+<span class="doccomment">/// Raw Fields of the operational certificates (without including the cold VK)
 </span><span class="attr">#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 </span><span class="kw">struct </span>RawFields(
     <span class="attr">#[serde(with = <span class="string">&quot;serde_bytes&quot;</span>)] </span>Vec&lt;u8&gt;,
@@ -257,7 +264,7 @@
 
 <span class="doccomment">/// Raw Operational Certificate
 </span><span class="attr">#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
-</span><span class="kw">struct </span>RawOpCert(RawFields, EdPublicKey);
+</span><span class="kw">struct </span>RawOpCert(RawFields, EdVerificationKey);
 
 <span class="doccomment">/// Parsed Operational Certificate
 </span><span class="attr">#[derive(Clone, Debug, PartialEq, Eq)]
@@ -267,7 +274,7 @@
     <span class="doccomment">/// KES period at which KES key is initalized
     </span><span class="kw">pub </span>start_kes_period: u64,
     <span class="kw">pub</span>(<span class="kw">crate</span>) cert_sig: EdSignature,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) cold_vk: EdPublicKey,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) cold_vk: EdVerificationKey,
 }
 
 <span class="kw">impl </span>SerDeShelleyFileFormat <span class="kw">for </span>OpCert {
@@ -281,14 +288,15 @@
         kes_vk: KesPublicKey,
         issue_number: u64,
         start_kes_period: u64,
-        cold_keypair: EdKeypair,
+        cold_secret_key: EdSecretKey,
     ) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>cold_vk: EdPublicKey = cold_keypair.public;
-        <span class="kw">let </span>cert_sig = cold_keypair.sign(<span class="kw-2">&amp;</span><span class="self">Self</span>::compute_message_to_sign(
+        <span class="kw">let </span>cold_vk: EdVerificationKey = cold_secret_key.verifying_key();
+        <span class="kw">let </span>cert_sig = cold_secret_key.sign(<span class="kw-2">&amp;</span><span class="self">Self</span>::compute_message_to_sign(
             <span class="kw-2">&amp;</span>kes_vk,
             issue_number,
             start_kes_period,
         ));
+
         <span class="self">Self </span>{
             kes_vk,
             issue_number,
@@ -336,7 +344,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>hasher = Blake2b::&lt;U28&gt;::new();
         hasher.update(<span class="self">self</span>.cold_vk.as_bytes());
         <span class="kw">let </span><span class="kw-2">mut </span>pool_id = [<span class="number">0u8</span>; <span class="number">28</span>];
-        pool_id.copy_from_slice(hasher.finalize().as_slice());
+        pool_id.copy_from_slice(hasher.finalize().as_bytes());
         bech32::encode(<span class="string">&quot;pool&quot;</span>, pool_id.to_base32(), Variant::Bech32)
             .map_err(|<span class="kw">_</span>| OpCertError::PoolAddressEncoding)
     }
@@ -390,7 +398,7 @@
                 .map_err(|<span class="kw">_</span>| Error::custom(<span class="string">&quot;KES vk serialisation error&quot;</span>))<span class="question-mark">?</span>,
             issue_number: raw_cert.<span class="number">0 </span>.<span class="number">1</span>,
             start_kes_period: raw_cert.<span class="number">0 </span>.<span class="number">2</span>,
-            cert_sig: EdSignature::from_bytes(<span class="kw-2">&amp;</span>raw_cert.<span class="number">0 </span>.<span class="number">3</span>)
+            cert_sig: EdSignature::from_slice(<span class="kw-2">&amp;</span>raw_cert.<span class="number">0 </span>.<span class="number">3</span>)
                 .map_err(|<span class="kw">_</span>| Error::custom(<span class="string">&quot;ed25519 signature serialisation error&quot;</span>))<span class="question-mark">?</span>,
             cold_vk: raw_cert.<span class="number">1</span>,
         })

@@ -165,27 +165,10 @@
 <a href="#165" id="165">165</a>
 <a href="#166" id="166">166</a>
 <a href="#167" id="167">167</a>
-<a href="#168" id="168">168</a>
-<a href="#169" id="169">169</a>
-<a href="#170" id="170">170</a>
-<a href="#171" id="171">171</a>
-<a href="#172" id="172">172</a>
-<a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a>
-<a href="#175" id="175">175</a>
-<a href="#176" id="176">176</a>
-<a href="#177" id="177">177</a>
-<a href="#178" id="178">178</a>
-<a href="#179" id="179">179</a>
-<a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
-<a href="#182" id="182">182</a>
-<a href="#183" id="183">183</a>
-<a href="#184" id="184">184</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::StdResult;
-<span class="kw">use </span>ed25519_dalek::{ExpandedSecretKey, SignatureError};
-<span class="kw">use </span>rand_chacha_dalek_compat::rand_core::{<span class="self">self</span>, CryptoRng, RngCore, SeedableRng};
-<span class="kw">use </span>rand_chacha_dalek_compat::ChaCha20Rng;
+<span class="kw">use </span>ed25519_dalek::{SignatureError, Signer, SigningKey};
+<span class="kw">use </span>rand_chacha::rand_core::{<span class="self">self</span>, CryptoRng, RngCore, SeedableRng};
+<span class="kw">use </span>rand_chacha::ChaCha20Rng;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::{fs::File, io::Write, path::Path};
 <span class="kw">use </span>thiserror::Error;
@@ -209,57 +192,40 @@
 }
 
 <span class="kw">impl </span>ProtocolGenesisSigner {
-    <span class="doccomment">/// ProtocolGenesisSigner factory
+    <span class="doccomment">/// [ProtocolGenesisSigner] factory
     </span><span class="kw">pub fn </span>create_test_genesis_signer&lt;R&gt;(<span class="kw-2">mut </span>rng: R) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>R: CryptoRng + RngCore,
     {
-        <span class="kw">let </span>secret_key = ed25519_dalek::SecretKey::generate(<span class="kw-2">&amp;mut </span>rng);
+        <span class="kw">let </span>secret_key = SigningKey::generate(<span class="kw-2">&amp;mut </span>rng);
         <span class="self">Self</span>::from_secret_key(secret_key.into())
     }
 
-    <span class="doccomment">/// ProtocolGenesisSigner deterministic
+    <span class="doccomment">/// [ProtocolGenesisSigner] deterministic
     </span><span class="kw">pub fn </span>create_deterministic_genesis_signer() -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>rng = ChaCha20Rng::from_seed([<span class="number">0u8</span>; <span class="number">32</span>]);
         <span class="self">Self</span>::create_test_genesis_signer(rng)
     }
 
-    <span class="doccomment">/// ProtocolGenesisSigner non deterministic
+    <span class="doccomment">/// [ProtocolGenesisSigner] non deterministic
     </span><span class="kw">pub fn </span>create_non_deterministic_genesis_signer() -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>rng = rand_core::OsRng;
         <span class="self">Self</span>::create_test_genesis_signer(rng)
     }
 
-    <span class="doccomment">/// ProtocolGenesisSigner from ProtocolGenesisSecretKey
+    <span class="doccomment">/// [ProtocolGenesisSigner] from [ProtocolGenesisSecretKey]
     </span><span class="kw">pub fn </span>from_secret_key(secret_key: ProtocolGenesisSecretKey) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ secret_key }
     }
 
-    <span class="doccomment">/// Create a an expanded secret key
-    </span><span class="kw">fn </span>create_expanded_secret_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ExpandedSecretKey {
-        ExpandedSecretKey::from(<span class="kw-2">&amp;*</span><span class="self">self</span>.secret_key)
-    }
-
-    <span class="doccomment">/// Create a ProtocolGenesisVerificationKey
-    </span><span class="kw">fn </span>create_verification_key(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        expanded_secret_key: <span class="kw-2">&amp;</span>ExpandedSecretKey,
-    ) -&gt; ProtocolGenesisVerificationKey {
-        ProtocolGenesisVerificationKey::new(expanded_secret_key.into())
-    }
-
-    <span class="doccomment">/// Create a ProtocolGenesisVerifier
+    <span class="doccomment">/// Create a [ProtocolGenesisVerifier]
     </span><span class="kw">pub fn </span>create_genesis_verifier(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProtocolGenesisVerifier {
-        <span class="kw">let </span>expanded_secret_key = <span class="self">self</span>.create_expanded_secret_key();
-        <span class="kw">let </span>verification_key = <span class="self">self</span>.create_verification_key(<span class="kw-2">&amp;</span>expanded_secret_key);
-        ProtocolGenesisVerifier::from_verification_key(verification_key)
+        ProtocolGenesisVerifier::from_verification_key(<span class="self">self</span>.secret_key.verifying_key().into())
     }
 
-    <span class="doccomment">/// Signs a message and returns a ProtocolGenesisSignature
+    <span class="doccomment">/// Signs a message and returns a [ProtocolGenesisSignature]
     </span><span class="kw">pub fn </span>sign(<span class="kw-2">&amp;</span><span class="self">self</span>, message: <span class="kw-2">&amp;</span>[u8]) -&gt; ProtocolGenesisSignature {
-        <span class="kw">let </span>expanded_secret_key = <span class="self">self</span>.create_expanded_secret_key();
-        <span class="kw">let </span>verification_key = <span class="self">self</span>.create_verification_key(<span class="kw-2">&amp;</span>expanded_secret_key);
-        expanded_secret_key.sign(message, <span class="kw-2">&amp;</span>verification_key).into()
+        <span class="self">self</span>.secret_key.sign(message).into()
     }
 
     <span class="doccomment">/// Export the secret key from the genesis verifier to a file. TEST ONLY
@@ -280,12 +246,12 @@
 }
 
 <span class="kw">impl </span>ProtocolGenesisVerifier {
-    <span class="doccomment">/// ProtocolGenesisVerifier from ProtocolGenesisVerificationKey
+    <span class="doccomment">/// [ProtocolGenesisVerifier] from [ProtocolGenesisVerificationKey]
     </span><span class="kw">pub fn </span>from_verification_key(verification_key: ProtocolGenesisVerificationKey) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ verification_key }
     }
 
-    <span class="doccomment">/// ProtocolGenesisVerifier to ProtocolGenesisVerificationKey
+    <span class="doccomment">/// [ProtocolGenesisVerifier] to [ProtocolGenesisVerificationKey]
     </span><span class="kw">pub fn </span>to_verification_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProtocolGenesisVerificationKey {
         <span class="self">self</span>.verification_key
     }
@@ -311,8 +277,8 @@
         <span class="kw">let </span>genesis_signer_2 = ProtocolGenesisSigner::create_deterministic_genesis_signer();
         <span class="kw">let </span>genesis_verifier_2 = genesis_signer.create_genesis_verifier();
         <span class="macro">assert_eq!</span>(
-            genesis_signer.secret_key.as_bytes(),
-            genesis_signer_2.secret_key.as_bytes()
+            genesis_signer.secret_key.to_bytes(),
+            genesis_signer_2.secret_key.to_bytes()
         );
         <span class="macro">assert_eq!</span>(
             genesis_verifier.verification_key.as_bytes(),

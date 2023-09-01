@@ -26,18 +26,18 @@
 <a href="#26" id="26">26</a>
 <a href="#27" id="27">27</a>
 <a href="#28" id="28">28</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>ed25519_dalek::Keypair <span class="kw">as </span>ColdKeypair;
-<span class="kw">use </span>rand_chacha_dalek_compat::rand_core::SeedableRng;
-<span class="kw">use </span>rand_chacha_dalek_compat::ChaCha20Rng;
+</pre></div><pre class="rust"><code><span class="kw">use </span>ed25519_dalek::SigningKey <span class="kw">as </span>ColdSecretKey;
+<span class="kw">use </span>rand_chacha::ChaCha20Rng;
+<span class="kw">use </span>rand_core::SeedableRng;
 
 <span class="doccomment">/// A cold key generator / test only
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>ColdKeyGenerator();
 
 <span class="kw">impl </span>ColdKeyGenerator {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_deterministic_keypair(seed: [u8; <span class="number">32</span>]) -&gt; ColdKeypair {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_deterministic_keypair(seed: [u8; <span class="number">32</span>]) -&gt; ColdSecretKey {
         <span class="kw">let </span><span class="kw-2">mut </span>rng = ChaCha20Rng::from_seed(seed);
-        ColdKeypair::generate(<span class="kw-2">&amp;mut </span>rng)
+        ColdSecretKey::generate(<span class="kw-2">&amp;mut </span>rng)
     }
 }
 
