@@ -169,54 +169,16 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
-<a href="#172" id="172">172</a>
-<a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a>
-<a href="#175" id="175">175</a>
-<a href="#176" id="176">176</a>
-<a href="#177" id="177">177</a>
-<a href="#178" id="178">178</a>
-<a href="#179" id="179">179</a>
-<a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
-<a href="#182" id="182">182</a>
-<a href="#183" id="183">183</a>
-<a href="#184" id="184">184</a>
-<a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
-<a href="#189" id="189">189</a>
-<a href="#190" id="190">190</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! API Version provider service
 </span><span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;OUT_DIR&quot;</span>), <span class="string">&quot;/open_api.rs&quot;</span>));
-<span class="kw">use </span>semver::{Error <span class="kw">as </span>SemVerError, Version, VersionReq};
-<span class="kw">use </span>serde_yaml::Error <span class="kw">as </span>SerdeYamlError;
+<span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>semver::{Version, VersionReq};
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">crate</span>::era::EraChecker;
-
-<span class="doccomment">/// API Version provider error
-</span><span class="attr">#[derive(Debug, Error)]
-</span><span class="kw">pub enum </span>APIVersionProviderError {
-    <span class="doccomment">/// Semver parse error
-    </span><span class="attr">#[error(<span class="string">&quot;Semver parse error: {0:?}&quot;</span>)]
-    </span>SemverParse(<span class="attr">#[from] </span>SemVerError),
-
-    <span class="doccomment">/// Yaml parse error
-    </span><span class="attr">#[error(<span class="string">&quot;Spec file parse error: {0:?}&quot;</span>)]
-    </span>SpecParse(<span class="attr">#[from] </span>SerdeYamlError),
-
-    <span class="doccomment">/// Spec file io error
-    </span><span class="attr">#[error(<span class="string">&quot;Spec file IO error: {0}&quot;</span>)]
-    </span>SpecFileIO(String),
-
-    <span class="doccomment">/// Missing default api version
-    </span><span class="attr">#[error(<span class="string">&quot;Missing default API version&quot;</span>)]
-    </span>MissingDefault(),
-}
+<span class="kw">use </span><span class="kw">crate</span>::StdResult;
 
 <span class="doccomment">/// API Version provider
 </span><span class="attr">#[derive(Clone)]
@@ -235,7 +197,7 @@
     }
 
     <span class="doccomment">/// Compute the current api version
-    </span><span class="kw">pub fn </span>compute_current_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Version, APIVersionProviderError&gt; {
+    </span><span class="kw">pub fn </span>compute_current_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Version&gt; {
         <span class="kw">let </span>current_era = <span class="self">self</span>.era_checker.current_era();
         <span class="kw">let </span>open_api_spec_file_name_default = <span class="string">&quot;openapi.yaml&quot;</span>;
         <span class="kw">let </span>open_api_spec_file_name_era = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;openapi-{current_era}.yaml&quot;</span>);
@@ -245,16 +207,16 @@
             .unwrap_or(
                 <span class="self">self</span>.open_api_versions
                     .get(open_api_spec_file_name_default)
-                    .ok_or_else(APIVersionProviderError::MissingDefault)<span class="question-mark">?</span>,
+                    .ok_or_else(|| <span class="macro">anyhow!</span>(<span class="string">&quot;Missing default API version&quot;</span>))<span class="question-mark">?</span>,
             );
 
-        Version::parse(open_api_version_raw).map_err(APIVersionProviderError::SemverParse)
+        Version::parse(open_api_version_raw)
+            .map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Cannot parse Semver from: &#39;{open_api_version_raw:?}&#39;&quot;</span>))
     }
 
     <span class="doccomment">/// Compute the current api version requirement
-    </span><span class="kw">pub fn </span>compute_current_version_requirement(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;VersionReq, APIVersionProviderError&gt; {
+    </span><span class="kw">pub fn </span>compute_current_version_requirement(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;VersionReq&gt; {
         <span class="kw">let </span>version = <span class="kw-2">&amp;</span><span class="self">self</span>.compute_current_version()<span class="question-mark">?</span>;
         <span class="kw">let </span>version_req = <span class="kw">if </span>version.major &gt; <span class="number">0 </span>{
             <span class="macro">format!</span>(<span class="string">&quot;={}&quot;</span>, version.major)
@@ -266,7 +228,7 @@
     }
 
     <span class="doccomment">/// Compute all the sorted list of all versions
-    </span><span class="kw">pub fn </span>compute_all_versions_sorted() -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Version&gt;, APIVersionProviderError&gt; {
+    </span><span class="kw">pub fn </span>compute_all_versions_sorted() -&gt; StdResult&lt;Vec&lt;Version&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>versions = Vec::new();
         <span class="kw">for </span>version_raw <span class="kw">in </span>get_open_api_versions_mapping().into_values() {
             versions.push(Version::parse(<span class="kw-2">&amp;</span>version_raw)<span class="question-mark">?</span>)
