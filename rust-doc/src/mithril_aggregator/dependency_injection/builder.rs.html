@@ -1850,7 +1850,7 @@
             .<span class="kw">await
             </span>.map_err(|e| DependenciesBuilderError::Initialization {
                 message: <span class="string">&quot;Error while building EraChecker&quot;</span>.to_string(),
-                error: <span class="prelude-val">Some</span>(e.into()),
+                error: <span class="prelude-val">Some</span>(e),
             })<span class="question-mark">?
             </span>.epoch;
         <span class="kw">let </span>era_epoch_token = <span class="self">self

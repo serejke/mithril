@@ -137,14 +137,17 @@
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#140" id="140">140</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span><span class="kw">crate</span>::chain_observer::ChainObserverError;
+<span class="kw">use </span><span class="kw">crate</span>::StdResult;
 <span class="kw">use crate</span>::{
-    chain_observer::ChainObserver, digesters::ImmutableFileObserver,
-    digesters::ImmutableFileObserverError, entities::Beacon, CardanoNetwork,
+    chain_observer::ChainObserver, digesters::ImmutableFileObserver, entities::Beacon,
+    CardanoNetwork,
 };
 
 <span class="doccomment">/// Provide the current [Beacon] of a cardano node.
@@ -154,24 +157,15 @@
     </span><span class="self">Self</span>: Sync + Send,
 {
     <span class="doccomment">/// Get the current [Beacon] of the cardano node.
-    </span><span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Beacon, BeaconProviderError&gt;;
+    </span><span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Beacon&gt;;
 }
 
 <span class="doccomment">/// [BeaconProvider] related errors.
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>BeaconProviderError {
-    <span class="doccomment">/// Raised when reading the current epoch with a [ChainObserver] fails.
-    </span><span class="attr">#[error(<span class="string">&quot;Could not get Epoch: {0}&quot;</span>)]
-    </span>ChainObserver(<span class="attr">#[from] </span>ChainObserverError),
-
     <span class="doccomment">/// Raised reading the current epoch succeeded but yield no result.
     </span><span class="attr">#[error(<span class="string">&quot;No epoch yield by the chain observer, is your cardano node ready ?&quot;</span>)]
     </span>NoEpoch(),
-
-    <span class="doccomment">/// Raised when [getting the last immutable file number][ImmutableFileObserver::get_last_immutable_number]
-    /// fails.
-    </span><span class="attr">#[error(<span class="string">&quot;Could not get last immutable file number: {0}&quot;</span>)]
-    </span>ImmutableFileObserver(<span class="attr">#[from] </span>ImmutableFileObserverError),
 }
 
 <span class="doccomment">/// A [BeaconProvider] using a [ChainObserver] and a [ImmutableFileObserver].
@@ -198,13 +192,21 @@
 
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>BeaconProvider <span class="kw">for </span>BeaconProviderImpl {
-    <span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Beacon, BeaconProviderError&gt; {
+    <span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Beacon&gt; {
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.chain_observer
             .get_current_epoch()
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="string">&quot;Can not get current epoch&quot;</span>)<span class="question-mark">?
             </span>.ok_or(BeaconProviderError::NoEpoch())<span class="question-mark">?</span>;
-        <span class="kw">let </span>immutable_file_number = <span class="self">self</span>.immutable_observer.get_last_immutable_number().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>immutable_file_number = <span class="self">self
+            </span>.immutable_observer
+            .get_last_immutable_number()
+            .<span class="kw">await
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="string">&quot;Can not get last immutable file number&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>beacon = Beacon {
             network: <span class="self">self</span>.network.to_string(),

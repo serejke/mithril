@@ -880,7 +880,9 @@
 <a href="#880" id="880">880</a>
 <a href="#881" id="881">881</a>
 <a href="#882" id="882">882</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#883" id="883">883</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, trace, warn};
 <span class="kw">use </span>thiserror::Error;
 
@@ -1021,7 +1023,7 @@
             .beacon_provider
             .get_current_beacon()
             .<span class="kw">await
-            </span>.map_err(|e| e.into())
+            </span>.with_context(|| <span class="string">&quot;Runner can not get current beacon&quot;</span>)
     }
 
     <span class="kw">async fn </span>register_signer_to_aggregator(
@@ -1345,7 +1347,7 @@
             StakeStore, StakeStorer,
         },
         test_utils::{fake_data, MithrilFixtureBuilder},
-        BeaconProvider, BeaconProviderError, BeaconProviderImpl, CardanoNetwork,
+        BeaconProvider, BeaconProviderImpl, CardanoNetwork,
     };
     <span class="kw">use </span>mockall::mock;
     <span class="kw">use </span>std::{
@@ -1367,7 +1369,7 @@
 
         <span class="attr">#[async_trait]
         </span><span class="kw">impl </span>BeaconProvider <span class="kw">for </span>FakeBeaconProvider {
-            <span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Beacon, BeaconProviderError&gt;;
+            <span class="kw">async fn </span>get_current_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Beacon&gt;;
         }
     }
 
