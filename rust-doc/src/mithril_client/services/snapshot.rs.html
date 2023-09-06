@@ -805,6 +805,9 @@
 <a href="#805" id="805">805</a>
 <a href="#806" id="806">806</a>
 <a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
@@ -1176,6 +1179,7 @@
             size: <span class="number">1024</span>,
             created_at: DateTime::&lt;Utc&gt;::default(),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;location-1.1&quot;</span>.to_string(), <span class="string">&quot;location-1.2&quot;</span>.to_string()],
+            cardano_node_version: <span class="prelude-val">None</span>,
         };
         <span class="kw">let </span>item2 = SnapshotListItemMessage {
             digest: <span class="string">&quot;digest-2&quot;</span>.to_string(),
@@ -1184,6 +1188,7 @@
             size: <span class="number">1024</span>,
             created_at: DateTime::&lt;Utc&gt;::default(),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;location-2.1&quot;</span>.to_string(), <span class="string">&quot;location-2.2&quot;</span>.to_string()],
+            cardano_node_version: <span class="prelude-val">Some</span>(<span class="string">&quot;1.0.0&quot;</span>.to_string()),
         };
 
         <span class="macro">vec!</span>[item1, item2]
@@ -1198,6 +1203,7 @@
             created_at: DateTime::&lt;Utc&gt;::default(),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;location-10.1&quot;</span>.to_string(), <span class="string">&quot;location-10.2&quot;</span>.to_string()],
             compression_algorithm: <span class="prelude-val">Some</span>(CompressionAlgorithm::Gzip),
+            cardano_node_version: <span class="prelude-val">Some</span>(<span class="string">&quot;0.0.1&quot;</span>.to_string()),
         }
     }
 

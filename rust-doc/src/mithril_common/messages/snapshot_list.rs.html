@@ -95,6 +95,56 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
@@ -123,6 +173,10 @@
 
     <span class="doccomment">/// Locations where the binary content of the snapshot can be retrieved
     </span><span class="kw">pub </span>locations: Vec&lt;String&gt;,
+
+    <span class="doccomment">/// Cardano node version
+    </span><span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;Option::is_none&quot;</span>)]
+    </span><span class="kw">pub </span>cardano_node_version: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="kw">impl </span>SnapshotListItemMessage {
@@ -142,6 +196,7 @@
                 .unwrap()
                 .with_timezone(<span class="kw-2">&amp;</span>Utc),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;https://host/certificate.tar.gz&quot;</span>.to_string()],
+            cardano_node_version: <span class="prelude-val">None</span>,
         }
     }
 }
@@ -150,7 +205,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">fn </span>golden_message() -&gt; SnapshotListMessage {
+    <span class="kw">fn </span>golden_message_v1() -&gt; SnapshotListMessage {
         <span class="macro">vec!</span>[SnapshotListItemMessage {
             digest: <span class="string">&quot;0b9f5ad7f33cc523775c82249294eb8a1541d54f08eb3107cafc5638403ec7c6&quot;</span>.to_string(),
             beacon: Beacon {
@@ -165,6 +220,26 @@
                 .unwrap()
                 .with_timezone(<span class="kw-2">&amp;</span>Utc),
             locations: <span class="macro">vec!</span>[<span class="string">&quot;https://host/certificate.tar.gz&quot;</span>.to_string()],
+            cardano_node_version: <span class="prelude-val">None</span>,
+        }]
+    }
+
+    <span class="kw">fn </span>golden_message_v2() -&gt; SnapshotListMessage {
+        <span class="macro">vec!</span>[SnapshotListItemMessage {
+            digest: <span class="string">&quot;0b9f5ad7f33cc523775c82249294eb8a1541d54f08eb3107cafc5638403ec7c6&quot;</span>.to_string(),
+            beacon: Beacon {
+                network: <span class="string">&quot;preview&quot;</span>.to_string(),
+                epoch: Epoch(<span class="number">86</span>),
+                immutable_file_number: <span class="number">1728</span>,
+            },
+            certificate_hash: <span class="string">&quot;d5daf6c03ace4a9c074e951844075b9b373bafc4e039160e3e2af01823e9abfb&quot;
+                </span>.to_string(),
+            size: <span class="number">807803196</span>,
+            created_at: DateTime::parse_from_rfc3339(<span class="string">&quot;2023-01-19T13:43:05.618857482Z&quot;</span>)
+                .unwrap()
+                .with_timezone(<span class="kw-2">&amp;</span>Utc),
+            locations: <span class="macro">vec!</span>[<span class="string">&quot;https://host/certificate.tar.gz&quot;</span>.to_string()],
+            cardano_node_version: <span class="prelude-val">Some</span>(<span class="string">&quot;1.0.0&quot;</span>.to_string()),
         }]
     }
 
@@ -189,7 +264,32 @@
             <span class="string">&quot;This JSON is expected to be succesfully parsed into a SnapshotListMessage instance.&quot;</span>,
         );
 
-        <span class="macro">assert_eq!</span>(golden_message(), message);
+        <span class="macro">assert_eq!</span>(golden_message_v1(), message);
+    }
+
+    <span class="comment">// Test the retro compatibility with possible future upgrades.
+    </span><span class="attr">#[test]
+    </span><span class="kw">fn </span>test_v2() {
+        <span class="kw">let </span>json = <span class="string">r#&quot;[{
+&quot;digest&quot;: &quot;0b9f5ad7f33cc523775c82249294eb8a1541d54f08eb3107cafc5638403ec7c6&quot;,
+&quot;beacon&quot;: {
+  &quot;network&quot;: &quot;preview&quot;,
+  &quot;epoch&quot;: 86,
+  &quot;immutable_file_number&quot;: 1728
+},
+&quot;certificate_hash&quot;: &quot;d5daf6c03ace4a9c074e951844075b9b373bafc4e039160e3e2af01823e9abfb&quot;,
+&quot;size&quot;: 807803196,
+&quot;created_at&quot;: &quot;2023-01-19T13:43:05.618857482Z&quot;,
+&quot;locations&quot;: [
+  &quot;https://host/certificate.tar.gz&quot;
+],
+&quot;cardano_node_version&quot;: &quot;1.0.0&quot;
+}]&quot;#</span>;
+        <span class="kw">let </span>message: SnapshotListMessage = serde_json::from_str(json).expect(
+            <span class="string">&quot;This JSON is expected to be succesfully parsed into a SnapshotListMessage instance.&quot;</span>,
+        );
+
+        <span class="macro">assert_eq!</span>(golden_message_v2(), message);
     }
 }
 </code></pre></div></section></main></body></html>

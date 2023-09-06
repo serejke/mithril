@@ -49,6 +49,7 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::{SignedEntity, Snapshot};
 <span class="kw">use </span>mithril_common::messages::{SnapshotListItemMessage, SnapshotListMessage, ToMessageAdapter};
 
@@ -69,6 +70,7 @@
                 size: entity.artifact.size,
                 created_at: entity.created_at,
                 locations: entity.artifact.locations,
+                cardano_node_version: <span class="prelude-val">Some</span>(entity.artifact.cardano_node_version),
             })
             .collect()
     }

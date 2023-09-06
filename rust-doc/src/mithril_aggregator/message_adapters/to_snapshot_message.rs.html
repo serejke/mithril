@@ -45,6 +45,7 @@
 <a href="#45" id="45">45</a>
 <a href="#46" id="46">46</a>
 <a href="#47" id="47">47</a>
+<a href="#48" id="48">48</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::{SignedEntity, Snapshot};
 <span class="kw">use </span>mithril_common::messages::{SnapshotMessage, ToMessageAdapter};
 
@@ -62,6 +63,7 @@
             created_at: signed_entity.created_at,
             locations: signed_entity.artifact.locations,
             compression_algorithm: <span class="prelude-val">Some</span>(signed_entity.artifact.compression_algorithm),
+            cardano_node_version: <span class="prelude-val">Some</span>(signed_entity.artifact.cardano_node_version),
         }
     }
 }
