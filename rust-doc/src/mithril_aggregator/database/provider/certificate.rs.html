@@ -1419,7 +1419,10 @@
 <a href="#1419" id="1419">1419</a>
 <a href="#1420" id="1420">1420</a>
 <a href="#1421" id="1421">1421</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#1422" id="1422">1422</a>
+<a href="#1423" id="1423">1423</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>sqlite::{Connection, Value};
 <span class="kw">use </span>std::{iter::repeat, sync::Arc};
@@ -2049,10 +2052,11 @@ order by certificate.ROWID desc&quot;#
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Certificate, CertificateRetrieverError&gt; {
         <span class="self">self</span>.get_certificate(certificate_hash)
             .<span class="kw">await
-            </span>.map_err(|e| CertificateRetrieverError::General(e.to_string()))<span class="question-mark">?
-            </span>.ok_or(CertificateRetrieverError::General(
-                <span class="string">&quot;certificate does not exist&quot;</span>.to_string(),
-            ))
+            </span>.map_err(|e| CertificateRetrieverError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
+            </span>.ok_or(CertificateRetrieverError(<span class="macro">anyhow!</span>(<span class="macro">format!</span>(
+                <span class="string">&quot;Certificate does not exist: &#39;{}&#39;&quot;</span>,
+                certificate_hash
+            ))))
     }
 }
 

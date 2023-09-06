@@ -23,24 +23,20 @@
 <a href="#23" id="23">23</a>
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
-<a href="#26" id="26">26</a>
-<a href="#27" id="27">27</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A module used to retrieve the Certificate Chain created by an aggregator
 //!
 </span><span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span><span class="kw">crate</span>::entities::Certificate;
+<span class="kw">use crate</span>::{entities::Certificate, StdError};
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
+
 <span class="doccomment">/// [CertificateRetriever] related errors.
-</span><span class="attr">#[derive(Error, Debug)]
-</span><span class="kw">pub enum </span>CertificateRetrieverError {
-    <span class="doccomment">/// Error raised when a [CertificateRetriever] tries to retrieve a [Certificate]
-    </span><span class="attr">#[error(<span class="string">&quot;general error: &#39;{0}&#39;&quot;</span>)]
-    </span>General(String),
-}
+</span><span class="attr">#[derive(Debug, Error)]
+#[error(<span class="string">&quot;Error when retrieving certificate&quot;</span>)]
+</span><span class="kw">pub struct </span>CertificateRetrieverError(<span class="kw">pub </span>StdError);
 
 <span class="doccomment">/// CertificateRetriever is in charge of retrieving a [Certificate] given its hash
 </span><span class="attr">#[cfg_attr(test, automock)]

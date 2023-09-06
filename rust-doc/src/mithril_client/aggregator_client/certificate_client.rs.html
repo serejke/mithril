@@ -168,6 +168,7 @@
 <a href="#168" id="168">168</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_trait::async_trait;
 
 <span class="kw">use </span>mithril_common::{
@@ -223,12 +224,11 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Certificate, CertificateRetrieverError&gt; {
         <span class="self">self</span>.get(certificate_hash)
             .<span class="kw">await
-            </span>.map_err(|e| CertificateRetrieverError::General(<span class="macro">format!</span>(<span class="string">&quot;{e}&quot;</span>)))<span class="question-mark">?
-            </span>.ok_or_else(|| {
-                CertificateRetrieverError::General(<span class="macro">format!</span>(
-                    <span class="string">&quot;Certificate &#39;{certificate_hash}&#39; not found&quot;
-                </span>))
-            })
+            </span>.map_err(|e| CertificateRetrieverError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
+            </span>.ok_or(CertificateRetrieverError(<span class="macro">anyhow!</span>(<span class="macro">format!</span>(
+                <span class="string">&quot;Certificate does not exist: &#39;{}&#39;&quot;</span>,
+                certificate_hash
+            ))))
     }
 }
 

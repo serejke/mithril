@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CertificateGenesisProducerError","CertificateRetrieverError","CertificateVerifierError"],"struct":["CertificateGenesisProducer","MithrilCertificateVerifier"],"trait":["CertificateRetriever","CertificateVerifier"]};
+window.SIDEBAR_ITEMS = {"enum":["CertificateVerifierError"],"struct":["CertificateGenesisProducer","CertificateRetrieverError","MithrilCertificateVerifier"],"trait":["CertificateRetriever","CertificateVerifier"]};

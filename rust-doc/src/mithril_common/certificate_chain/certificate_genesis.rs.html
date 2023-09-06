@@ -92,12 +92,6 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
-<a href="#95" id="95">95</a>
-<a href="#96" id="96">96</a>
-<a href="#97" id="97">97</a>
-<a href="#98" id="98">98</a>
-<a href="#99" id="99">99</a>
-<a href="#100" id="100">100</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A module used to create a Genesis Certificate
 //!
 </span><span class="kw">use </span>std::sync::Arc;
@@ -114,16 +108,12 @@
         Beacon, Certificate, CertificateMetadata, CertificateSignature, ProtocolMessage,
         ProtocolMessagePartKey, ProtocolParameters,
     },
-    StdError,
+    StdResult,
 };
 
 <span class="doccomment">/// [CertificateGenesisProducer] related errors.
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>CertificateGenesisProducerError {
-    <span class="doccomment">/// Error raised when a Codec error occurs
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0:?}&#39;&quot;</span>)]
-    </span>Codec(StdError),
-
     <span class="doccomment">/// Error raised when there is no genesis signer available
     </span><span class="attr">#[error(<span class="string">&quot;missing genesis signer error&quot;</span>)]
     </span>MissingGenesisSigner(),
@@ -144,10 +134,8 @@
     <span class="doccomment">/// Create the Genesis protocol message
     </span><span class="kw">pub fn </span>create_genesis_protocol_message(
         genesis_avk: <span class="kw-2">&amp;</span>ProtocolAggregateVerificationKey,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolMessage, CertificateGenesisProducerError&gt; {
-        <span class="kw">let </span>genesis_avk = genesis_avk
-            .to_json_hex()
-            .map_err(CertificateGenesisProducerError::Codec)<span class="question-mark">?</span>;
+    ) -&gt; StdResult&lt;ProtocolMessage&gt; {
+        <span class="kw">let </span>genesis_avk = genesis_avk.to_json_hex()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>protocol_message = ProtocolMessage::new();
         protocol_message.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
@@ -174,7 +162,7 @@
         beacon: Beacon,
         genesis_avk: ProtocolAggregateVerificationKey,
         genesis_signature: ProtocolGenesisSignature,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Certificate, CertificateGenesisProducerError&gt; {
+    ) -&gt; StdResult&lt;Certificate&gt; {
         <span class="kw">let </span>protocol_version = PROTOCOL_VERSION.to_string();
         <span class="kw">let </span>initiated_at = Utc::now();
         <span class="kw">let </span>sealed_at = Utc::now();

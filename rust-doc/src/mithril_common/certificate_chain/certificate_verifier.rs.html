@@ -578,16 +578,28 @@
 <a href="#578" id="578">578</a>
 <a href="#579" id="579">579</a>
 <a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A module used to validate the Certificate Chain created by an aggregator
 //!
-</span><span class="kw">use </span>anyhow::Context;
+</span><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>hex::ToHex;
 <span class="kw">use </span>slog::{debug, Logger};
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use super</span>::{CertificateRetriever, CertificateRetrieverError};
+<span class="kw">use </span><span class="kw">super</span>::CertificateRetriever;
 <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{
     ProtocolAggregateVerificationKey, ProtocolGenesisError, ProtocolGenesisVerifier,
     ProtocolMultiSignature,
@@ -595,7 +607,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::entities::{
     Certificate, CertificateSignature, ProtocolMessage, ProtocolMessagePartKey, ProtocolParameters,
 };
-<span class="kw">use </span><span class="kw">crate</span>::StdError;
+<span class="kw">use </span><span class="kw">crate</span>::StdResult;
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
@@ -606,18 +618,6 @@
     <span class="doccomment">/// Error raised when the multi signatures verification fails.
     </span><span class="attr">#[error(<span class="string">&quot;multi signature verification failed: &#39;{0}&#39;&quot;</span>)]
     </span>VerifyMultiSignature(String),
-
-    <span class="doccomment">/// Error raised when encoding or decoding of data to hex fails.
-    </span><span class="attr">#[error(<span class="string">&quot;codec hex error: &#39;{0:?}&#39;&quot;</span>)]
-    </span>Codec(StdError),
-
-    <span class="doccomment">/// Error raised when encoding or decoding of data to genesis type.
-    </span><span class="attr">#[error(<span class="string">&quot;codec genesis error: &#39;{0}&#39;&quot;</span>)]
-    </span>CodecGenesis(String),
-
-    <span class="doccomment">/// Error raised when a CertificateRetriever tries to retrieve a [Certificate].
-    </span><span class="attr">#[error(<span class="string">&quot;certificate retriever error: &#39;{0}&#39;&quot;</span>)]
-    </span>CertificateRetriever(<span class="attr">#[from] </span>CertificateRetrieverError),
 
     <span class="doccomment">/// Error raised when the Genesis Signature stored in a [Certificate] is invalid.
     </span><span class="attr">#[error(<span class="string">&quot;certificate genesis error: &#39;{0}&#39;&quot;</span>)]
@@ -659,7 +659,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         genesis_certificate: <span class="kw-2">&amp;</span>Certificate,
         genesis_verifier: <span class="kw-2">&amp;</span>ProtocolGenesisVerifier,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CertificateVerifierError&gt;;
+    ) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Verify if a Certificate is valid and returns the previous Certificate in the chain if exists
     /// Step 1: Check if the hash is valid (i.e. the Certificate has not been tampered by modifying its content)
@@ -670,7 +670,7 @@
         certificate: <span class="kw-2">&amp;</span>Certificate,
         certificate_retriever: Arc&lt;<span class="kw">dyn </span>CertificateRetriever&gt;,
         genesis_verifier: <span class="kw-2">&amp;</span>ProtocolGenesisVerifier,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;, CertificateVerifierError&gt;;
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt;;
 
     <span class="doccomment">/// Verify that the Certificate Chain associated to a Certificate is valid
     /// TODO: see if we can borrow the certificate instead.
@@ -679,7 +679,7 @@
         certificate: Certificate,
         certificate_retriever: Arc&lt;<span class="kw">dyn </span>CertificateRetriever&gt;,
         genesis_verifier: <span class="kw-2">&amp;</span>ProtocolGenesisVerifier,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CertificateVerifierError&gt; {
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>certificate = certificate;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(previous_certificate) = <span class="self">self
             </span>.verify_certificate(
@@ -749,7 +749,7 @@
         certificate: <span class="kw-2">&amp;</span>Certificate,
         signature: <span class="kw-2">&amp;</span>ProtocolMultiSignature,
         certificate_retriever: Arc&lt;<span class="kw">dyn </span>CertificateRetriever&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;, CertificateVerifierError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt; {
         <span class="self">self</span>.verify_multi_signature(
             certificate.signed_message.as_bytes(),
             signature,
@@ -758,10 +758,14 @@
         )<span class="question-mark">?</span>;
         <span class="kw">let </span>previous_certificate = certificate_retriever
             .get_certificate_details(<span class="kw-2">&amp;</span>certificate.previous_hash)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="string">&quot;Can not retrieve previous certificate during verification&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="kw">if </span>previous_certificate.hash != certificate.previous_hash {
-            <span class="kw">return </span><span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainPreviousHashUnmatch);
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
+                CertificateVerifierError::CertificateChainPreviousHashUnmatch
+            ));
         }
 
         <span class="kw">let </span>current_certificate_avk: String = certificate
@@ -772,8 +776,7 @@
                     <span class="string">&quot;avk to string conversion error for certificate: `{}`&quot;</span>,
                     certificate.hash
                 )
-            })
-            .map_err(CertificateVerifierError::Codec)<span class="question-mark">?</span>;
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>previous_certificate_avk: String = previous_certificate
             .aggregate_verification_key
@@ -783,8 +786,7 @@
                     <span class="string">&quot;avk to string conversion error for previous certificate: `{}`&quot;</span>,
                     certificate.hash
                 )
-            })
-            .map_err(CertificateVerifierError::Codec)<span class="question-mark">?</span>;
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>valid_certificate_has_different_epoch_as_previous =
             |next_aggregate_verification_key: <span class="kw-2">&amp;</span>str| -&gt; bool {
@@ -816,7 +818,9 @@
                     <span class="self">self</span>.logger,
                     <span class="string">&quot;Previous certificate {:#?}&quot;</span>, previous_certificate
                 );
-                <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainAVKUnmatch)
+                <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
+                    CertificateVerifierError::CertificateChainAVKUnmatch
+                ))
             }
         }
     }
@@ -829,16 +833,19 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         genesis_certificate: <span class="kw-2">&amp;</span>Certificate,
         genesis_verifier: <span class="kw-2">&amp;</span>ProtocolGenesisVerifier,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CertificateVerifierError&gt; {
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span>genesis_signature = <span class="kw">match </span><span class="kw-2">&amp;</span>genesis_certificate.signature {
             CertificateSignature::GenesisSignature(signature) =&gt; <span class="prelude-val">Ok</span>(signature),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(CertificateVerifierError::InvalidGenesisCertificateProvided),
         }<span class="question-mark">?</span>;
 
-        genesis_verifier.verify(
-            genesis_certificate.signed_message.as_bytes(),
-            genesis_signature,
-        )<span class="question-mark">?</span>;
+        genesis_verifier
+            .verify(
+                genesis_certificate.signed_message.as_bytes(),
+                genesis_signature,
+            )
+            .map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="string">&quot;Certificate verifier failed verifying a genesis certificate&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -849,7 +856,7 @@
         certificate: <span class="kw-2">&amp;</span>Certificate,
         certificate_retriever: Arc&lt;<span class="kw">dyn </span>CertificateRetriever&gt;,
         genesis_verifier: <span class="kw-2">&amp;</span>ProtocolGenesisVerifier,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;, CertificateVerifierError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt; {
         <span class="macro">debug!</span>(
             <span class="self">self</span>.logger,
             <span class="string">&quot;Verifying certificate&quot;</span>;
@@ -865,7 +872,9 @@
             .ok_or(CertificateVerifierError::CertificateHashUnmatch)<span class="question-mark">?</span>;
 
         <span class="kw">if </span>certificate.is_chaining_to_itself() {
-            <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainInfiniteLoop)
+            <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
+                CertificateVerifierError::CertificateChainInfiniteLoop
+            ))
         } <span class="kw">else </span>{
             <span class="kw">match </span><span class="kw-2">&amp;</span>certificate.signature {
                 CertificateSignature::GenesisSignature(_signature) =&gt; {
@@ -891,6 +900,7 @@
     <span class="kw">use </span><span class="kw">super</span>::CertificateRetriever;
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
+    <span class="kw">use </span><span class="kw">crate</span>::certificate_chain::CertificateRetrieverError;
     <span class="kw">use </span><span class="kw">crate</span>::crypto_helper::{tests_setup::<span class="kw-2">*</span>, ProtocolClerk};
     <span class="kw">use </span><span class="kw">crate</span>::test_utils::MithrilFixtureBuilder;
 
@@ -1017,19 +1027,24 @@
             .returning(<span class="kw">move </span>|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(fake_certificate2.clone()))
             .times(<span class="number">1</span>);
         <span class="kw">let </span>verifier = MithrilCertificateVerifier::new(slog_scope::logger());
-        <span class="kw">let </span>verify = verifier
+        <span class="kw">let </span>error = verifier
             .verify_certificate(
                 <span class="kw-2">&amp;</span>fake_certificate1,
                 Arc::new(mock_certificate_retriever),
                 <span class="kw-2">&amp;</span>genesis_verifier,
             )
-            .<span class="kw">await</span>;
+            .<span class="kw">await
+            </span>.expect_err(<span class="string">&quot;verify_certificate_chain should fail&quot;</span>);
+        <span class="kw">let </span>error = error
+            .downcast_ref::&lt;CertificateVerifierError&gt;()
+            .expect(<span class="string">&quot;Can not downcast to `CertificateVerifierError`.&quot;</span>);
+
         <span class="macro">assert!</span>(
             <span class="macro">matches!</span>(
-                verify,
-                <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainPreviousHashUnmatch)
+                error,
+                CertificateVerifierError::CertificateChainPreviousHashUnmatch
             ),
-            <span class="string">&quot;unexpected error type: {verify:?}&quot;
+            <span class="string">&quot;unexpected error type: {error:?}&quot;
         </span>);
     }
 
@@ -1054,19 +1069,21 @@
             .returning(<span class="kw">move </span>|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(fake_certificate2.clone()))
             .times(<span class="number">1</span>);
         <span class="kw">let </span>verifier = MithrilCertificateVerifier::new(slog_scope::logger());
-        <span class="kw">let </span>verify = verifier
+        <span class="kw">let </span>error = verifier
             .verify_certificate(
                 <span class="kw-2">&amp;</span>fake_certificate1,
                 Arc::new(mock_certificate_retriever),
                 <span class="kw-2">&amp;</span>genesis_verifier,
             )
-            .<span class="kw">await</span>;
+            .<span class="kw">await
+            </span>.expect_err(<span class="string">&quot;verify_certificate_chain should fail&quot;</span>);
+        <span class="kw">let </span>error = error
+            .downcast_ref::&lt;CertificateVerifierError&gt;()
+            .expect(<span class="string">&quot;Can not downcast to `CertificateVerifierError`.&quot;</span>);
+
         <span class="macro">assert!</span>(
-            <span class="macro">matches!</span>(
-                verify,
-                <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainAVKUnmatch)
-            ),
-            <span class="string">&quot;unexpected error type: {verify:?}&quot;
+            <span class="macro">matches!</span>(error, CertificateVerifierError::CertificateChainAVKUnmatch),
+            <span class="string">&quot;unexpected error type: {error:?}&quot;
         </span>);
     }
 
@@ -1080,19 +1097,21 @@
         fake_certificate1.hash = <span class="string">&quot;another-hash&quot;</span>.to_string();
         <span class="kw">let </span>mock_certificate_retriever = MockCertificateRetrieverImpl::new();
         <span class="kw">let </span>verifier = MithrilCertificateVerifier::new(slog_scope::logger());
-        <span class="kw">let </span>verify = verifier
+        <span class="kw">let </span>error = verifier
             .verify_certificate(
                 <span class="kw-2">&amp;</span>fake_certificate1,
                 Arc::new(mock_certificate_retriever),
                 <span class="kw-2">&amp;</span>genesis_verifier,
             )
-            .<span class="kw">await</span>;
+            .<span class="kw">await
+            </span>.expect_err(<span class="string">&quot;verify_certificate_chain should fail&quot;</span>);
+        <span class="kw">let </span>error = error
+            .downcast_ref::&lt;CertificateVerifierError&gt;()
+            .expect(<span class="string">&quot;Can not downcast to `CertificateVerifierError`.&quot;</span>);
+
         <span class="macro">assert!</span>(
-            <span class="macro">matches!</span>(
-                verify,
-                <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateHashUnmatch)
-            ),
-            <span class="string">&quot;unexpected error type: {verify:?}&quot;
+            <span class="macro">matches!</span>(error, CertificateVerifierError::CertificateHashUnmatch),
+            <span class="string">&quot;unexpected error type: {error:?}&quot;
         </span>);
     }
 
@@ -1142,19 +1161,24 @@
                 .times(<span class="number">1</span>);
         }
         <span class="kw">let </span>verifier = MithrilCertificateVerifier::new(slog_scope::logger());
-        <span class="kw">let </span>verify = verifier
+        <span class="kw">let </span>error = verifier
             .verify_certificate_chain(
                 certificate_to_verify,
                 Arc::new(mock_certificate_retriever),
                 <span class="kw-2">&amp;</span>genesis_verifier,
             )
-            .<span class="kw">await</span>;
+            .<span class="kw">await
+            </span>.expect_err(<span class="string">&quot;verify_certificate_chain should fail&quot;</span>);
+        <span class="kw">let </span>error = error
+            .downcast_ref::&lt;CertificateVerifierError&gt;()
+            .expect(<span class="string">&quot;Can not downcast to `CertificateVerifierError`.&quot;</span>);
+
         <span class="macro">assert!</span>(
             <span class="macro">matches!</span>(
-                verify,
-                <span class="prelude-val">Err</span>(CertificateVerifierError::CertificateChainPreviousHashUnmatch)
+                error,
+                CertificateVerifierError::CertificateChainPreviousHashUnmatch
             ),
-            <span class="string">&quot;unexpected error type: {verify:?}&quot;
+            <span class="string">&quot;unexpected error type: {error:?}&quot;
         </span>);
     }
 }
