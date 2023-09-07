@@ -363,7 +363,15 @@
 <a href="#363" id="363">363</a>
 <a href="#364" id="364">364</a>
 <a href="#365" id="365">365</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>chrono::Utc;
 <span class="kw">use </span>slog::{debug, error, info, Logger};
 <span class="kw">use </span>sqlite::Connection;
@@ -422,11 +430,14 @@
         <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>connection = lock.deref();
         <span class="kw">let </span>provider = DatabaseVersionProvider::new(connection);
-        provider.create_table_if_not_exists(<span class="kw-2">&amp;</span><span class="self">self</span>.application_type)<span class="question-mark">?</span>;
+        provider
+            .create_table_if_not_exists(<span class="kw-2">&amp;</span><span class="self">self</span>.application_type)
+            .with_context(|| <span class="string">&quot;Can not create table &#39;db_version&#39; while applying migrations&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>updater = DatabaseVersionUpdater::new(connection);
         <span class="kw">let </span>db_version = provider
             .get_application_version(<span class="kw-2">&amp;</span><span class="self">self</span>.application_type)<span class="question-mark">?
-            </span>.unwrap(); <span class="comment">// At least a record exists.
+            </span>.with_context(|| <span class="string">&quot;Can not get application version while applying migrations&quot;</span>)
+            .unwrap(); <span class="comment">// At least a record exists.
 
         // the current database version is equal to the maximum migration
         // version present in this software.
@@ -482,7 +493,12 @@
                 application_type: <span class="self">self</span>.application_type.clone(),
                 updated_at: Utc::now(),
             };
-            <span class="kw">let _ </span>= updater.save(db_version)<span class="question-mark">?</span>;
+            <span class="kw">let _ </span>= updater.save(db_version).with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Can not save database version when applying migration: &#39;{}&#39;&quot;</span>,
+                    migration.version
+                )
+            })<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
