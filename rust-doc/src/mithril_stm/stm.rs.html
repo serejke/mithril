@@ -1626,6 +1626,14 @@
 <a href="#1626" id="1626">1626</a>
 <a href="#1627" id="1627">1627</a>
 <a href="#1628" id="1628">1628</a>
+<a href="#1629" id="1629">1629</a>
+<a href="#1630" id="1630">1630</a>
+<a href="#1631" id="1631">1631</a>
+<a href="#1632" id="1632">1632</a>
+<a href="#1633" id="1633">1633</a>
+<a href="#1634" id="1634">1634</a>
+<a href="#1635" id="1635">1635</a>
+<a href="#1636" id="1636">1636</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Top-level API for Mithril Stake-based Threshold Multisignature scheme.
 //! See figure 6 of [the paper](https://eprint.iacr.org/2021/916) for most of the
 //! protocol.
@@ -1844,6 +1852,14 @@
     mt_commitment: MerkleTreeCommitmentBatchCompat&lt;D&gt;,
     total_stake: Stake,
 }
+
+<span class="kw">impl</span>&lt;D: Digest + Clone + FixedOutput&gt; PartialEq <span class="kw">for </span>StmAggrVerificationKey&lt;D&gt; {
+    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+        <span class="self">self</span>.mt_commitment == other.mt_commitment &amp;&amp; <span class="self">self</span>.total_stake == other.total_stake
+    }
+}
+
+<span class="kw">impl</span>&lt;D: Digest + Clone + FixedOutput&gt; Eq <span class="kw">for </span>StmAggrVerificationKey&lt;D&gt; {}
 
 <span class="doccomment">/// Signature with its registered party.
 </span><span class="attr">#[derive(Debug, Clone, Hash, Deserialize, Eq, PartialEq, Ord, PartialOrd)]
@@ -2320,7 +2336,7 @@
 
 <span class="kw">impl </span>PartialOrd <span class="kw">for </span>StmSig {
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
-        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp_stm_sig(other))
+        <span class="prelude-val">Some</span>(std::cmp::Ord::cmp(<span class="self">self</span>, other))
     }
 }
 

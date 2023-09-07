@@ -939,7 +939,7 @@
 
 <span class="kw">impl </span>PartialOrd <span class="kw">for </span>VerificationKey {
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
-        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp_msp_mvk(other))
+        <span class="prelude-val">Some</span>(std::cmp::Ord::cmp(<span class="self">self</span>, other))
     }
 }
 
@@ -1234,7 +1234,7 @@
 
 <span class="kw">impl </span>PartialOrd <span class="kw">for </span>Signature {
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
-        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp_msp_sig(other))
+        <span class="prelude-val">Some</span>(std::cmp::Ord::cmp(<span class="self">self</span>, other))
     }
 }
 
