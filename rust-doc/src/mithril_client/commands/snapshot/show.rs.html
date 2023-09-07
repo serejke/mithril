@@ -76,6 +76,14 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>cli_table::{print_stdout, WithTitle};
 <span class="kw">use </span>config::{builder::DefaultState, Config, ConfigBuilder};
@@ -133,6 +141,14 @@
         ),
         SnapshotFieldItem::new(<span class="string">&quot;Digest&quot;</span>.to_string(), snapshot_message.digest.to_string()),
         SnapshotFieldItem::new(<span class="string">&quot;Size&quot;</span>.to_string(), <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, snapshot_message.size)),
+        SnapshotFieldItem::new(
+            <span class="string">&quot;Cardano node version&quot;</span>.to_string(),
+            snapshot_message
+                .cardano_node_version
+                .as_ref()
+                .unwrap_or(<span class="kw-2">&amp;</span><span class="string">&quot;NA&quot;</span>.to_string())
+                .to_string(),
+        ),
     ];
     <span class="kw">for </span>(idx, location) <span class="kw">in </span>snapshot_message.locations.iter().enumerate() {
         field_items.push(SnapshotFieldItem::new(
