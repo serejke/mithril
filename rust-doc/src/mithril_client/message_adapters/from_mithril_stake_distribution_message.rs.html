@@ -63,7 +63,12 @@
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
 <a href="#65" id="65">65</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::{
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>mithril_common::{
     entities::{MithrilStakeDistribution, SignedEntity, SignedEntityType},
     messages::{
         MithrilStakeDistributionMessage, SignerWithStakeMessagePart, TryFromMessageAdapter,
@@ -83,7 +88,10 @@
             epoch: from.epoch,
             signers_with_stake: SignerWithStakeMessagePart::try_into_signers(
                 from.signers_with_stake,
-            )<span class="question-mark">?</span>,
+            )
+            .with_context(|| {
+                <span class="string">&quot;&#39;FromMithrilStakeDistributionMessageAdapter&#39; can not convert the list of signers&quot;
+            </span>})<span class="question-mark">?</span>,
             hash: from.hash,
             protocol_parameters: from.protocol_parameters,
         };

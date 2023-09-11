@@ -80,7 +80,30 @@
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::{
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>mithril_common::{
     crypto_helper::{
         ProtocolOpCert, ProtocolSignerVerificationKey, ProtocolSignerVerificationKeySignature,
     },
@@ -100,17 +123,28 @@
             msg.party_id.to_owned(),
             ProtocolSignerVerificationKey::from_json_hex(<span class="kw-2">&amp;</span>msg.verification_key)<span class="question-mark">?</span>,
             <span class="kw">match </span><span class="kw-2">&amp;</span>msg.verification_key_signature {
-                <span class="prelude-val">Some</span>(verification_key_signature) =&gt; {
-                    <span class="prelude-val">Some</span>(ProtocolSignerVerificationKeySignature::from_json_hex(
+                <span class="prelude-val">Some</span>(verification_key_signature) =&gt; <span class="prelude-val">Some</span>(
+                    ProtocolSignerVerificationKeySignature::from_json_hex(
                         verification_key_signature,
-                    )<span class="question-mark">?</span>)
-                }
+                    )
+                    .with_context(|| {
+                        <span class="macro">format!</span>(
+                            <span class="string">&quot;&#39;FromPendingCertificateMessageAdapter&#39; can not json hex decode the verification key signature: &#39;{}&#39;&quot;</span>,
+                            verification_key_signature
+                        )
+                    })<span class="question-mark">?</span>,
+                ),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
             },
             <span class="kw">match </span><span class="kw-2">&amp;</span>msg.operational_certificate {
-                <span class="prelude-val">Some</span>(operational_certificate) =&gt; {
-                    <span class="prelude-val">Some</span>(ProtocolOpCert::from_json_hex(operational_certificate)<span class="question-mark">?</span>)
-                }
+                <span class="prelude-val">Some</span>(operational_certificate) =&gt; <span class="prelude-val">Some</span>(
+                    ProtocolOpCert::from_json_hex(operational_certificate).with_context(|| {
+                        <span class="macro">format!</span>(
+                            <span class="string">&quot;&#39;FromPendingCertificateMessageAdapter&#39; can not json hex decode the operational certificate: &#39;{}&#39;&quot;</span>,
+                            operational_certificate
+                        )
+                    })<span class="question-mark">?</span>,
+                ),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
             },
             msg.kes_period,
@@ -131,8 +165,18 @@
             signed_entity_type: message.signed_entity_type,
             protocol_parameters: message.protocol_parameters,
             next_protocol_parameters: message.next_protocol_parameters,
-            signers: to_signers(<span class="kw-2">&amp;</span>message.signers)<span class="question-mark">?</span>,
-            next_signers: to_signers(<span class="kw-2">&amp;</span>message.next_signers)<span class="question-mark">?</span>,
+            signers: to_signers(<span class="kw-2">&amp;</span>message.signers).with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;&#39;FromPendingCertificateMessageAdapter&#39; can not convert the list of current signers: &#39;{:?}&#39;&quot;</span>,
+                    message.signers
+                )
+            })<span class="question-mark">?</span>,
+            next_signers: to_signers(<span class="kw-2">&amp;</span>message.next_signers).with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;&#39;FromPendingCertificateMessageAdapter&#39; can not convert the list of next signers: &#39;{:?}&#39;&quot;</span>,
+                    message.next_signers
+                )
+            })<span class="question-mark">?</span>,
         };
 
         <span class="prelude-val">Ok</span>(certificate)

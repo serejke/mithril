@@ -60,7 +60,25 @@
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::entities::{Certificate, CertificateMetadata, CertificateSignature};
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>mithril_common::entities::{Certificate, CertificateMetadata, CertificateSignature};
 <span class="kw">use </span>mithril_common::messages::{
     CertificateMessage, SignerWithStakeMessagePart, TryFromMessageAdapter,
 };
@@ -79,7 +97,10 @@
             sealed_at: certificate_message.metadata.sealed_at,
             signers: SignerWithStakeMessagePart::try_into_signers(
                 certificate_message.metadata.signers,
-            )<span class="question-mark">?</span>,
+            )
+            .with_context(|| {
+                <span class="string">&quot;&#39;FromCertificateMessageAdapter&#39; can not convert the list of signers&quot;
+            </span>})<span class="question-mark">?</span>,
         };
 
         <span class="kw">let </span>certificate = Certificate {
@@ -91,14 +112,27 @@
             signed_message: certificate_message.signed_message,
             aggregate_verification_key: certificate_message
                 .aggregate_verification_key
-                .try_into()<span class="question-mark">?</span>,
+                .try_into()
+                .with_context(|| {
+                <span class="string">&quot;&#39;FromCertificateMessageAdapter&#39; can not convert the aggregate verification key&quot;
+            </span>})<span class="question-mark">?</span>,
             signature: <span class="kw">if </span>certificate_message.genesis_signature.is_empty() {
                 CertificateSignature::MultiSignature(
-                    certificate_message.multi_signature.try_into()<span class="question-mark">?</span>,
+                    certificate_message
+                        .multi_signature
+                        .try_into()
+                        .with_context(|| {
+                            <span class="string">&quot;&#39;FromCertificateMessageAdapter&#39; can not convert the multi-signature&quot;
+                        </span>})<span class="question-mark">?</span>,
                 )
             } <span class="kw">else </span>{
                 CertificateSignature::GenesisSignature(
-                    certificate_message.genesis_signature.try_into()<span class="question-mark">?</span>,
+                    certificate_message
+                        .genesis_signature
+                        .try_into()
+                        .with_context(|| {
+                            <span class="string">&quot;&#39;FromCertificateMessageAdapter&#39; can not convert the genesis signature&quot;
+                        </span>})<span class="question-mark">?</span>,
                 )
             },
         };
