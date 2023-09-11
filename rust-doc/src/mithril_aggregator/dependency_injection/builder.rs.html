@@ -1879,7 +1879,7 @@
             era_epoch_token.get_current_supported_era().map_err(|e| {
                 DependenciesBuilderError::Initialization {
                     message: <span class="string">&quot;Error while building EraChecker&quot;</span>.to_string(),
-                    error: <span class="prelude-val">Some</span>(e.into()),
+                    error: <span class="prelude-val">Some</span>(e),
                 }
             })<span class="question-mark">?</span>,
             era_epoch_token.get_current_epoch(),

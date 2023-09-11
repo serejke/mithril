@@ -347,7 +347,9 @@
 <a href="#347" id="347">347</a>
 <a href="#348" id="348">348</a>
 <a href="#349" id="349">349</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#350" id="350">350</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::{str::FromStr, sync::Arc};
 <span class="kw">use </span>thiserror::Error;
@@ -355,7 +357,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::entities::Epoch;
 <span class="kw">use crate</span>::{StdError, StdResult};
 
-<span class="kw">use super</span>::{supported_era::UnsupportedEraError, SupportedEra};
+<span class="kw">use </span><span class="kw">super</span>::SupportedEra;
 
 <span class="doccomment">/// Value object that represents a tag of Era change.
 </span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -406,9 +408,9 @@
     <span class="doccomment">/// Try to cast the current [EraMarker] to a [SupportedEra]. If it fails,
     /// that means the current Era is not supported by this version of the
     /// software.
-    </span><span class="kw">pub fn </span>get_current_supported_era(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SupportedEra, UnsupportedEraError&gt; {
+    </span><span class="kw">pub fn </span>get_current_supported_era(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;SupportedEra&gt; {
         SupportedEra::from_str(<span class="kw-2">&amp;</span><span class="self">self</span>.current_era.name)
-            .map_err(|<span class="kw">_</span>| UnsupportedEraError::new(<span class="kw-2">&amp;</span><span class="self">self</span>.current_era.name))
+            .map_err(|<span class="kw">_</span>| <span class="macro">anyhow!</span>(<span class="macro">format!</span>(<span class="string">&quot;Unsupported era &#39;{}&#39;.&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.current_era.name)))
     }
 
     <span class="doccomment">/// Return the [EraMarker] of the current Era.
@@ -425,11 +427,11 @@
     /// means the coming Era will not be supported by this version of the
     /// software. This mechanism is used to issue a warning to the user asking
     /// for upgrade.
-    </span><span class="kw">pub fn </span>get_next_supported_era(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SupportedEra&gt;, UnsupportedEraError&gt; {
+    </span><span class="kw">pub fn </span>get_next_supported_era(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SupportedEra&gt;&gt; {
         <span class="kw">match </span><span class="self">self</span>.next_era.as_ref() {
             <span class="prelude-val">Some</span>(marker) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
                 SupportedEra::from_str(<span class="kw-2">&amp;</span>marker.name)
-                    .map_err(|<span class="kw">_</span>| UnsupportedEraError::new(<span class="kw-2">&amp;</span><span class="self">self</span>.current_era.name))<span class="question-mark">?</span>,
+                    .map_err(|<span class="kw">_</span>| <span class="macro">anyhow!</span>(<span class="macro">format!</span>(<span class="string">&quot;Unsupported era &#39;{}&#39;.&quot;</span>, <span class="kw-2">&amp;</span>marker.name)))<span class="question-mark">?</span>,
             )),
             <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
