@@ -210,8 +210,15 @@
 <a href="#210" id="210">210</a>
 <a href="#211" id="211">211</a>
 <a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
-    crypto_helper::KESPeriod,
+    crypto_helper::{KESPeriod, ProtocolOpCert, ProtocolSignerVerificationKeySignature},
     entities::{
         HexEncodedOpCert, HexEncodedVerificationKey, HexEncodedVerificationKeySignature, PartyId,
         SignerWithStake, Stake,
@@ -219,6 +226,7 @@
     test_utils::fake_keys,
     StdResult,
 };
+<span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>std::fmt::{Debug, Formatter};
 
@@ -281,20 +289,26 @@
         <span class="kw">let </span><span class="kw-2">mut </span>signers: Vec&lt;SignerWithStake&gt; = Vec::new();
 
         <span class="kw">for </span>message <span class="kw">in </span>messages {
+            <span class="kw">let </span>verification_key_signature: <span class="prelude-ty">Option</span>&lt;ProtocolSignerVerificationKeySignature&gt; = message.verification_key_signature
+                .map(|f| f.try_into())
+                .transpose()
+                .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Error while parsing verification key signature message, party_id = &#39;{}&#39;&quot;</span>, message.party_id))<span class="question-mark">?</span>;
+            <span class="kw">let </span>operational_certificate: <span class="prelude-ty">Option</span>&lt;ProtocolOpCert&gt; = message
+                .operational_certificate
+                .map(|f| f.try_into())
+                .transpose()
+                .with_context(|| {
+                    <span class="macro">format!</span>(
+                        <span class="string">&quot;Error while parsing operational certificate message, party_id = &#39;{}&#39;.&quot;</span>,
+                        message.party_id
+                    )
+                })<span class="question-mark">?</span>;
             <span class="kw">let </span>value = SignerWithStake {
                 party_id: message.party_id,
                 verification_key: message.verification_key.try_into()<span class="question-mark">?</span>,
-                verification_key_signature: <span class="kw">match </span>message.verification_key_signature {
-                    <span class="prelude-val">Some</span>(verification_key_signature) =&gt; {
-                        <span class="prelude-val">Some</span>(verification_key_signature.try_into()<span class="question-mark">?</span>)
-                    }
-                    <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-                },
+                verification_key_signature,
                 kes_period: message.kes_period,
-                operational_certificate: <span class="kw">match </span>message.operational_certificate {
-                    <span class="prelude-val">Some</span>(operational_certificate) =&gt; <span class="prelude-val">Some</span>(operational_certificate.try_into()<span class="question-mark">?</span>),
-                    <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-                },
+                operational_certificate,
                 stake: message.stake,
             };
             signers.push(value);
