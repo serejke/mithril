@@ -881,6 +881,7 @@
 <a href="#881" id="881">881</a>
 <a href="#882" id="882">882</a>
 <a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, trace, warn};
@@ -1215,7 +1216,8 @@
             </span>.services
             .signable_builder_service
             .compute_protocol_message(signed_entity_type.to_owned())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Runner can not compute protocol message for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="comment">// 2 set the next signers keys and stakes in the message
         </span><span class="kw">let </span>epoch = signed_entity_type.get_epoch();

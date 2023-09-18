@@ -1082,6 +1082,7 @@
 <a href="#1082" id="1082">1082</a>
 <a href="#1083" id="1083">1083</a>
 <a href="#1084" id="1084">1084</a>
+<a href="#1085" id="1085">1085</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, warn};
@@ -1447,7 +1448,8 @@
             </span>.dependencies
             .signable_builder_service
             .compute_protocol_message(signed_entity_type.to_owned())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Runner can not compute protocol message for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>multi_signer = <span class="self">self</span>.dependencies.multi_signer.write().<span class="kw">await</span>;
         protocol_message.set_message_part(
