@@ -779,6 +779,37 @@
 <a href="#779" id="779">779</a>
 <a href="#780" id="780">780</a>
 <a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! ## Certifier Service
 //!
 //! This service is responsible of [OpenMessage] cycle of life. It creates open
@@ -786,7 +817,8 @@
 //! single signatures and deal with the multi_signer for aggregate signature
 //! creation.
 
-</span><span class="kw">use </span>async_trait::async_trait;
+</span><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::Utc;
 <span class="kw">use </span>mithril_common::{
     certificate_chain::CertificateVerifier,
@@ -965,17 +997,27 @@
             <span class="string">&quot;CertifierService::get_open_message_record(signed_entity_type: {signed_entity_type:?})&quot;
         </span>);
 
-        <span class="self">self</span>.open_message_repository
+        <span class="kw">let </span>open_message_with_single_signatures = <span class="self">self
+            </span>.open_message_repository
             .get_open_message_with_single_signatures(signed_entity_type)
             .<span class="kw">await
-    </span>}
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certifier can not get open message with single signatures for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(open_message_with_single_signatures)
+    }
 }
 
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>CertifierService <span class="kw">for </span>MithrilCertifierService {
     <span class="kw">async fn </span>inform_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;CertifierService::inform_epoch(epoch: {epoch:?})&quot;</span>);
-        <span class="kw">let </span>nb = <span class="self">self</span>.open_message_repository.clean_epoch(epoch).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>nb = <span class="self">self
+            </span>.open_message_repository
+            .clean_epoch(epoch)
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(<span class="string">&quot;Certifier can not clean open messages from epoch &#39;{epoch}&#39;&quot;</span>)
+            })<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;MithrilCertifierService: Informed of a new Epoch: {epoch:?}. Cleaned {nb} open messages along with their single signatures.&quot;</span>);
 
         <span class="prelude-val">Ok</span>(())
@@ -1010,8 +1052,8 @@
 
         <span class="kw">let </span>single_signature = <span class="self">self
             </span>.single_signature_repository
-            .create_single_signature(signature, <span class="kw-2">&amp;</span>open_message.into())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .create_single_signature(signature, <span class="kw-2">&amp;</span>open_message.clone().into())
+            .<span class="kw">await</span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certifier can not create the single signature from single_signature: &#39;{signature:?}&#39;, open_message: &#39;{open_message:?}&#39;&quot;</span>))<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;CertifierService::register_single_signature: created pool &#39;{}&#39; single signature for {signed_entity_type:?}.&quot;</span>, single_signature.signer_id);
         <span class="macro">debug!</span>(<span class="string">&quot;CertifierService::register_single_signature: created single signature for open message ID=&#39;{}&#39;.&quot;</span>, single_signature.open_message_id);
 
@@ -1031,7 +1073,14 @@
                 signed_entity_type,
                 protocol_message,
             )
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Certifier can not create open message from protocol_message: &#39;{:?}, epoch: &#39;{}&#39;&#39;&quot;</span>,
+                    protocol_message,
+                    signed_entity_type.get_epoch()
+                )
+            })<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;CertifierService::create_open_message: created open message for {signed_entity_type:?}&quot;</span>);
         <span class="macro">debug!</span>(
             <span class="string">&quot;CertifierService::create_open_message: created open message ID=&#39;{}&#39;&quot;</span>,
@@ -1050,7 +1099,8 @@
         <span class="kw">let </span>open_message = <span class="self">self
             </span>.open_message_repository
             .get_open_message_with_single_signatures(signed_entity_type)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certifier can not get open message with single signatures for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?
             </span>.map(|record| record.into());
 
         <span class="prelude-val">Ok</span>(open_message)
@@ -1114,7 +1164,13 @@
         <span class="kw">let </span>parent_certificate_hash = <span class="self">self
             </span>.certificate_repository
             .get_master_certificate_for_epoch(open_message.epoch)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Certifier can not get master certificate for epoch: &#39;{}&#39;&quot;</span>,
+                    open_message.epoch
+                )
+            })<span class="question-mark">?
             </span>.map(|cert| cert.hash)
             .ok_or_else(|| Box::new(CertifierServiceError::NoParentCertificateFound))<span class="question-mark">?</span>;
 
@@ -1141,13 +1197,18 @@
         <span class="kw">let </span>certificate = <span class="self">self
             </span>.certificate_repository
             .create_certificate(certificate)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {<span class="macro">format!</span>(
+                <span class="string">&quot;Certifier can not create certificate for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>)
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>open_message_certified: OpenMessageRecord = open_message_record.into();
         open_message_certified.is_certified = <span class="bool-val">true</span>;
         <span class="self">self</span>.open_message_repository
             .update_open_message(<span class="kw-2">&amp;</span>open_message_certified)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certifier can not update open message for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))
+            <span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(certificate))
     }
@@ -1160,7 +1221,8 @@
         <span class="self">self</span>.certificate_repository
             .get_latest_certificates(last_n)
             .<span class="kw">await
-    </span>}
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certifier can not get last &#39;{last_n}&#39; certificates&quot;</span>))
+    }
 
     <span class="kw">async fn </span>verify_certificate_chain(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(certificate) = <span class="self">self

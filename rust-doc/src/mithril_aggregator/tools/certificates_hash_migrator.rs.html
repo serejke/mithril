@@ -583,8 +583,31 @@
 <a href="#583" id="583">583</a>
 <a href="#584" id="584">584</a>
 <a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::database::provider::{CertificateRepository, SignedEntityStorer};
-<span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>mithril_common::{entities::Certificate, StdResult};
 <span class="kw">use </span>slog_scope::{debug, info, trace};
 <span class="kw">use </span>std::{collections::HashMap, sync::Arc};
@@ -697,7 +720,10 @@
         </span><span class="macro">debug!</span>(<span class="string">&quot;🔧 Certificate Hash Migrator: inserting migrated certificates in the database&quot;</span>);
         <span class="self">self</span>.certificate_repository
             .create_many_certificates(migrated_certificates)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="string">&quot;Certificates Hash Migrator can not insert migrated certificates in the database&quot;
+            </span>})<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>((old_certificates, old_and_new_hashes))
     }
@@ -713,8 +739,13 @@
             .collect();
         <span class="kw">let </span><span class="kw-2">mut </span>records_to_migrate = <span class="self">self
             </span>.signed_entity_storer
-            .get_signed_entity_by_certificates_ids(<span class="kw-2">&amp;</span>old_hashes)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .get_signed_entities_by_certificates_ids(<span class="kw-2">&amp;</span>old_hashes)
+            .<span class="kw">await
+            </span>.with_context(||
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Certificates Hash Migrator can not get signed entities by certificates ids with hashes: &#39;{:?}&#39;&quot;</span>, old_hashes
+                )
+            )<span class="question-mark">?</span>;
 
         <span class="macro">debug!</span>(<span class="string">&quot;🔧 Certificate Hash Migrator: updating signed entities certificate_ids to new computed hash&quot;</span>);
         <span class="kw">for </span>signed_entity_record <span class="kw">in </span>records_to_migrate.iter_mut() {
@@ -739,7 +770,8 @@
         <span class="macro">debug!</span>(<span class="string">&quot;🔧 Certificate Hash Migrator: updating migrated signed entities in the database&quot;</span>);
         <span class="self">self</span>.signed_entity_storer
             .update_signed_entities(records_to_migrate)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Certificates Hash Migrator can not update signed entities&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -748,7 +780,10 @@
         <span class="macro">info!</span>(<span class="string">&quot;🔧 Certificate Hash Migrator: deleting old certificates in the database&quot;</span>);
         <span class="self">self</span>.certificate_repository
             .delete_certificates(<span class="kw-2">&amp;</span>old_certificates.iter().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="string">&quot;Certificates Hash Migrator can not delete old certificates in the database&quot;
+            </span>})<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -760,6 +795,7 @@
         apply_all_migrations_to_db, disable_foreign_key_support, CertificateRecord,
         CertificateRepository, SignedEntityRecord, SignedEntityStoreAdapter, SignedEntityStorer,
     };
+    <span class="kw">use </span>anyhow::Context;
     <span class="kw">use </span>mithril_common::{
         entities::{
             Beacon, Certificate, Epoch, ImmutableFileNumber,
@@ -829,7 +865,13 @@
         <span class="kw">for </span>(certificate, discriminant_maybe) <span class="kw">in </span>certificates_and_signed_entity {
             certificate_repository
                 .create_certificate(certificate.clone())
-                .<span class="kw">await</span><span class="question-mark">?</span>;
+                .<span class="kw">await
+                </span>.with_context(|| {
+                    <span class="macro">format!</span>(
+                        <span class="string">&quot;Certificates Hash Migrator can not create certificate with hash: &#39;{}&#39;&quot;</span>,
+                        certificate.hash
+                    )
+                })<span class="question-mark">?</span>;
 
             <span class="kw">let </span>signed_entity_maybe = <span class="kw">match </span>discriminant_maybe {
                 <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
@@ -858,7 +900,10 @@
 
                     signed_entity_store
                         .store_signed_entity(<span class="kw-2">&amp;</span>signed_entity_record)
-                        .<span class="kw">await</span><span class="question-mark">?</span>;
+                        .<span class="kw">await
+                        </span>.with_context(|| {
+                            <span class="string">&quot;Certificates Hash Migrator can not store signed entity&quot;
+                        </span>})<span class="question-mark">?</span>;
 
                     <span class="prelude-val">Some</span>(signed_entity_record)
                 }
@@ -989,7 +1034,8 @@
             } <span class="kw">else </span>{
                 <span class="kw">let </span>record = signed_entity_store
                     .get_signed_entity_by_certificate_id(<span class="kw-2">&amp;</span>certificate.hash)
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                    .<span class="kw">await
+                    </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certificates Hash Migrator can not get signed entity type by certificate id with hash: &#39;{}&#39;&quot;</span>, certificate.hash))<span class="question-mark">?</span>;
                 result.push((certificate, record));
             }
         }

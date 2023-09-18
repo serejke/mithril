@@ -1337,7 +1337,7 @@ where signed_entity_id = ?*&quot;</span>;
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignedEntityRecord&gt;&gt;;
 
     <span class="doccomment">/// Get signed entities type by certificates ids
-    </span><span class="kw">async fn </span>get_signed_entity_by_certificates_ids&lt;<span class="lifetime">&#39;a</span>&gt;(
+    </span><span class="kw">async fn </span>get_signed_entities_by_certificates_ids&lt;<span class="lifetime">&#39;a</span>&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         certificates_ids: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str],
     ) -&gt; StdResult&lt;Vec&lt;SignedEntityRecord&gt;&gt;;
@@ -1412,7 +1412,7 @@ where signed_entity_id = ?*&quot;</span>;
         <span class="prelude-val">Ok</span>(signed_entity)
     }
 
-    <span class="kw">async fn </span>get_signed_entity_by_certificates_ids&lt;<span class="lifetime">&#39;a</span>&gt;(
+    <span class="kw">async fn </span>get_signed_entities_by_certificates_ids&lt;<span class="lifetime">&#39;a</span>&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         certificates_ids: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str],
     ) -&gt; StdResult&lt;Vec&lt;SignedEntityRecord&gt;&gt; {
@@ -1818,7 +1818,7 @@ where signed_entity_id = ?*&quot;</span>;
             .collect();
 
         <span class="kw">let </span>queried_records = store
-            .get_signed_entity_by_certificates_ids(<span class="kw-2">&amp;</span>certificates_ids)
+            .get_signed_entities_by_certificates_ids(<span class="kw-2">&amp;</span>certificates_ids)
             .<span class="kw">await
             </span>.expect(<span class="string">&quot;querying signed entity record by certificates ids should not fail&quot;</span>);
 

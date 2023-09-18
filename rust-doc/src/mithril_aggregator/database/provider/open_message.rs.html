@@ -1012,7 +1012,14 @@
 <a href="#1012" id="1012">1012</a>
 <a href="#1013" id="1013">1013</a>
 <a href="#1014" id="1014">1014</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>mithril_common::{
+<a href="#1015" id="1015">1015</a>
+<a href="#1016" id="1016">1016</a>
+<a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>mithril_common::{
     entities::{Epoch, ProtocolMessage, SignedEntityType, SingleSignatures},
     sqlite::{HydrationError, Projection, Provider, SourceAlias, SqLiteEntity, WhereCondition},
     StdResult,
@@ -1184,15 +1191,14 @@
     <span class="kw">fn </span>get_signed_entity_type_condition(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
-    ) -&gt; WhereCondition {
-        WhereCondition::new(
+    ) -&gt; StdResult&lt;WhereCondition&gt; {
+        <span class="prelude-val">Ok</span>(WhereCondition::new(
             <span class="string">&quot;signed_entity_type_id = ?* and beacon = ?*&quot;</span>,
             <span class="macro">vec!</span>[
                 Value::Integer(signed_entity_type.index() <span class="kw">as </span>i64),
-                <span class="comment">// TODO!: Remove this ugly unwrap, should this method returns a result ?
-                </span>Value::String(signed_entity_type.get_json_beacon().unwrap()),
+                Value::String(signed_entity_type.get_json_beacon()<span class="question-mark">?</span>),
             ],
-        )
+        ))
     }
 
     <span class="comment">// Useful in test and probably in the future.
@@ -1282,7 +1288,12 @@ signed_entity_type_id = ?*, protocol_message = ?*, is_certified = ?* \
 where open_message_id = ?*&quot;</span>;
         <span class="kw">let </span>beacon_str = open_message.signed_entity_type.get_json_beacon()<span class="question-mark">?</span>;
         <span class="kw">let </span>parameters = <span class="macro">vec!</span>[
-            Value::Integer(open_message.epoch.try_into()<span class="question-mark">?</span>),
+            Value::Integer(
+                open_message
+                    .epoch
+                    .try_into()
+                    .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Can not convert epoch: &#39;{}&#39;&quot;</span>, open_message.epoch))<span class="question-mark">?</span>,
+            ),
             Value::String(beacon_str),
             Value::Integer(open_message.signed_entity_type.index() <span class="kw">as </span>i64),
             Value::String(serde_json::to_string(<span class="kw-2">&amp;</span>open_message.protocol_message)<span class="question-mark">?</span>),
@@ -1448,14 +1459,14 @@ else json_group_array( \
     <span class="kw">fn </span>get_signed_entity_type_condition(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
-    ) -&gt; WhereCondition {
-        WhereCondition::new(
+    ) -&gt; StdResult&lt;WhereCondition&gt; {
+        <span class="prelude-val">Ok</span>(WhereCondition::new(
             <span class="string">&quot;signed_entity_type_id = ?* and beacon = ?*&quot;</span>,
             <span class="macro">vec!</span>[
                 Value::Integer(signed_entity_type.index() <span class="kw">as </span>i64),
-                Value::String(signed_entity_type.get_json_beacon().unwrap()),
+                Value::String(signed_entity_type.get_json_beacon()<span class="question-mark">?</span>),
             ],
-        )
+        ))
     }
 }
 
@@ -1510,7 +1521,7 @@ order by open_message.created_at desc, open_message.rowid desc
         <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
         <span class="kw">let </span>filters = provider
             .get_epoch_condition(signed_entity_type.get_epoch())
-            .and_where(provider.get_signed_entity_type_condition(signed_entity_type));
+            .and_where(provider.get_signed_entity_type_condition(signed_entity_type)<span class="question-mark">?</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>messages = provider.find(filters)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(messages.next())
@@ -1525,7 +1536,7 @@ order by open_message.created_at desc, open_message.rowid desc
         <span class="kw">let </span>provider = OpenMessageWithSingleSignaturesProvider::new(<span class="kw-2">&amp;</span>lock);
         <span class="kw">let </span>filters = provider
             .get_epoch_condition(signed_entity_type.get_epoch())
-            .and_where(provider.get_signed_entity_type_condition(signed_entity_type));
+            .and_where(provider.get_signed_entity_type_condition(signed_entity_type)<span class="question-mark">?</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>messages = provider.find(filters)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(messages.next())
@@ -1722,6 +1733,7 @@ else json_group_array( \
             .get_signed_entity_type_condition(<span class="kw-2">&amp;</span>SignedEntityType::CardanoImmutableFilesFull(
                 beacon.clone(),
             ))
+            .unwrap()
             .expand();
 
         <span class="macro">assert_eq!</span>(

@@ -546,6 +546,8 @@
 <a href="#546" id="546">546</a>
 <a href="#547" id="547">547</a>
 <a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>sqlite::{Connection, Value};
@@ -629,7 +631,9 @@
     }
 
     <span class="kw">fn </span>condition_by_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: <span class="kw-2">&amp;</span>Epoch) -&gt; StdResult&lt;WhereCondition&gt; {
-        <span class="kw">let </span>epoch_setting_id: i64 = epoch.try_into()<span class="question-mark">?</span>;
+        <span class="kw">let </span>epoch_setting_id: i64 = epoch
+            .try_into()
+            .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Can not convert epoch: &#39;{epoch}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(WhereCondition::new(
             <span class="string">&quot;epoch_setting_id = ?*&quot;</span>,
