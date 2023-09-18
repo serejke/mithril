@@ -81,6 +81,41 @@
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
 <a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>mithril_common::StdResult;
 <span class="kw">use </span>slog_scope::debug;
@@ -93,15 +128,21 @@
 </span><span class="kw">pub struct </span>RemoteSnapshotUploader {
     bucket: String,
     file_uploader: Box&lt;<span class="kw">dyn </span>RemoteFileUploader&gt;,
+    use_cdn_domain: bool,
 }
 
 <span class="kw">impl </span>RemoteSnapshotUploader {
     <span class="doccomment">/// GCPSnapshotUploader factory
-    </span><span class="kw">pub fn </span>new(file_uploader: Box&lt;<span class="kw">dyn </span>RemoteFileUploader&gt;, bucket: String) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(
+        file_uploader: Box&lt;<span class="kw">dyn </span>RemoteFileUploader&gt;,
+        bucket: String,
+        use_cdn_domain: bool,
+    ) -&gt; <span class="self">Self </span>{
         <span class="macro">debug!</span>(<span class="string">&quot;New GCPSnapshotUploader created&quot;</span>);
         <span class="self">Self </span>{
             bucket,
             file_uploader,
+            use_cdn_domain,
         }
     }
 }
@@ -110,10 +151,14 @@
 </span><span class="kw">impl </span>SnapshotUploader <span class="kw">for </span>RemoteSnapshotUploader {
     <span class="kw">async fn </span>upload_snapshot(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot_filepath: <span class="kw-2">&amp;</span>Path) -&gt; StdResult&lt;SnapshotLocation&gt; {
         <span class="kw">let </span>archive_name = snapshot_filepath.file_name().unwrap().to_str().unwrap();
-        <span class="kw">let </span>location = <span class="macro">format!</span>(
-            <span class="string">&quot;https://storage.googleapis.com/{}/{}&quot;</span>,
-            <span class="self">self</span>.bucket, archive_name
-        );
+        <span class="kw">let </span>location = <span class="kw">if </span><span class="self">self</span>.use_cdn_domain {
+            <span class="macro">format!</span>(<span class="string">&quot;https://{}/{}&quot;</span>, <span class="self">self</span>.bucket, archive_name)
+        } <span class="kw">else </span>{
+            <span class="macro">format!</span>(
+                <span class="string">&quot;https://storage.googleapis.com/{}/{}&quot;</span>,
+                <span class="self">self</span>.bucket, archive_name
+            )
+        };
 
         <span class="self">self</span>.file_uploader.upload_file(snapshot_filepath).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -130,14 +175,39 @@
     <span class="kw">use </span>std::path::Path;
 
     <span class="attr">#[tokio::test]
-    </span><span class="kw">async fn </span>test_upload_snapshot_ok() {
+    </span><span class="kw">async fn </span>test_upload_snapshot_not_using_cdn_domain_ok() {
+        <span class="kw">let </span>use_cdn_domain = <span class="bool-val">false</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>file_uploader = MockRemoteFileUploader::new();
         file_uploader.expect_upload_file().returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        <span class="kw">let </span>snapshot_uploader =
-            RemoteSnapshotUploader::new(Box::new(file_uploader), <span class="string">&quot;cardano-testnet&quot;</span>.to_string());
+        <span class="kw">let </span>snapshot_uploader = RemoteSnapshotUploader::new(
+            Box::new(file_uploader),
+            <span class="string">&quot;cardano-testnet&quot;</span>.to_string(),
+            use_cdn_domain,
+        );
         <span class="kw">let </span>snapshot_filepath = Path::new(<span class="string">&quot;test/snapshot.xxx.tar.gz&quot;</span>);
         <span class="kw">let </span>expected_location =
             <span class="string">&quot;https://storage.googleapis.com/cardano-testnet/snapshot.xxx.tar.gz&quot;</span>.to_string();
+
+        <span class="kw">let </span>location = snapshot_uploader
+            .upload_snapshot(snapshot_filepath)
+            .<span class="kw">await
+            </span>.expect(<span class="string">&quot;remote upload should not fail&quot;</span>);
+
+        <span class="macro">assert_eq!</span>(expected_location, location);
+    }
+
+    <span class="attr">#[tokio::test]
+    </span><span class="kw">async fn </span>test_upload_snapshot_using_cdn_domain_ok() {
+        <span class="kw">let </span>use_cdn_domain = <span class="bool-val">true</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>file_uploader = MockRemoteFileUploader::new();
+        file_uploader.expect_upload_file().returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
+        <span class="kw">let </span>snapshot_uploader = RemoteSnapshotUploader::new(
+            Box::new(file_uploader),
+            <span class="string">&quot;cdn.mithril.network&quot;</span>.to_string(),
+            use_cdn_domain,
+        );
+        <span class="kw">let </span>snapshot_filepath = Path::new(<span class="string">&quot;test/snapshot.xxx.tar.gz&quot;</span>);
+        <span class="kw">let </span>expected_location = <span class="string">&quot;https://cdn.mithril.network/snapshot.xxx.tar.gz&quot;</span>.to_string();
 
         <span class="kw">let </span>location = snapshot_uploader
             .upload_snapshot(snapshot_filepath)
@@ -154,7 +224,7 @@
             .expect_upload_file()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">&quot;unexpected error&quot;</span>)));
         <span class="kw">let </span>snapshot_uploader =
-            RemoteSnapshotUploader::new(Box::new(file_uploader), <span class="string">&quot;&quot;</span>.to_string());
+            RemoteSnapshotUploader::new(Box::new(file_uploader), <span class="string">&quot;&quot;</span>.to_string(), <span class="bool-val">false</span>);
         <span class="kw">let </span>snapshot_filepath = Path::new(<span class="string">&quot;test/snapshot.xxx.tar.gz&quot;</span>);
 
         <span class="kw">let </span>result = snapshot_uploader
