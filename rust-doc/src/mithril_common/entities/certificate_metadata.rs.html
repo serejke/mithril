@@ -183,6 +183,16 @@
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
 <a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::entities::{ProtocolParameters, ProtocolVersion, SignerWithStake, StakeDistribution};
 <span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>sha2::{Digest, Sha256};
@@ -242,8 +252,18 @@
         <span class="kw">let </span><span class="kw-2">mut </span>hasher = Sha256::new();
         hasher.update(<span class="self">self</span>.protocol_version.as_bytes());
         hasher.update(<span class="self">self</span>.protocol_parameters.compute_hash().as_bytes());
-        hasher.update(<span class="self">self</span>.initiated_at.timestamp_nanos().to_be_bytes());
-        hasher.update(<span class="self">self</span>.sealed_at.timestamp_nanos().to_be_bytes());
+        hasher.update(
+            <span class="self">self</span>.initiated_at
+                .timestamp_nanos_opt()
+                .unwrap_or_default()
+                .to_be_bytes(),
+        );
+        hasher.update(
+            <span class="self">self</span>.sealed_at
+                .timestamp_nanos_opt()
+                .unwrap_or_default()
+                .to_be_bytes(),
+        );
         <span class="self">self</span>.signers
             .iter()
             .for_each(|signer| hasher.update(signer.compute_hash().as_bytes()));
