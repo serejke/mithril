@@ -749,7 +749,10 @@
 <a href="#749" id="749">749</a>
 <a href="#750" id="750">750</a>
 <a href="#751" id="751">751</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, warn};
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>thiserror::Error;
@@ -1208,6 +1211,7 @@
 
         protocol_multi_signer
             .verify_single_signature(message, single_signature)
+            .with_context(|| <span class="string">&quot;Multi Signer can not verify multi-signature&quot;</span>)
             .map_err(|error| ProtocolError::Core(error.to_string()))
     }
 

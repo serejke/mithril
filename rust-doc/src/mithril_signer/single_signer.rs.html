@@ -210,7 +210,21 @@
 <a href="#210" id="210">210</a>
 <a href="#211" id="211">211</a>
 <a href="#212" id="212">212</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>hex::ToHex;
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>hex::ToHex;
 <span class="kw">use </span>slog_scope::{info, trace, warn};
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>thiserror::Error;
@@ -314,8 +328,20 @@
         <span class="macro">info!</span>(<span class="string">&quot;Signing protocol message&quot;</span>; <span class="string">&quot;protocol_message&quot; </span>=&gt;  #<span class="question-mark">?</span>protocol_message, <span class="string">&quot;signed message&quot; </span>=&gt; protocol_message.compute_hash().encode_hex::&lt;String&gt;());
         <span class="kw">let </span>signatures = builder
             .restore_signer_from_initializer(<span class="self">self</span>.party_id.clone(), protocol_initializer.clone())
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Mithril Single Signer can not restore signer with party_id: &#39;{}&#39;&quot;</span>,
+                    <span class="self">self</span>.party_id.clone()
+                )
+            })
             .map_err(|e| SingleSignerError::ProtocolSignerCreationFailure(e.to_string()))<span class="question-mark">?
             </span>.sign(protocol_message)
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Mithril Single Signer can not sign protocol_message: &#39;{:?}&#39;&quot;</span>,
+                    protocol_message
+                )
+            })
             .map_err(SingleSignerError::SignatureFailed)<span class="question-mark">?</span>;
 
         <span class="kw">match </span><span class="kw-2">&amp;</span>signatures {

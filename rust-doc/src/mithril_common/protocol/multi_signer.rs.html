@@ -242,7 +242,8 @@
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context, <span class="prelude-ty">Result</span>};
+<a href="#245" id="245">245</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>mithril_stm::stm::StmParameters;
 
 <span class="kw">use crate</span>::{
@@ -251,6 +252,7 @@
         ProtocolMultiSignature,
     },
     entities::{ProtocolMessage, SingleSignatures},
+    StdResult,
 };
 
 <span class="doccomment">/// MultiSigner is the cryptographic engine in charge of producing multi-signatures from individual signatures
@@ -296,7 +298,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         message: <span class="kw-2">&amp;</span>ProtocolMessage,
         single_signature: <span class="kw-2">&amp;</span>SingleSignatures,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span>protocol_signature = single_signature.to_protocol_signature();
 
         <span class="kw">let </span>avk = <span class="self">self</span>.compute_aggregate_verification_key();
