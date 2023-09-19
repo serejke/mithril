@@ -338,7 +338,14 @@
 <a href="#338" id="338">338</a>
 <a href="#339" id="339">339</a>
 <a href="#340" id="340">340</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>semver::Version;
 <span class="kw">use </span>slog_scope::{debug, warn};
 <span class="kw">use </span>std::sync::Arc;
@@ -363,8 +370,8 @@
 </span><span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>CardanoImmutableFilesFullArtifactError {
     <span class="doccomment">/// Protocol message part is missing
-    </span><span class="attr">#[error(<span class="string">&quot;Missing protocol message: &#39;{0}&#39;.&quot;</span>)]
-    </span>MissingProtocolMessage(String),
+    </span><span class="attr">#[error(<span class="string">&quot;Missing protocol message for beacon: &#39;{0}&#39;.&quot;</span>)]
+    </span>MissingProtocolMessage(Beacon),
 }
 
 <span class="doccomment">/// A [CardanoImmutableFilesFullArtifact] builder
@@ -402,9 +409,7 @@
         <span class="kw">let </span>snapshot_digest = protocol_message
             .get_message_part(<span class="kw-2">&amp;</span>ProtocolMessagePartKey::SnapshotDigest)
             .ok_or_else(|| {
-                CardanoImmutableFilesFullArtifactError::MissingProtocolMessage(<span class="macro">format!</span>(
-                    <span class="string">&quot;no digest message part found for beacon &#39;{beacon:?}&#39;.&quot;
-                </span>))
+                CardanoImmutableFilesFullArtifactError::MissingProtocolMessage(beacon.clone())
             })<span class="question-mark">?</span>;
         <span class="kw">let </span>snapshot_name = <span class="macro">format!</span>(
             <span class="string">&quot;{}-e{}-i{}.{}.{}&quot;</span>,
@@ -457,10 +462,9 @@
             .protocol_message
             .get_message_part(<span class="kw-2">&amp;</span>ProtocolMessagePartKey::SnapshotDigest)
             .ok_or_else(|| {
-                CardanoImmutableFilesFullArtifactError::MissingProtocolMessage(<span class="macro">format!</span>(
-                    <span class="string">&quot;message part &#39;digest&#39; not found for snapshot &#39;{}&#39;.&quot;</span>,
-                    ongoing_snapshot.get_file_path().display()
-                ))
+                CardanoImmutableFilesFullArtifactError::MissingProtocolMessage(
+                    certificate.beacon.clone(),
+                )
             })<span class="question-mark">?
             </span>.to_owned();
         <span class="kw">let </span>snapshot = Snapshot::new(
@@ -485,8 +489,16 @@
     ) -&gt; StdResult&lt;Snapshot&gt; {
         <span class="kw">let </span>ongoing_snapshot = <span class="self">self
             </span>.create_snapshot_archive(<span class="kw-2">&amp;</span>beacon, <span class="kw-2">&amp;</span>certificate.protocol_message)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>locations = <span class="self">self</span>.upload_snapshot_archive(<span class="kw-2">&amp;</span>ongoing_snapshot).<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="string">&quot;Cardano Immutable Files Full Artifact Builder can not create snapshot archive&quot;
+            </span>})<span class="question-mark">?</span>;
+        <span class="kw">let </span>locations = <span class="self">self
+            </span>.upload_snapshot_archive(<span class="kw-2">&amp;</span>ongoing_snapshot)
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(<span class="string">&quot;Cardano Immutable Files Full Artifact Builder can not upload snapshot archive to path: &#39;{:?}&#39;&quot;</span>, ongoing_snapshot.get_file_path())
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>snapshot = <span class="self">self
             </span>.create_snapshot(certificate, <span class="kw-2">&amp;</span>ongoing_snapshot, locations)
