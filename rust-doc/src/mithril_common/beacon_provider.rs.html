@@ -138,6 +138,9 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
@@ -198,15 +201,18 @@
             .get_current_epoch()
             .<span class="kw">await
             </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
-            .with_context(|| <span class="string">&quot;Can not get current epoch&quot;</span>)<span class="question-mark">?
+            .with_context(|| <span class="string">&quot;Beacon Provider can not get current epoch&quot;</span>)<span class="question-mark">?
             </span>.ok_or(BeaconProviderError::NoEpoch())<span class="question-mark">?</span>;
 
         <span class="kw">let </span>immutable_file_number = <span class="self">self
             </span>.immutable_observer
             .get_last_immutable_number()
             .<span class="kw">await
-            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
-            .with_context(|| <span class="string">&quot;Can not get last immutable file number&quot;</span>)<span class="question-mark">?</span>;
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Beacon Provider can not get last immutable file number for epoch: &#39;{epoch}&#39;&quot;
+                </span>)
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>beacon = Beacon {
             network: <span class="self">self</span>.network.to_string(),

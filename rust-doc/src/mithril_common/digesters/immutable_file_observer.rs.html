@@ -114,9 +114,13 @@
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
 <a href="#116" id="116">116</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::digesters::{ImmutableFile, ImmutableFileListingError};
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::digesters::ImmutableFile;
 <span class="kw">use </span><span class="kw">crate</span>::entities::ImmutableFileNumber;
-<span class="kw">use </span><span class="kw">crate</span>::StdResult;
+<span class="kw">use crate</span>::{StdError, StdResult};
+<span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::ops::Add;
 <span class="kw">use </span>std::path::PathBuf;
@@ -130,7 +134,7 @@
     </span><span class="self">Self</span>: Sync + Send,
 {
     <span class="doccomment">/// Get the [ImmutableFileNumber] of the last immutable file in the cardano database.
-    </span><span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64, ImmutableFileObserverError&gt;;
+    </span><span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;u64&gt;;
 }
 
 <span class="doccomment">/// [ImmutableFileObserver] related errors.
@@ -142,7 +146,7 @@
 
     <span class="doccomment">/// Raised when [immutable file listing][ImmutableFile::list_completed_in_dir] fails.
     </span><span class="attr">#[error(<span class="string">&quot;immutable file creation error: {0}&quot;</span>)]
-    </span>ImmutableFileListing(<span class="attr">#[from] </span>ImmutableFileListingError),
+    </span>ImmutableFileListing(StdError),
 }
 
 <span class="doccomment">/// An [ImmutableFileObserver] using the filesystem.
@@ -161,11 +165,13 @@
 
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>ImmutableFileObserver <span class="kw">for </span>ImmutableFileSystemObserver {
-    <span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64, ImmutableFileObserverError&gt; {
-        <span class="kw">let </span>immutable_file_number = ImmutableFile::list_completed_in_dir(<span class="kw-2">&amp;</span><span class="self">self</span>.db_path)<span class="question-mark">?
+    <span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;u64&gt; {
+        <span class="kw">let </span>immutable_file_number = ImmutableFile::list_completed_in_dir(<span class="kw-2">&amp;</span><span class="self">self</span>.db_path)
+            .map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="string">&quot;Immutable File System Observer can not list all immutable files&quot;</span>)<span class="question-mark">?
             </span>.into_iter()
             .last()
-            .ok_or(ImmutableFileObserverError::Missing())<span class="question-mark">?
+            .ok_or(<span class="macro">anyhow!</span>(ImmutableFileObserverError::Missing()))<span class="question-mark">?
             </span>.number;
 
         <span class="prelude-val">Ok</span>(immutable_file_number)
@@ -220,11 +226,11 @@
 
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>ImmutableFileObserver <span class="kw">for </span>DumbImmutableFileObserver {
-    <span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64, ImmutableFileObserverError&gt; {
+    <span class="kw">async fn </span>get_last_immutable_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;u64&gt; {
         <span class="self">self</span>.shall_return
             .read()
             .<span class="kw">await
-            </span>.ok_or_else(ImmutableFileObserverError::Missing)
+            </span>.ok_or_else(|| <span class="macro">anyhow!</span>(ImmutableFileObserverError::Missing()))
     }
 }
 

@@ -102,6 +102,13 @@
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -113,6 +120,7 @@
     signable_builder::SignableBuilder,
     StdResult,
 };
+<span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog::{debug, info, Logger};
 
@@ -145,7 +153,13 @@
         <span class="kw">let </span>digest = <span class="self">self
             </span>.immutable_digester
             .compute_digest(<span class="kw-2">&amp;</span><span class="self">self</span>.dirpath, <span class="kw-2">&amp;</span>beacon)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Cardano Immutable Files Full Signable Builder can not compute digest of &#39;{}&#39;&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.dirpath.display()
+                )
+            })<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="self">self</span>.logger, <span class="string">&quot;SignableBuilder: digest = &#39;{digest}&#39;.&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>protocol_message = ProtocolMessage::new();
         protocol_message.set_message_part(ProtocolMessagePartKey::SnapshotDigest, digest);

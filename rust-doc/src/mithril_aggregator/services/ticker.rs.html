@@ -150,6 +150,15 @@
 <a href="#150" id="150">150</a>
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! ## Ticker Service
 //!
 //! This service read time information from the chain and helps create beacons
@@ -157,6 +166,7 @@
 
 </span><span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>mithril_common::{
     chain_observer::ChainObserver,
@@ -222,7 +232,15 @@
 
     <span class="kw">async fn </span>get_current_immutable_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Beacon&gt; {
         <span class="kw">let </span>epoch = <span class="self">self</span>.get_current_epoch().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>immutable_file_number = <span class="self">self</span>.immutable_observer.get_last_immutable_number().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>immutable_file_number = <span class="self">self
+            </span>.immutable_observer
+            .get_last_immutable_number()
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Mithril Ticker Service can not get last immutable file number for epoch: &#39;{epoch}&#39;&quot;
+                </span>)
+            })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(Beacon::new(
             <span class="self">self</span>.network.to_string(),
