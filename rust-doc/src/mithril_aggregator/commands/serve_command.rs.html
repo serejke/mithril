@@ -141,6 +141,15 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>config::{builder::DefaultState, ConfigBuilder, Map, Source, Value, ValueKind};
@@ -231,7 +240,10 @@
         <span class="macro">println!</span>(<span class="string">&quot;Press Ctrl+C to stop&quot;</span>);
 
         <span class="comment">// start the monitoring thread
-        </span><span class="kw">let </span><span class="kw-2">mut </span>event_store = dependencies_builder.create_event_store().<span class="kw">await</span><span class="question-mark">?</span>;
+        </span><span class="kw">let </span><span class="kw-2">mut </span>event_store = dependencies_builder
+            .create_event_store()
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Dependencies Builder can not create event store&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>event_store_config = config.clone();
         <span class="kw">let </span>event_store_thread = tokio::spawn(<span class="kw">async move </span>{
             event_store
@@ -245,13 +257,19 @@
         });
 
         <span class="comment">// start the aggregator runtime
-        </span><span class="kw">let </span><span class="kw-2">mut </span>runtime = dependencies_builder.create_aggregator_runner().<span class="kw">await</span><span class="question-mark">?</span>;
+        </span><span class="kw">let </span><span class="kw-2">mut </span>runtime = dependencies_builder
+            .create_aggregator_runner()
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Dependencies Builder can not create aggregator runner&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
         join_set.spawn(<span class="kw">async move </span>{ runtime.run().<span class="kw">await</span>.map_err(|e| e.to_string()) });
 
         <span class="comment">// start the HTTP server
         </span><span class="kw">let </span>(shutdown_tx, shutdown_rx) = oneshot::channel();
-        <span class="kw">let </span>routes = dependencies_builder.create_http_routes().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>routes = dependencies_builder
+            .create_http_routes()
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Dependencies Builder can not create http routes&quot;</span>)<span class="question-mark">?</span>;
         join_set.spawn(<span class="kw">async move </span>{
             <span class="kw">let </span>(<span class="kw">_</span>, server) = warp::serve(routes).bind_with_graceful_shutdown(
                 (

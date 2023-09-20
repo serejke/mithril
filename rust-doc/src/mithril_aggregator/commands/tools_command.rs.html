@@ -78,6 +78,9 @@
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>clap::{Parser, Subcommand};
 <span class="kw">use </span>config::{builder::DefaultState, ConfigBuilder};
@@ -140,7 +143,10 @@
         <span class="macro">debug!</span>(<span class="string">&quot;RECOMPUTE CERTIFICATES HASH command&quot;</span>; <span class="string">&quot;config&quot; </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{config:?}&quot;</span>));
         <span class="macro">println!</span>(<span class="string">&quot;Recomputing all certificate hash&quot;</span>,);
         <span class="kw">let </span><span class="kw-2">mut </span>dependencies_builder = DependenciesBuilder::new(config.clone());
-        <span class="kw">let </span>connection = dependencies_builder.get_sqlite_connection().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>connection = dependencies_builder
+            .get_sqlite_connection()
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Dependencies Builder can not get sqlite connection&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let </span>migrator = CertificatesHashMigrator::new(
             CertificateRepository::new(connection.clone()),
             Arc::new(SignedEntityStoreAdapter::new(connection.clone())),
