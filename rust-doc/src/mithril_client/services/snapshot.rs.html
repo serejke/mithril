@@ -810,6 +810,20 @@
 <a href="#810" id="810">810</a>
 <a href="#811" id="811">811</a>
 <a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
@@ -1072,7 +1086,12 @@
                 DownloadProgressReporter::new(pb, progress_output_type),
             )
             .<span class="kw">await
-            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Could not download file in &#39;{}&#39;&quot;</span>, download_dir.display()))<span class="question-mark">?</span>;
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Could not download file in directory &#39;{}&#39;&quot;</span>,
+                    download_dir.display()
+                )
+            })<span class="question-mark">?</span>;
 
         <span class="comment">// Append &#39;clean&#39; file to speedup node bootstrap
         </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = File::create(db_dir.join(<span class="string">&quot;clean&quot;</span>)) {
@@ -1353,8 +1372,11 @@
         <span class="kw">let </span>test_path = std::env::temp_dir().join(<span class="string">&quot;test_download_snapshot_ok&quot;</span>);
         <span class="kw">let _ </span>= std::fs::remove_dir_all(<span class="kw-2">&amp;</span>test_path);
 
-        <span class="kw">let </span>(http_client, certificate_verifier, digester) =
+        <span class="kw">let </span>(<span class="kw-2">mut </span>http_client, certificate_verifier, digester) =
             get_mocks_for_snapshot_service_configured_to_make_download_succeed();
+        http_client
+            .expect_post_content()
+            .returning(|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Ok</span>(String::new()));
 
         <span class="kw">let </span><span class="kw-2">mut </span>builder = get_dep_builder(Arc::new(http_client));
         builder.certificate_verifier = <span class="prelude-val">Some</span>(Arc::new(certificate_verifier));
@@ -1393,8 +1415,11 @@
             .join(<span class="string">&quot;test_download_snapshot_ok_add_clean_file_allowing_node_bootstrap_speedup&quot;</span>);
         <span class="kw">let _ </span>= std::fs::remove_dir_all(<span class="kw-2">&amp;</span>test_path);
 
-        <span class="kw">let </span>(http_client, certificate_verifier, digester) =
+        <span class="kw">let </span>(<span class="kw-2">mut </span>http_client, certificate_verifier, digester) =
             get_mocks_for_snapshot_service_configured_to_make_download_succeed();
+        http_client
+            .expect_post_content()
+            .returning(|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Ok</span>(String::new()));
 
         <span class="kw">let </span><span class="kw-2">mut </span>builder = get_dep_builder(Arc::new(http_client));
         builder.certificate_verifier = <span class="prelude-val">Some</span>(Arc::new(certificate_verifier));
@@ -1437,8 +1462,11 @@
         <span class="kw">let </span>test_path = std::env::temp_dir().join(<span class="string">&quot;test_download_snapshot_invalid_digest&quot;</span>);
         <span class="kw">let _ </span>= std::fs::remove_dir_all(<span class="kw-2">&amp;</span>test_path);
 
-        <span class="kw">let </span>(http_client, certificate_verifier, <span class="kw">_</span>) =
+        <span class="kw">let </span>(<span class="kw-2">mut </span>http_client, certificate_verifier, <span class="kw">_</span>) =
             get_mocks_for_snapshot_service_configured_to_make_download_succeed();
+        http_client
+            .expect_post_content()
+            .returning(|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Ok</span>(String::new()));
         <span class="kw">let </span>immutable_digester = DumbImmutableDigester::new(<span class="string">&quot;snapshot-digest-KO&quot;</span>, <span class="bool-val">true</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>dep_builder = get_dep_builder(Arc::new(http_client));
