@@ -107,6 +107,11 @@
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module contains a struct to exchange snapshot information with the Aggregator
 
 </span><span class="kw">use </span>slog_scope::warn;
@@ -115,12 +120,14 @@
 
 <span class="kw">use </span>mithril_common::{
     entities::Snapshot,
-    messages::{SnapshotListItemMessage, SnapshotListMessage, SnapshotMessage},
+    messages::{SnapshotListItemMessage, SnapshotListMessage, SnapshotMessage, ToMessageAdapter},
     StdResult,
 };
 
-<span class="kw">use </span><span class="kw">crate</span>::aggregator_client::AggregatorClient;
 <span class="kw">use </span><span class="kw">crate</span>::utils::DownloadProgressReporter;
+<span class="kw">use crate</span>::{
+    aggregator_client::AggregatorClient, message_adapters::ToSnapshotDownloadMessageAdapter,
+};
 
 <span class="doccomment">/// Error for the Snapshot client
 </span><span class="attr">#[derive(Error, Debug)]
@@ -186,7 +193,9 @@
                 </span>{
                     <span class="prelude-val">Ok</span>(()) =&gt; {
                         <span class="comment">// the snapshot download does not fail if the statistic call fails.
-                        </span><span class="kw">let _ </span>= <span class="self">self</span>.add_statistics(snapshot).<span class="kw">await</span>;
+                        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.add_statistics(snapshot).<span class="kw">await </span>{
+                            <span class="macro">warn!</span>(<span class="string">&quot;Could not POST snapshot download statistics: {e:?}&quot;</span>);
+                        }
 
                         <span class="prelude-val">Ok</span>(())
                     }
@@ -210,7 +219,8 @@
     <span class="doccomment">/// Increments Aggregator&#39;s download statistics
     </span><span class="kw">pub async fn </span>add_statistics(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot: <span class="kw-2">&amp;</span>Snapshot) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span>url = <span class="string">&quot;statistics/snapshot&quot;</span>;
-        <span class="kw">let </span>json = serde_json::to_string(snapshot)<span class="question-mark">?</span>;
+        <span class="kw">let </span>snapshot_download_message = ToSnapshotDownloadMessageAdapter::adapt(snapshot);
+        <span class="kw">let </span>json = serde_json::to_string(<span class="kw-2">&amp;</span>snapshot_download_message)<span class="question-mark">?</span>;
         <span class="kw">let </span>_response = <span class="self">self</span>.http_client.post_content(url, <span class="kw-2">&amp;</span>json).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())

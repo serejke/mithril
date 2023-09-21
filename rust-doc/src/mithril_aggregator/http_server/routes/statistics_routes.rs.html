@@ -134,14 +134,14 @@
 <span class="kw">mod </span>handlers {
     <span class="kw">use </span>std::{convert::Infallible, sync::Arc};
 
-    <span class="kw">use </span>mithril_common::messages::SnapshotMessage;
+    <span class="kw">use </span>mithril_common::messages::SnapshotDownloadMessage;
     <span class="kw">use </span>reqwest::StatusCode;
 
     <span class="kw">use </span><span class="kw">crate</span>::event_store::{EventMessage, TransmitterService};
     <span class="kw">use </span><span class="kw">crate</span>::http_server::routes::reply;
 
     <span class="kw">pub async fn </span>post_snapshot_statistics(
-        snapshot_message: SnapshotMessage,
+        snapshot_download_message: SnapshotDownloadMessage,
         event_transmitter: Arc&lt;TransmitterService&lt;EventMessage&gt;&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>warp::Reply, Infallible&gt; {
         <span class="kw">let </span>headers: Vec&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)&gt; = Vec::new();
@@ -149,7 +149,7 @@
         <span class="kw">match </span>event_transmitter.send_event_message(
             <span class="string">&quot;HTTP::statistics&quot;</span>,
             <span class="string">&quot;snapshot_downloaded&quot;</span>,
-            <span class="kw-2">&amp;</span>snapshot_message,
+            <span class="kw-2">&amp;</span>snapshot_download_message,
             headers,
         ) {
             <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Ok</span>(reply::internal_server_error(e)),
@@ -162,7 +162,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">use </span>mithril_common::messages::SnapshotMessage;
+    <span class="kw">use </span>mithril_common::messages::SnapshotDownloadMessage;
     <span class="kw">use </span>mithril_common::test_utils::apispec::APISpec;
 
     <span class="kw">use </span>warp::{http::Method, test::request};
@@ -190,14 +190,14 @@
         <span class="kw">let </span><span class="kw-2">mut </span>builder = DependenciesBuilder::new(config);
         <span class="kw">let </span><span class="kw-2">mut </span>rx = builder.get_event_transmitter_receiver().<span class="kw">await</span>.unwrap();
         <span class="kw">let </span>dependency_manager = builder.build_dependency_container().<span class="kw">await</span>.unwrap();
-        <span class="kw">let </span>snapshot_message = SnapshotMessage::dummy();
+        <span class="kw">let </span>snapshot_download_message = SnapshotDownloadMessage::dummy();
 
         <span class="kw">let </span>method = Method::POST.as_str();
         <span class="kw">let </span>path = <span class="string">&quot;/statistics/snapshot&quot;</span>;
 
         <span class="kw">let </span>response = request()
             .method(method)
-            .json(<span class="kw-2">&amp;</span>snapshot_message)
+            .json(<span class="kw-2">&amp;</span>snapshot_download_message)
             .path(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/{SERVER_BASE_PATH}{path}&quot;</span>))
             .reply(<span class="kw-2">&amp;</span>setup_router(Arc::new(dependency_manager)))
             .<span class="kw">await</span>;
@@ -207,7 +207,7 @@
             method,
             path,
             <span class="string">&quot;application/json&quot;</span>,
-            <span class="kw-2">&amp;</span>snapshot_message,
+            <span class="kw-2">&amp;</span>snapshot_download_message,
             <span class="kw-2">&amp;</span>response,
         );
 

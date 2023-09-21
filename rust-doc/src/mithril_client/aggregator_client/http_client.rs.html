@@ -330,6 +330,7 @@
 <a href="#330" id="330">330</a>
 <a href="#331" id="331">331</a>
 <a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_recursion::async_recursion;
 <span class="kw">use </span>async_trait::async_trait;
@@ -491,7 +492,8 @@
     <span class="doccomment">/// Issue a POST HTTP request.
     </span><span class="attr">#[async_recursion]
     </span><span class="kw">async fn </span>post(<span class="kw-2">&amp;</span><span class="self">self</span>, url: <span class="kw-2">&amp;</span>str, json: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Response, AggregatorHTTPClientError&gt; {
-        <span class="kw">let </span>request_builder = Client::new().post(url.to_owned()).json(json);
+        <span class="macro">debug!</span>(<span class="string">&quot;POST url=&#39;{url}&#39; json=&#39;{json}&#39;.&quot;</span>);
+        <span class="kw">let </span>request_builder = Client::new().post(url.to_owned()).body(json.to_owned());
         <span class="kw">let </span>current_api_version = <span class="self">self
             </span>.compute_current_api_version()
             .<span class="kw">await
@@ -509,7 +511,7 @@
         })<span class="question-mark">?</span>;
 
         <span class="kw">match </span>response.status() {
-            StatusCode::OK =&gt; <span class="prelude-val">Ok</span>(response),
+            StatusCode::OK | StatusCode::CREATED =&gt; <span class="prelude-val">Ok</span>(response),
             StatusCode::PRECONDITION_FAILED =&gt; {
                 <span class="kw">if </span><span class="self">self</span>.discard_current_api_version().<span class="kw">await</span>.is_some()
                     &amp;&amp; !<span class="self">self</span>.api_versions.read().<span class="kw">await</span>.is_empty()
