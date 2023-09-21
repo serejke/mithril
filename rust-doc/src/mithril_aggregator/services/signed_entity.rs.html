@@ -338,6 +338,16 @@
 <a href="#338" id="338">338</a>
 <a href="#339" id="339">339</a>
 <a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! ## SignedEntityService
 //!
 //! This service is responsible of dealing with [SignedEntity] type.
@@ -432,16 +442,26 @@
         signed_entity_type: SignedEntityType,
         certificate: <span class="kw-2">&amp;</span>Certificate,
     ) -&gt; StdResult&lt;Arc&lt;<span class="kw">dyn </span>Artifact&gt;&gt; {
-        <span class="kw">match </span>signed_entity_type {
+        <span class="kw">match </span>signed_entity_type.clone() {
             SignedEntityType::MithrilStakeDistribution(epoch) =&gt; <span class="prelude-val">Ok</span>(Arc::new(
                 <span class="self">self</span>.mithril_stake_distribution_artifact_builder
                     .compute_artifact(epoch, certificate)
-                    .<span class="kw">await</span><span class="question-mark">?</span>,
+                    .<span class="kw">await
+                    </span>.with_context(|| {
+                        <span class="macro">format!</span>(
+                            <span class="string">&quot;Signed Entity Service can not compute artifact for entity type: &#39;{signed_entity_type}&#39;&quot;
+                        </span>)
+                    })<span class="question-mark">?</span>,
             )),
             SignedEntityType::CardanoImmutableFilesFull(beacon) =&gt; <span class="prelude-val">Ok</span>(Arc::new(
                 <span class="self">self</span>.cardano_immutable_files_full_artifact_builder
-                    .compute_artifact(beacon, certificate)
-                    .<span class="kw">await</span><span class="question-mark">?</span>,
+                    .compute_artifact(beacon.clone(), certificate)
+                    .<span class="kw">await
+                    </span>.with_context(|| {
+                        <span class="macro">format!</span>(
+                            <span class="string">&quot;Signed Entity Service can not compute artifact for entity type: &#39;{signed_entity_type}&#39;&quot;
+                        </span>)
+                    })<span class="question-mark">?</span>,
             )),
             SignedEntityType::CardanoStakeDistribution(<span class="kw">_</span>) =&gt; <span class="macro">todo!</span>(),
         }

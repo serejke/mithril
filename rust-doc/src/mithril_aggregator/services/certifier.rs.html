@@ -805,11 +805,6 @@
 <a href="#805" id="805">805</a>
 <a href="#806" id="806">806</a>
 <a href="#807" id="807">807</a>
-<a href="#808" id="808">808</a>
-<a href="#809" id="809">809</a>
-<a href="#810" id="810">810</a>
-<a href="#811" id="811">811</a>
-<a href="#812" id="812">812</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! ## Certifier Service
 //!
 //! This service is responsible of [OpenMessage] cycle of life. It creates open
@@ -859,23 +854,11 @@
     </span><span class="attr">#[error(<span class="string">&quot;Open message for beacon {0:?} already certified.&quot;</span>)]
     </span>AlreadyCertified(SignedEntityType),
 
-    <span class="doccomment">/// The given beacon is older than the current open message for this type.
-    </span><span class="attr">#[error(<span class="string">&quot;Given beacon {0:?} is older than the current open message beacon.&quot;</span>)]
-    </span>BeaconTooOld(SignedEntityType),
-
-    <span class="doccomment">/// The given OpenMessage already exists
-    </span><span class="attr">#[error(<span class="string">&quot;An open message already exist for this beacon {0:?}, cannot create another one.&quot;</span>)]
-    </span>OpenMessageAlreadyExists(SignedEntityType),
-
     <span class="doccomment">/// No parent certificate could be found, this certifier cannot create genesis certificates.
     </span><span class="attr">#[error(
         <span class="string">&quot;No parent certificate could be found, this certifier cannot create genesis certificates.&quot;
     </span>)]
     </span>NoParentCertificateFound,
-
-    <span class="doccomment">/// Codec error.
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
 
     <span class="doccomment">/// No certificate for this epoch
     </span><span class="attr">#[error(<span class="string">&quot;There is an epoch gap between the last certificate epoch ({certificate_epoch:?}) and current epoch ({current_epoch:?})&quot;</span>)]
@@ -1033,7 +1016,7 @@
 
         <span class="kw">let </span>open_message = <span class="self">self
             </span>.get_open_message_record(signed_entity_type)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await</span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;CertifierService can not get open message record for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?
             </span>.ok_or_else(|| {
                 <span class="macro">warn!</span>(<span class="string">&quot;CertifierService::register_single_signature: OpenMessage not found for type {signed_entity_type:?}.&quot;</span>);
                 CertifierServiceError::NotFound(signed_entity_type.clone())
@@ -1192,7 +1175,13 @@
                 <span class="self">self</span>.certificate_repository.clone(),
                 <span class="kw-2">&amp;</span><span class="self">self</span>.genesis_verifier,
             )
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;CertificateVerifier can not verify certificate with hash: &#39;{}&#39;&quot;</span>,
+                    certificate.hash
+                )
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>certificate = <span class="self">self
             </span>.certificate_repository
@@ -1245,7 +1234,8 @@
                     <span class="self">self</span>.certificate_repository.clone(),
                     <span class="kw-2">&amp;</span><span class="self">self</span>.genesis_verifier,
                 )
-                .<span class="kw">await</span><span class="question-mark">?</span>;
+                .<span class="kw">await
+                </span>.with_context(|| <span class="string">&quot;CertificateVerifier can not verify certificate chain&quot;</span>)<span class="question-mark">?</span>;
 
             <span class="prelude-val">Ok</span>(())
         } <span class="kw">else </span>{
