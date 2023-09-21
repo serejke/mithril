@@ -1083,7 +1083,44 @@
 <a href="#1083" id="1083">1083</a>
 <a href="#1084" id="1084">1084</a>
 <a href="#1085" id="1085">1085</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<a href="#1086" id="1086">1086</a>
+<a href="#1087" id="1087">1087</a>
+<a href="#1088" id="1088">1088</a>
+<a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
+<a href="#1097" id="1097">1097</a>
+<a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, warn};
 <span class="kw">use </span>std::{path::Path, path::PathBuf, sync::Arc};
@@ -1250,7 +1287,8 @@
             </span>.dependencies
             .certifier_service
             .get_open_message(signed_entity_type)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;CertifierService can not get open message for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?
         </span>{
             <span class="prelude-val">Some</span>(existing_open_message) <span class="kw">if </span>!existing_open_message.is_certified =&gt; {
                 <span class="macro">info!</span>(
@@ -1281,11 +1319,12 @@
                 // which will avoid this fix
                 </span><span class="kw">let </span>chain_beacon: Beacon = <span class="self">self</span>.get_beacon_from_chain().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="self">self</span>.update_beacon(<span class="kw-2">&amp;</span>chain_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="kw">let </span>protocol_message = <span class="self">self</span>.compute_protocol_message(signed_entity_type).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let </span>protocol_message = <span class="self">self</span>.compute_protocol_message(signed_entity_type).<span class="kw">await</span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not compute protocol message for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Some</span>(
                     <span class="self">self</span>.create_open_message(signed_entity_type, <span class="kw-2">&amp;</span>protocol_message)
-                        .<span class="kw">await</span><span class="question-mark">?</span>,
+                        .<span class="kw">await
+                        </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not create open message for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>,
                 )
             }
         };
@@ -1297,20 +1336,26 @@
         <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: get_current_non_certified_open_message&quot;</span>);
         <span class="kw">let </span>signed_entity_types = <span class="macro">vec!</span>[
             SignedEntityType::MithrilStakeDistribution(
-                <span class="self">self</span>.dependencies.ticker_service.get_current_epoch().<span class="kw">await</span><span class="question-mark">?</span>,
+                <span class="self">self</span>.dependencies
+                    .ticker_service
+                    .get_current_epoch()
+                    .<span class="kw">await
+                    </span>.with_context(|| <span class="string">&quot;DependencyContainer can not get current epoch&quot;</span>)<span class="question-mark">?</span>,
             ),
             SignedEntityType::CardanoImmutableFilesFull(
                 <span class="self">self</span>.dependencies
                     .ticker_service
                     .get_current_immutable_beacon()
-                    .<span class="kw">await</span><span class="question-mark">?</span>,
+                    .<span class="kw">await
+                    </span>.with_context(|| <span class="string">&quot;DependencyContainer can not get current immutable beacon&quot;</span>)<span class="question-mark">?</span>,
             ),
         ];
 
         <span class="kw">for </span>signed_entity_type <span class="kw">in </span>signed_entity_types {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(open_message) = <span class="self">self
                 </span>.get_current_non_certified_open_message_for_signed_entity_type(<span class="kw-2">&amp;</span>signed_entity_type)
-                .<span class="kw">await</span><span class="question-mark">?
+                .<span class="kw">await
+                </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not get current non certified open message for signed entity type: &#39;{}&#39;&quot;</span>, <span class="kw-2">&amp;</span>signed_entity_type))<span class="question-mark">?
             </span>{
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(open_message));
             }
@@ -1429,14 +1474,22 @@
         <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: update protocol parameters&quot;</span>; <span class="string">&quot;beacon&quot; </span>=&gt; #<span class="question-mark">?</span>new_beacon);
         <span class="kw">let </span>protocol_parameters = <span class="self">self</span>.dependencies.config.protocol_parameters.clone();
 
-        <span class="self">self</span>.update_beacon(new_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.update_beacon(new_beacon)
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not update beacon: &#39;{new_beacon}&#39;&quot;</span>))<span class="question-mark">?</span>;
         <span class="self">self</span>.dependencies
             .multi_signer
             .write()
             .<span class="kw">await
-            </span>.update_protocol_parameters(<span class="kw-2">&amp;</span>protocol_parameters.into())
+            </span>.update_protocol_parameters(<span class="kw-2">&amp;</span>protocol_parameters.clone().into())
             .<span class="kw">await
-            </span>.map_err(|e| e.into())
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Multi Signer can not update protocol parameters: &#39;{:?}&#39;&quot;</span>,
+                    <span class="kw-2">&amp;</span>protocol_parameters
+                )
+            })
     }
 
     <span class="kw">async fn </span>compute_protocol_message(
@@ -1520,11 +1573,13 @@
     ) -&gt; StdResult&lt;()&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: saving pending certificate&quot;</span>);
 
+        <span class="kw">let </span>signed_entity_type = pending_certificate.signed_entity_type.clone();
         <span class="self">self</span>.dependencies
             .certificate_pending_store
             .save(pending_certificate)
             .<span class="kw">await
-            </span>.map_err(|e| e.into())
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;CertificatePendingStore can not save pending certificate with signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))
     }
 
     <span class="kw">async fn </span>drop_pending_certificate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;&gt; {
@@ -1548,7 +1603,12 @@
             .certifier_service
             .create_certificate(signed_entity_type)
             .<span class="kw">await
-    </span>}
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;CertifierService can not create certificate for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;
+                </span>)
+            })
+    }
 
     <span class="kw">async fn </span>create_artifact(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -1559,7 +1619,13 @@
         <span class="self">self</span>.dependencies
             .signed_entity_service
             .create_artifact(signed_entity_type.to_owned(), certificate)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;SignedEntityService can not create artifact for signed_entity_type: &#39;{signed_entity_type}&#39; with certificate hash: &#39;{}&#39;&quot;</span>,
+                    certificate.hash
+                )
+            })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1569,9 +1635,17 @@
             </span>.dependencies
             .era_reader
             .read_era_epoch_token(beacon.epoch)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;EraReader can not get era epoch token for current epoch: &#39;{}&#39;&quot;</span>,
+                    beacon.epoch
+                )
+            })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>current_era = token.get_current_supported_era()<span class="question-mark">?</span>;
+        <span class="kw">let </span>current_era = token
+            .get_current_supported_era()
+            .with_context(|| <span class="string">&quot;EraEpochToken can not get current supported era&quot;</span>)<span class="question-mark">?</span>;
         <span class="self">self</span>.dependencies
             .era_checker
             .change_era(current_era, token.get_current_epoch());
