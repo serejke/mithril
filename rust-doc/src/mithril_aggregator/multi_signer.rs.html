@@ -751,7 +751,47 @@
 <a href="#751" id="751">751</a>
 <a href="#752" id="752">752</a>
 <a href="#753" id="753">753</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, warn};
 <span class="kw">use </span>std::sync::Arc;
@@ -760,11 +800,12 @@
 <span class="kw">use </span>mithril_common::{
     crypto_helper::{
         ProtocolAggregateVerificationKey, ProtocolAggregationError, ProtocolMultiSignature,
-        ProtocolParameters, ProtocolRegistrationError, ProtocolStakeDistribution,
+        ProtocolParameters, ProtocolStakeDistribution,
     },
     entities::{<span class="self">self</span>, Epoch, SignerWithStake, StakeDistribution},
     protocol::{MultiSigner <span class="kw">as </span>ProtocolMultiSigner, SignerBuilder},
-    store::{StakeStorer, StoreError},
+    store::StakeStorer,
+    StdError,
 };
 
 <span class="kw">use crate</span>::{entities::OpenMessage, store::VerificationKeyStorer, ProtocolParametersStorer};
@@ -785,7 +826,7 @@
 
     <span class="doccomment">/// Signer registration failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer registration failed&quot;</span>)]
-    </span>FailedSignerRegistration(<span class="attr">#[from] </span>ProtocolRegistrationError),
+    </span>FailedSignerRegistration(StdError),
 
     <span class="doccomment">/// Single signature already recorded.
     </span><span class="attr">#[error(<span class="string">&quot;single signature already recorded&quot;</span>)]
@@ -793,7 +834,7 @@
 
     <span class="doccomment">/// Mithril STM library returned an error.
     </span><span class="attr">#[error(<span class="string">&quot;core error: &#39;{0}&#39;&quot;</span>)]
-    </span>Core(String),
+    </span>Core(StdError),
 
     <span class="doccomment">/// No message available.
     </span><span class="attr">#[error(<span class="string">&quot;no message available&quot;</span>)]
@@ -813,11 +854,11 @@
 
     <span class="doccomment">/// Store error.
     </span><span class="attr">#[error(<span class="string">&quot;store error: {0}&quot;</span>)]
-    </span>StoreError(<span class="attr">#[from] </span>StoreError),
+    </span>StoreError(StdError),
 
     <span class="doccomment">/// Beacon error.
     </span><span class="attr">#[error(<span class="string">&quot;beacon error: &#39;{0}&#39;&quot;</span>)]
-    </span>Beacon(<span class="attr">#[from] </span>entities::EpochError),
+    </span>Beacon(StdError),
 }
 
 <span class="doccomment">/// MultiSigner is the cryptographic engine in charge of producing multi signatures from individual signatures
@@ -968,7 +1009,8 @@
 
         <span class="kw">let </span>protocol_multi_signer =
             SignerBuilder::new(signers_with_stake, <span class="kw-2">&amp;</span>(<span class="kw-2">*</span>protocol_parameters).into())
-                .map_err(|error| ProtocolError::Core(error.to_string()))<span class="question-mark">?
+                .with_context(|| <span class="string">&quot;Multi Signer can not build a protocol multi signer&quot;</span>)
+                .map_err(|e| ProtocolError::Core(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
                 </span>.build_multi_signer();
 
         <span class="prelude-val">Ok</span>(protocol_multi_signer)
@@ -984,8 +1026,11 @@
         <span class="kw">let </span>stakes = <span class="self">self
             </span>.stake_store
             .get_stakes(epoch)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Multi Signer can not retrieve stakes for epoch &#39;{epoch}&#39;&quot;</span>))
+            .map_err(|e| ProtocolError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
             </span>.unwrap_or_default();
+
         <span class="prelude-val">Ok</span>(stakes.into_iter().collect::&lt;ProtocolStakeDistribution&gt;())
     }
 
@@ -1003,7 +1048,9 @@
         </span>{
             <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(protocol_parameters)) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(protocol_parameters.into())),
             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e.into()),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(ProtocolError::StoreError(<span class="macro">anyhow!</span>(e).context(
+                <span class="string">&quot;Multi Signer can not retrieve protocol parameters for epoch &#39;{epoch}&#39;&quot;</span>,
+            ))),
         }
     }
 }
@@ -1020,6 +1067,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ProtocolError&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;Update current_beacon to {:?}&quot;</span>, beacon);
         <span class="self">self</span>.current_beacon = <span class="prelude-val">Some</span>(beacon);
+
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1032,7 +1080,9 @@
             .as_ref()
             .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
-            .offset_to_signer_retrieval_epoch()<span class="question-mark">?</span>;
+            .offset_to_signer_retrieval_epoch()
+            .with_context(|| <span class="string">&quot;Multi Signer can not offset to signer retrieveal epoch while retrivieving protocol parameters&quot;</span>)
+            .map_err(|e| ProtocolError::Beacon(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="self">self</span>.get_protocol_parameters_at_epoch(epoch).<span class="kw">await
     </span>}
 
@@ -1051,7 +1101,9 @@
 
         <span class="self">self</span>.protocol_parameters_store
             .save_protocol_parameters(epoch, protocol_parameters.to_owned().into())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+            .<span class="kw">await</span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Multi Signer can not update protocol parameters &#39;{protocol_parameters:?}&#39; for epoch &#39;{epoch}&#39;&quot;</span>))
+            .map_err(|e| ProtocolError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1077,7 +1129,9 @@
             .as_ref()
             .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
-            .offset_to_signer_retrieval_epoch()<span class="question-mark">?</span>;
+            .offset_to_signer_retrieval_epoch()
+            .with_context(|| <span class="string">&quot;Multi Signer can not offset to signer retrieveal epoch while retrieving stake distribution&quot;</span>)
+            .map_err(|e| ProtocolError::Beacon(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="self">self</span>.get_stake_distribution_at_epoch(epoch).<span class="kw">await
     </span>}
 
@@ -1108,7 +1162,13 @@
             </span>.epoch
             .offset_to_recording_epoch();
         <span class="kw">let </span>stakes = StakeDistribution::from_iter(stakes.iter().cloned());
-        <span class="self">self</span>.stake_store.save_stakes(epoch, stakes).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.stake_store
+            .save_stakes(epoch, stakes)
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(<span class="string">&quot;Multi Signer can not update stake distribution for epoch &#39;{epoch}&#39;&quot;</span>)
+            })
+            .map_err(|e| ProtocolError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1121,6 +1181,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAggregateVerificationKey, ProtocolError&gt; {
         <span class="kw">let </span>protocol_multi_signer =
             <span class="self">self</span>.create_protocol_multi_signer(signers_with_stakes, protocol_parameters)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(protocol_multi_signer.compute_aggregate_verification_key())
     }
 
@@ -1130,13 +1191,23 @@
             </span>.current_beacon
             .as_ref()
             .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
-            </span>.epoch
-            .offset_to_signer_retrieval_epoch()<span class="question-mark">?</span>;
+            </span>.epoch;
+        <span class="kw">let </span>epoch = epoch
+            .offset_to_signer_retrieval_epoch()
+            .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Multi Signer can not offset to signer retrieveal epoch &#39;{epoch}&#39; while retrieving signers with stake&quot;</span>))
+            .map_err(|e| ProtocolError::Beacon(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="kw">let </span>signers = <span class="self">self
             </span>.verification_key_store
             .get_verification_keys(epoch)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Multi Signer can not retrieve signers verification keys for epoch &#39;{epoch}&#39;&quot;
+                </span>)
+            })
+            .map_err(|e| ProtocolError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
             </span>.unwrap_or_default();
+
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.get_stake_distribution()
             .<span class="kw">await</span><span class="question-mark">?
@@ -1167,8 +1238,14 @@
         <span class="kw">let </span>signers = <span class="self">self
             </span>.verification_key_store
             .get_verification_keys(epoch)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await</span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Multi Signer can not retrieve next signers verification keys for epoch &#39;{epoch}&#39;&quot;
+                </span>)
+            })
+            .map_err(|e| ProtocolError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
             </span>.unwrap_or_default();
+
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.get_next_stake_distribution()
             .<span class="kw">await</span><span class="question-mark">?
@@ -1211,8 +1288,8 @@
 
         protocol_multi_signer
             .verify_single_signature(message, single_signature)
-            .with_context(|| <span class="string">&quot;Multi Signer can not verify multi-signature&quot;</span>)
-            .map_err(|error| ProtocolError::Core(error.to_string()))
+            .with_context(|| <span class="string">&quot;Multi Signer can not verify single signature for message &#39;{message}&#39;&quot;</span>)
+            .map_err(|e| ProtocolError::Core(<span class="macro">anyhow!</span>(e)))
     }
 
     <span class="doccomment">/// Creates a multi signature from single signatures
@@ -1240,7 +1317,10 @@
                 <span class="macro">warn!</span>(<span class="string">&quot;Could not compute multi-signature: Not enough signatures. Got only {} out of {}.&quot;</span>, actual, expected);
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
             }
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(ProtocolError::Core(err.to_string())),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(ProtocolError::Core(<span class="macro">anyhow!</span>(err).context(<span class="macro">format!</span>(
+                <span class="string">&quot;Multi Signer can not create multi-signature for entity type &#39;{:?}&#39;&quot;</span>,
+                open_message.signed_entity_type
+            )))),
         }
     }
 }

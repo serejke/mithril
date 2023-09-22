@@ -547,9 +547,9 @@
         <span class="kw">let </span>stake_pool = <span class="self">Self </span>{
             stake_pool_id: row.read::&lt;<span class="kw-2">&amp;</span>str, <span class="kw">_</span>&gt;(<span class="number">0</span>).to_string(),
             stake: u64::try_from(stake).map_err(|e| {
-                HydrationError::InconsistentType(<span class="macro">format!</span>(
-                    <span class="string">&quot;Could not cast the stake from internal db I64 → U64. Error: &#39;{e}&#39;.&quot;
-                </span>))
+                HydrationError::InvalidData(<span class="macro">format!</span>(
+                    <span class="string">&quot;Could not cast the StakePool.stake from internal db I64 → U64. Error: &#39;{e}&#39;.&quot;</span>,
+                ))
             })<span class="question-mark">?</span>,
             epoch: Epoch(epoch_int.try_into().map_err(|e| {
                 HydrationError::InvalidData(<span class="macro">format!</span>(

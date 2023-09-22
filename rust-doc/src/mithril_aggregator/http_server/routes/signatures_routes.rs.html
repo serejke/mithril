@@ -293,7 +293,6 @@
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
 <a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::middlewares;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 <span class="kw">use </span>std::sync::Arc;
@@ -398,6 +397,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>anyhow::anyhow;
     <span class="kw">use </span>warp::http::Method;
     <span class="kw">use </span>warp::test::request;
 
@@ -562,9 +562,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
         mock_certifier_service
             .expect_register_single_signature()
-            .return_once(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(ProtocolError::Core(<span class="string">&quot;an error occurred&quot;</span>.to_string()).into())
-            });
+            .return_once(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Err</span>(ProtocolError::Core(<span class="macro">anyhow!</span>(<span class="string">&quot;an error occurred&quot;</span>)).into()));
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
         dependency_manager.certifier_service = Arc::new(mock_certifier_service);
 
