@@ -352,8 +352,8 @@
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
-    snapshot_uploaders::SnapshotLocation, snapshotter::OngoingSnapshot, SnapshotError,
-    SnapshotUploader, Snapshotter,
+    snapshot_uploaders::SnapshotLocation, snapshotter::OngoingSnapshot, SnapshotUploader,
+    Snapshotter,
 };
 
 <span class="kw">use </span><span class="kw">super</span>::ArtifactBuilder;
@@ -421,7 +421,7 @@
         );
         <span class="comment">// spawn a separate thread to prevent blocking
         </span><span class="kw">let </span>ongoing_snapshot =
-            tokio::task::spawn_blocking(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;OngoingSnapshot, SnapshotError&gt; {
+            tokio::task::spawn_blocking(<span class="kw">move </span>|| -&gt; StdResult&lt;OngoingSnapshot&gt; {
                 snapshotter.snapshot(<span class="kw-2">&amp;</span>snapshot_name)
             })
             .<span class="kw">await</span><span class="question-mark">??</span>;
