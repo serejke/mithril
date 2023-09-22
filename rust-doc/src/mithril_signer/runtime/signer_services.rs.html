@@ -505,7 +505,7 @@
     }
 
     <span class="kw">async fn </span>build_sqlite_connection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Arc&lt;Mutex&lt;Connection&gt;&gt;&gt; {
-        <span class="kw">let </span>sqlite_db_path = <span class="self">self</span>.config.get_sqlite_file();
+        <span class="kw">let </span>sqlite_db_path = <span class="self">self</span>.config.get_sqlite_file()<span class="question-mark">?</span>;
         <span class="kw">let </span>sqlite_connection = Arc::new(Mutex::new(Connection::open(sqlite_db_path)<span class="question-mark">?</span>));
         <span class="kw">let </span><span class="kw-2">mut </span>db_checker = DatabaseVersionChecker::new(
             slog_scope::logger(),
