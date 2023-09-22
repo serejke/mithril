@@ -453,17 +453,36 @@
 <a href="#453" id="453">453</a>
 <a href="#454" id="454">454</a>
 <a href="#455" id="455">455</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tokio::sync::RwLock;
 
 <span class="kw">use </span>mithril_common::{
     chain_observer::ChainObserver,
-    crypto_helper::{KESPeriod, ProtocolKeyRegistration, ProtocolRegistrationError},
+    crypto_helper::{KESPeriod, ProtocolKeyRegistration},
     entities::{Epoch, Signer, SignerWithStake, StakeDistribution},
-    store::StoreError,
-    StdResult,
+    StdError, StdResult,
 };
 
 <span class="kw">use </span><span class="kw">crate</span>::VerificationKeyStorer;
@@ -487,10 +506,6 @@
         </span>received_epoch: Epoch,
     },
 
-    <span class="doccomment">/// Codec error.
-    </span><span class="attr">#[error(<span class="string">&quot;codec error: &#39;{0}&#39;&quot;</span>)]
-    </span>Codec(String),
-
     <span class="doccomment">/// Chain observer error.
     </span><span class="attr">#[error(<span class="string">&quot;chain observer error: &#39;{0}&#39;&quot;</span>)]
     </span>ChainObserver(String),
@@ -501,11 +516,11 @@
 
     <span class="doccomment">/// Store error.
     </span><span class="attr">#[error(<span class="string">&quot;store error: {0}&quot;</span>)]
-    </span>StoreError(<span class="attr">#[from] </span>StoreError),
+    </span>StoreError(StdError),
 
     <span class="doccomment">/// Signer registration failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer registration failed&quot;</span>)]
-    </span>FailedSignerRegistration(<span class="attr">#[from] </span>ProtocolRegistrationError),
+    </span>FailedSignerRegistration(StdError),
 
     <span class="doccomment">/// Signer recorder failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer recorder failed: &#39;{0}&#39;&quot;</span>)]
@@ -555,10 +570,10 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         registration_epoch: Epoch,
         stake_distribution: StakeDistribution,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignerRegistrationError&gt;;
+    ) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Close a signer registration round
-    </span><span class="kw">async fn </span>close_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignerRegistrationError&gt;;
+    </span><span class="kw">async fn </span>close_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt;;
 }
 
 <span class="doccomment">/// Signer recorder trait
@@ -624,7 +639,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         registration_epoch: Epoch,
         stake_distribution: StakeDistribution,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignerRegistrationError&gt; {
+    ) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>current_round = <span class="self">self</span>.current_round.write().<span class="kw">await</span>;
         <span class="kw-2">*</span>current_round = <span class="prelude-val">Some</span>(SignerRegistrationRound {
             epoch: registration_epoch,
@@ -634,13 +649,20 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(retention_limit) = <span class="self">self</span>.verification_key_epoch_retention_limit {
             <span class="self">self</span>.verification_key_store
                 .prune_verification_keys(registration_epoch - retention_limit)
-                .<span class="kw">await</span><span class="question-mark">?</span>;
+                .<span class="kw">await
+                </span>.with_context(|| {
+                    <span class="macro">format!</span>(
+                        <span class="string">&quot;VerificationKeyStorer can not prune verification keys below epoch: &#39;{}&#39;&quot;</span>,
+                        registration_epoch - retention_limit
+                    )
+                })
+                .map_err(|e| SignerRegistrationError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async fn </span>close_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignerRegistrationError&gt; {
+    <span class="kw">async fn </span>close_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>current_round = <span class="self">self</span>.current_round.write().<span class="kw">await</span>;
         <span class="kw-2">*</span>current_round = <span class="prelude-val">None</span>;
 
@@ -688,13 +710,21 @@
             ),
             <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
         };
-        <span class="kw">let </span>party_id_save = key_registration.register(
-            party_id_register.clone(),
-            signer.operational_certificate.clone(),
-            signer.verification_key_signature,
-            kes_period,
-            signer.verification_key,
-        )<span class="question-mark">?</span>;
+        <span class="kw">let </span>party_id_save = key_registration
+            .register(
+                party_id_register.clone(),
+                signer.operational_certificate.clone(),
+                signer.verification_key_signature,
+                kes_period,
+                signer.verification_key,
+            )
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;KeyRegwrapper can not register signer with party_id: &#39;{:?}&#39;&quot;</span>,
+                    party_id_register
+                )
+            })
+            .map_err(|e| SignerRegistrationError::FailedSignerRegistration(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>signer_save = SignerWithStake::from_signer(
             signer.to_owned(),
             <span class="kw-2">*</span>registration_round
@@ -712,7 +742,15 @@
         <span class="kw">match </span><span class="self">self
             </span>.verification_key_store
             .save_verification_key(registration_round.epoch, signer_save.clone())
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;VerificationKeyStorer can not save verification keys for party_id: &#39;{}&#39; for epoch: &#39;{}&#39;&quot;</span>,
+                    signer_save.party_id,
+                    registration_round.epoch
+                )
+            })
+            .map_err(|e| SignerRegistrationError::StoreError(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
         </span>{
             <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(SignerRegistrationError::ExistingSigner(Box::new(
                 signer_save,
