@@ -805,7 +805,12 @@
 <a href="#805" id="805">805</a>
 <a href="#806" id="806">806</a>
 <a href="#807" id="807">807</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>reqwest::{<span class="self">self</span>, Client, Proxy, RequestBuilder, Response, StatusCode};
 <span class="kw">use </span>slog_scope::debug;
 <span class="kw">use </span>std::{io, sync::Arc};
@@ -820,7 +825,7 @@
         CertificatePendingMessage, EpochSettingsMessage, FromMessageAdapter, TryFromMessageAdapter,
         TryToMessageAdapter,
     },
-    MITHRIL_API_VERSION_HEADER, MITHRIL_SIGNER_VERSION_HEADER,
+    StdError, MITHRIL_API_VERSION_HEADER, MITHRIL_SIGNER_VERSION_HEADER,
 };
 
 <span class="attr">#[cfg(test)]
@@ -836,39 +841,39 @@
 </span><span class="kw">pub enum </span>AggregatorClientError {
     <span class="doccomment">/// The aggregator host has returned a technical error.
     </span><span class="attr">#[error(<span class="string">&quot;remote server technical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerTechnical(String),
+    </span>RemoteServerTechnical(StdError),
 
     <span class="doccomment">/// The aggregator host responded it cannot fulfill our request.
     </span><span class="attr">#[error(<span class="string">&quot;remote server logical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerLogical(String),
+    </span>RemoteServerLogical(StdError),
 
     <span class="doccomment">/// Could not reach aggregator.
     </span><span class="attr">#[error(<span class="string">&quot;remote server unreachable: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerUnreachable(String),
+    </span>RemoteServerUnreachable(StdError),
 
     <span class="doccomment">/// Could not parse response.
     </span><span class="attr">#[error(<span class="string">&quot;json parsing failed: &#39;{0}&#39;&quot;</span>)]
-    </span>JsonParseFailed(String),
+    </span>JsonParseFailed(StdError),
 
     <span class="doccomment">/// Mostly network errors.
-    </span><span class="attr">#[error(<span class="string">&quot;io error: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Input/Output error: {0}&quot;</span>)]
     </span>IOError(<span class="attr">#[from] </span>io::Error),
 
     <span class="doccomment">/// Incompatible API version error
     </span><span class="attr">#[error(<span class="string">&quot;HTTP API version mismatch: {0}&quot;</span>)]
-    </span>ApiVersionMismatch(String),
+    </span>ApiVersionMismatch(StdError),
 
     <span class="doccomment">/// HTTP client creation error
     </span><span class="attr">#[error(<span class="string">&quot;HTTP client creation failed: {0}&quot;</span>)]
-    </span>HTTPClientCreation(String),
+    </span>HTTPClientCreation(StdError),
 
     <span class="doccomment">/// Proxy creation error
     </span><span class="attr">#[error(<span class="string">&quot;proxy creation failed: {0}&quot;</span>)]
-    </span>ProxyCreation(String),
+    </span>ProxyCreation(StdError),
 
     <span class="doccomment">/// Adapter error
     </span><span class="attr">#[error(<span class="string">&quot;adapter failed: {0}&quot;</span>)]
-    </span>Adapter(String),
+    </span>Adapter(StdError),
 }
 
 <span class="attr">#[cfg(test)]
@@ -934,10 +939,10 @@
             <span class="prelude-val">Some</span>(relay_endpoint) =&gt; Client::builder()
                 .proxy(
                     Proxy::all(relay_endpoint)
-                        .map_err(|e| AggregatorClientError::ProxyCreation(e.to_string()))<span class="question-mark">?</span>,
+                        .map_err(|e| AggregatorClientError::ProxyCreation(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>,
                 )
                 .build()
-                .map_err(|e| AggregatorClientError::HTTPClientCreation(e.to_string()))<span class="question-mark">?</span>,
+                .map_err(|e| AggregatorClientError::HTTPClientCreation(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>,
             <span class="prelude-val">None </span>=&gt; Client::new(),
         };
 
@@ -960,13 +965,13 @@
     <span class="doccomment">/// API version error handling
     </span><span class="kw">fn </span>handle_api_error(<span class="kw-2">&amp;</span><span class="self">self</span>, response: <span class="kw-2">&amp;</span>Response) -&gt; AggregatorClientError {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(version) = response.headers().get(MITHRIL_API_VERSION_HEADER) {
-            AggregatorClientError::ApiVersionMismatch(<span class="macro">format!</span>(
+            AggregatorClientError::ApiVersionMismatch(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;server version: &#39;{}&#39;, signer version: &#39;{}&#39;&quot;</span>,
                 version.to_str().unwrap(),
                 <span class="self">self</span>.api_version_provider.compute_current_version().unwrap()
             ))
         } <span class="kw">else </span>{
-            AggregatorClientError::ApiVersionMismatch(<span class="macro">format!</span>(
+            AggregatorClientError::ApiVersionMismatch(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;version precondition failed, sent version &#39;{}&#39;.&quot;</span>,
                 <span class="self">self</span>.api_version_provider.compute_current_version().unwrap()
             ))
@@ -990,16 +995,15 @@
             <span class="prelude-val">Ok</span>(response) =&gt; <span class="kw">match </span>response.status() {
                 StatusCode::OK =&gt; <span class="kw">match </span>response.json::&lt;EpochSettingsMessage&gt;().<span class="kw">await </span>{
                     <span class="prelude-val">Ok</span>(message) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(FromEpochSettingsAdapter::adapt(message))),
-                    <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::JsonParseFailed(err.to_string())),
+                    <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::JsonParseFailed(<span class="macro">anyhow!</span>(err))),
                 },
                 StatusCode::PRECONDITION_FAILED =&gt; <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response)),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(
-                    response.text().<span class="kw">await</span>.unwrap_or_default(),
-                )),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;{}&quot;</span>,
+                    response.text().<span class="kw">await</span>.unwrap_or_default()
+                ))),
             },
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(
-                err.to_string(),
-            )),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(<span class="macro">anyhow!</span>(err))),
         }
     }
 
@@ -1018,19 +1022,18 @@
                 StatusCode::OK =&gt; <span class="kw">match </span>response.json::&lt;CertificatePendingMessage&gt;().<span class="kw">await </span>{
                     <span class="prelude-val">Ok</span>(message) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
                         FromPendingCertificateMessageAdapter::try_adapt(message)
-                            .map_err(|e| AggregatorClientError::JsonParseFailed(e.to_string()))<span class="question-mark">?</span>,
+                            .map_err(|err| AggregatorClientError::JsonParseFailed(<span class="macro">anyhow!</span>(err)))<span class="question-mark">?</span>,
                     )),
-                    <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::JsonParseFailed(err.to_string())),
+                    <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::JsonParseFailed(<span class="macro">anyhow!</span>(err))),
                 },
                 StatusCode::PRECONDITION_FAILED =&gt; <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response)),
                 StatusCode::NO_CONTENT =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(
-                    response.text().<span class="kw">await</span>.unwrap_or_default(),
-                )),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;{}&quot;</span>,
+                    response.text().<span class="kw">await</span>.unwrap_or_default()
+                ))),
             },
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(
-                err.to_string(),
-            )),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(<span class="macro">anyhow!</span>(err))),
         }
     }
 
@@ -1043,7 +1046,7 @@
         <span class="kw">let </span>url = <span class="macro">format!</span>(<span class="string">&quot;{}/register-signer&quot;</span>, <span class="self">self</span>.aggregator_endpoint);
         <span class="kw">let </span>register_signer_message =
             ToRegisterSignerMessageAdapter::try_adapt((epoch, signer.to_owned()))
-                .map_err(|e| AggregatorClientError::Adapter(e.to_string()))<span class="question-mark">?</span>;
+                .map_err(|e| AggregatorClientError::Adapter(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="kw">let </span>response = <span class="self">self
             </span>.prepare_request_builder(<span class="self">self</span>.prepare_http_client()<span class="question-mark">?</span>.post(url.clone()))
             .json(<span class="kw-2">&amp;</span>register_signer_message)
@@ -1055,15 +1058,14 @@
                 StatusCode::CREATED =&gt; <span class="prelude-val">Ok</span>(()),
                 StatusCode::PRECONDITION_FAILED =&gt; <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response)),
                 StatusCode::BAD_REQUEST =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerLogical(
-                    <span class="macro">format!</span>(<span class="string">&quot;bad request: {}&quot;</span>, response.text().<span class="kw">await</span>.unwrap_or_default()),
+                    <span class="macro">anyhow!</span>(<span class="string">&quot;bad request: {}&quot;</span>, response.text().<span class="kw">await</span>.unwrap_or_default()),
                 )),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(
-                    response.text().<span class="kw">await</span>.unwrap_or_default(),
-                )),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;{}&quot;</span>,
+                    response.text().<span class="kw">await</span>.unwrap_or_default()
+                ))),
             },
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(
-                err.to_string(),
-            )),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(<span class="macro">anyhow!</span>(err))),
         }
     }
 
@@ -1078,7 +1080,7 @@
             signed_entity_type.to_owned(),
             signatures.to_owned(),
         ))
-        .map_err(|e| AggregatorClientError::Adapter(e.to_string()))<span class="question-mark">?</span>;
+        .map_err(|e| AggregatorClientError::Adapter(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="kw">let </span>response = <span class="self">self
             </span>.prepare_request_builder(<span class="self">self</span>.prepare_http_client()<span class="question-mark">?</span>.post(url.clone()))
             .json(<span class="kw-2">&amp;</span>register_single_signature_message)
@@ -1090,18 +1092,17 @@
                 StatusCode::CREATED =&gt; <span class="prelude-val">Ok</span>(()),
                 StatusCode::PRECONDITION_FAILED =&gt; <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response)),
                 StatusCode::BAD_REQUEST =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerLogical(
-                    <span class="macro">format!</span>(<span class="string">&quot;bad request: {}&quot;</span>, response.text().<span class="kw">await</span>.unwrap_or_default()),
+                    <span class="macro">anyhow!</span>(<span class="string">&quot;bad request: {}&quot;</span>, response.text().<span class="kw">await</span>.unwrap_or_default()),
                 )),
-                StatusCode::CONFLICT =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerLogical(
-                    <span class="string">&quot;already registered single signatures&quot;</span>.to_string(),
-                )),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(
-                    response.text().<span class="kw">await</span>.unwrap_or_default(),
-                )),
+                StatusCode::CONFLICT =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;already registered single signatures&quot;
+                </span>))),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;{}&quot;</span>,
+                    response.text().<span class="kw">await</span>.unwrap_or_default()
+                ))),
             },
-            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(
-                err.to_string(),
-            )),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(AggregatorClientError::RemoteServerUnreachable(<span class="macro">anyhow!</span>(err))),
         }
     }
 }
@@ -1302,12 +1303,15 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>epoch_settings = certificate_handler.retrieve_epoch_settings().<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerTechnical(<span class="string">&quot;an error occurred&quot;</span>.to_string())
-                .to_string(),
-            epoch_settings.unwrap_err().to_string()
-        );
+
+        <span class="kw">match </span>certificate_handler
+            .retrieve_epoch_settings()
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerTechnical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerTechnical error, got &#39;{e:?}&#39;.&quot;</span>),
+        };
     }
 
     <span class="attr">#[tokio::test]
@@ -1326,6 +1330,7 @@
         );
         <span class="kw">let </span>pending_certificate = certificate_handler.retrieve_pending_certificate().<span class="kw">await</span>;
         pending_certificate.as_ref().expect(<span class="string">&quot;unexpected error&quot;</span>);
+
         <span class="macro">assert_eq!</span>(
             FromPendingCertificateMessageAdapter::try_adapt(pending_certificate_expected).unwrap(),
             pending_certificate.unwrap().unwrap()
@@ -1381,12 +1386,15 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>pending_certificate = certificate_handler.retrieve_pending_certificate().<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerTechnical(<span class="string">&quot;an error occurred&quot;</span>.to_string())
-                .to_string(),
-            pending_certificate.unwrap_err().to_string()
-        );
+
+        <span class="kw">match </span>certificate_handler
+            .retrieve_pending_certificate()
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerTechnical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerTechnical error, got &#39;{e:?}&#39;.&quot;</span>),
+        };
     }
 
     <span class="attr">#[tokio::test]
@@ -1455,16 +1463,19 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>register_signer = certificate_handler
+
+        <span class="kw">match </span>certificate_handler
             .register_signer(epoch, single_signer)
-            .<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerLogical(
-                <span class="string">&quot;bad request: {\&quot;label\&quot;:\&quot;error\&quot;,\&quot;message\&quot;:\&quot;an error\&quot;}&quot;</span>.to_string()
-            )
-            .to_string(),
-            register_signer.unwrap_err().to_string()
-        );
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerLogical(<span class="kw">_</span>) =&gt; (),
+            err =&gt; {
+                <span class="macro">panic!</span>(
+                    <span class="string">&quot;Expected a AggregatorClientError::RemoteServerLogical error, got &#39;{err:?}&#39;.&quot;
+                </span>)
+            }
+        };
     }
 
     <span class="attr">#[tokio::test]
@@ -1482,14 +1493,15 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>register_signer = certificate_handler
+
+        <span class="kw">match </span>certificate_handler
             .register_signer(epoch, single_signer)
-            .<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerTechnical(<span class="string">&quot;an error occurred&quot;</span>.to_string())
-                .to_string(),
-            register_signer.unwrap_err().to_string()
-        );
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerTechnical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerTechnical error, got &#39;{e:?}&#39;.&quot;</span>),
+        };
     }
 
     <span class="attr">#[tokio::test]
@@ -1552,16 +1564,14 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>register_signatures = certificate_handler
+        <span class="kw">match </span>certificate_handler
             .register_signatures(<span class="kw-2">&amp;</span>SignedEntityType::dummy(), <span class="kw-2">&amp;</span>single_signatures)
-            .<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerLogical(
-                <span class="string">&quot;bad request: {\&quot;label\&quot;:\&quot;error\&quot;,\&quot;message\&quot;:\&quot;an error\&quot;}&quot;</span>.to_string()
-            )
-            .to_string(),
-            register_signatures.unwrap_err().to_string()
-        );
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerLogical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerLogical error, got &#39;{e:?}&#39;.&quot;</span>),
+        };
     }
 
     <span class="attr">#[tokio::test]
@@ -1577,16 +1587,14 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>register_signatures = certificate_handler
+        <span class="kw">match </span>certificate_handler
             .register_signatures(<span class="kw-2">&amp;</span>SignedEntityType::dummy(), <span class="kw-2">&amp;</span>single_signatures)
-            .<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerLogical(
-                <span class="string">&quot;already registered single signatures&quot;</span>.to_string()
-            )
-            .to_string(),
-            register_signatures.unwrap_err().to_string()
-        );
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerLogical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerLogical error, got &#39;{e:?}&#39;.&quot;</span>),
+        }
     }
 
     <span class="attr">#[tokio::test]
@@ -1602,14 +1610,14 @@
             config.relay_endpoint,
             Arc::new(api_version_provider),
         );
-        <span class="kw">let </span>register_signatures = certificate_handler
+        <span class="kw">match </span>certificate_handler
             .register_signatures(<span class="kw-2">&amp;</span>SignedEntityType::dummy(), <span class="kw-2">&amp;</span>single_signatures)
-            .<span class="kw">await</span>;
-        <span class="macro">assert_eq!</span>(
-            AggregatorClientError::RemoteServerTechnical(<span class="string">&quot;an error occurred&quot;</span>.to_string())
-                .to_string(),
-            register_signatures.unwrap_err().to_string()
-        );
+            .<span class="kw">await
+            </span>.unwrap_err()
+        {
+            AggregatorClientError::RemoteServerTechnical(<span class="kw">_</span>) =&gt; (),
+            e =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Aggregator::RemoteServerTechnical error, got &#39;{e:?}&#39;.&quot;</span>),
+        };
     }
 }
 </code></pre></div></section></main></body></html>
