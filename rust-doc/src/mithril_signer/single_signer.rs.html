@@ -223,7 +223,12 @@
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
 <a href="#225" id="225">225</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>hex::ToHex;
 <span class="kw">use </span>slog_scope::{info, trace, warn};
 <span class="kw">use </span>std::path::PathBuf;
@@ -290,7 +295,7 @@
 </span><span class="kw">pub enum </span>SingleSignerError {
     <span class="doccomment">/// Cryptographic Signer creation error.
     </span><span class="attr">#[error(<span class="string">&quot;the protocol signer creation failed: `{0}`&quot;</span>)]
-    </span>ProtocolSignerCreationFailure(String),
+    </span>ProtocolSignerCreationFailure(StdError),
 
     <span class="doccomment">/// Signature Error
     </span><span class="attr">#[error(<span class="string">&quot;Signature Error: {0:?}&quot;</span>)]
@@ -324,7 +329,8 @@
             signers_with_stake,
             <span class="kw-2">&amp;</span>protocol_initializer.get_protocol_parameters().into(),
         )
-        .map_err(|e| SingleSignerError::ProtocolSignerCreationFailure(e.to_string()))<span class="question-mark">?</span>;
+        .with_context(|| <span class="string">&quot;Mithril Single Signer can not build signer&quot;</span>)
+        .map_err(|e| SingleSignerError::ProtocolSignerCreationFailure(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;Signing protocol message&quot;</span>; <span class="string">&quot;protocol_message&quot; </span>=&gt;  #<span class="question-mark">?</span>protocol_message, <span class="string">&quot;signed message&quot; </span>=&gt; protocol_message.compute_hash().encode_hex::&lt;String&gt;());
         <span class="kw">let </span>signatures = builder
             .restore_signer_from_initializer(<span class="self">self</span>.party_id.clone(), protocol_initializer.clone())
@@ -334,7 +340,7 @@
                     <span class="self">self</span>.party_id.clone()
                 )
             })
-            .map_err(|e| SingleSignerError::ProtocolSignerCreationFailure(e.to_string()))<span class="question-mark">?
+            .map_err(|e| SingleSignerError::ProtocolSignerCreationFailure(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?
             </span>.sign(protocol_message)
             .with_context(|| {
                 <span class="macro">format!</span>(
@@ -370,11 +376,15 @@
             signers_with_stake,
             <span class="kw-2">&amp;</span>protocol_initializer.get_protocol_parameters().into(),
         )
+        .with_context(|| <span class="string">&quot;Mithril Single Signer can not compute aggregate verification key&quot;</span>)
         .map_err(SingleSignerError::AggregateVerificationKeyComputationFailed)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>encoded_avk = signer_builder
             .compute_aggregate_verification_key()
-            .to_json_hex()<span class="question-mark">?</span>;
+            .to_json_hex()
+            .with_context(|| {
+                <span class="string">&quot;Mithril Single Signer can not serialize aggregate verification key&quot;
+            </span>})<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(encoded_avk))
     }
