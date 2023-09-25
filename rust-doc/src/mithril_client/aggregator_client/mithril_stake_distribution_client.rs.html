@@ -129,8 +129,13 @@
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
 <a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>mithril_common::{
     entities::{MithrilStakeDistribution, SignedEntity},
     messages::{MithrilStakeDistributionListItemMessage, MithrilStakeDistributionListMessage},
@@ -156,8 +161,11 @@
     <span class="doccomment">/// Fetch a list of signed MithrilStakeDistribution
     </span><span class="kw">pub async fn </span>list(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Vec&lt;MithrilStakeDistributionListItemMessage&gt;&gt; {
         <span class="kw">let </span>url = <span class="string">&quot;artifact/mithril-stake-distributions&quot;</span>;
-        <span class="kw">let </span>response = <span class="self">self</span>.http_client.get_content(url).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>items = serde_json::from_str::&lt;MithrilStakeDistributionListMessage&gt;(<span class="kw-2">&amp;</span>response)<span class="question-mark">?</span>;
+        <span class="kw">let </span>response = <span class="self">self</span>.http_client.get_content(url).<span class="kw">await</span>.with_context(|| {
+            <span class="macro">format!</span>(<span class="string">&quot;MithrilStakeDistribution Client can not get the artifact list at &#39;{url}&#39;&quot;</span>)
+        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>items = serde_json::from_str::&lt;MithrilStakeDistributionListMessage&gt;(<span class="kw-2">&amp;</span>response)
+            .with_context(|| <span class="string">&quot;MithrilStakeDistribution Client can not deserialize artifact list&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(items)
     }
@@ -171,9 +179,9 @@
 
         <span class="kw">match </span><span class="self">self</span>.http_client.get_content(<span class="kw-2">&amp;</span>url).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(content) =&gt; {
-                <span class="kw">let </span>message: MithrilStakeDistributionMessage = serde_json::from_str(<span class="kw-2">&amp;</span>content)<span class="question-mark">?</span>;
+                <span class="kw">let </span>message: MithrilStakeDistributionMessage = serde_json::from_str(<span class="kw-2">&amp;</span>content).with_context(|| <span class="macro">format!</span>(<span class="string">&quot;MithrilStakeDistribution Client can not deserialize artifact at &#39;{url}&#39;&quot;</span>))<span class="question-mark">?</span>;
                 <span class="kw">let </span>stake_distribution_entity =
-                    FromMithrilStakeDistributionMessageAdapter::try_adapt(message)<span class="question-mark">?</span>;
+                    FromMithrilStakeDistributionMessageAdapter::try_adapt(message).with_context(|| <span class="macro">format!</span>(<span class="string">&quot;MithrilStakeDistribution Client can not parse stake distribution artifact from message, certificate hash: &#39;{hash:?}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(stake_distribution_entity))
             }

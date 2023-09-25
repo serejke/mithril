@@ -166,6 +166,8 @@
 <a href="#166" id="166">166</a>
 <a href="#167" id="167">167</a>
 <a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>anyhow::anyhow;
@@ -303,7 +305,9 @@
         http_client
             .expect_get_content()
             .return_once(<span class="kw">move </span>|<span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(String::new()))
+                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;an error&quot;
+                </span>)))
             })
             .times(<span class="number">1</span>);
 
@@ -321,9 +325,9 @@
         http_client
             .expect_get_content()
             .return_once(<span class="kw">move </span>|<span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(
-                    String::new(),
-                ))
+                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;an error&quot;
+                </span>)))
             })
             .times(<span class="number">1</span>);
 

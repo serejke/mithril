@@ -311,26 +311,6 @@
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
 <a href="#313" id="313">313</a>
-<a href="#314" id="314">314</a>
-<a href="#315" id="315">315</a>
-<a href="#316" id="316">316</a>
-<a href="#317" id="317">317</a>
-<a href="#318" id="318">318</a>
-<a href="#319" id="319">319</a>
-<a href="#320" id="320">320</a>
-<a href="#321" id="321">321</a>
-<a href="#322" id="322">322</a>
-<a href="#323" id="323">323</a>
-<a href="#324" id="324">324</a>
-<a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
-<a href="#329" id="329">329</a>
-<a href="#330" id="330">330</a>
-<a href="#331" id="331">331</a>
-<a href="#332" id="332">332</a>
-<a href="#333" id="333">333</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_recursion::async_recursion;
 <span class="kw">use </span>async_trait::async_trait;
@@ -356,29 +336,19 @@
 </span><span class="kw">pub enum </span>AggregatorHTTPClientError {
     <span class="doccomment">/// Error raised when querying the aggregator returned a 5XX error.
     </span><span class="attr">#[error(<span class="string">&quot;remote server technical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerTechnical(String),
+    </span>RemoteServerTechnical(StdError),
 
     <span class="doccomment">/// Error raised when querying the aggregator returned a 4XX error.
     </span><span class="attr">#[error(<span class="string">&quot;remote server logical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerLogical(String),
-
-    <span class="doccomment">/// Error raised when the aggregator can&#39;t be reached.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server unreachable: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerUnreachable(String),
+    </span>RemoteServerLogical(StdError),
 
     <span class="doccomment">/// Error raised when the server API version mismatch the client API version.
     </span><span class="attr">#[error(<span class="string">&quot;API version mismatch: {0}&quot;</span>)]
-    </span>ApiVersionMismatch(String),
+    </span>ApiVersionMismatch(StdError),
 
     <span class="doccomment">/// HTTP subsystem error
-    </span><span class="attr">#[error(<span class="string">&quot;HTTP subsystem error: {message} ({error}).&quot;</span>)]
-    </span>SubsystemError {
-        <span class="doccomment">/// Error context
-        </span>message: String,
-
-        <span class="doccomment">/// Nested error
-        </span>error: StdError,
-    },
+    </span><span class="attr">#[error(<span class="string">&quot;HTTP subsystem error: {0}&quot;</span>)]
+    </span>SubsystemError(StdError),
 }
 
 <span class="doccomment">/// API that defines a client for the Aggregator
@@ -460,14 +430,12 @@
         <span class="macro">debug!</span>(<span class="string">&quot;Prepare request with version: {current_api_version}&quot;</span>);
         <span class="kw">let </span>request_builder =
             request_builder.header(MITHRIL_API_VERSION_HEADER, current_api_version);
-        <span class="kw">let </span>response = request_builder.send().<span class="kw">await</span>.map_err(|e| {
-            AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(
-                    <span class="string">&quot;Cannot perform a GET against the Aggregator HTTP server (url=&#39;{url}&#39;)&quot;
-                </span>),
-                error: e.into(),
-            }
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>response =
+            request_builder.send().<span class="kw">await</span>.map_err(|e| {
+                AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(e).context(
+                    <span class="string">&quot;Cannot perform a GET against the Aggregator HTTP server (url=&#39;{url}&#39;&quot;</span>,
+                ))
+            })<span class="question-mark">?</span>;
 
         <span class="kw">match </span>response.status() {
             StatusCode::OK =&gt; <span class="prelude-val">Ok</span>(response),
@@ -480,10 +448,10 @@
 
                 <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response).<span class="kw">await</span>)
             }
-            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">format!</span>(
+            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Url=&#39;{url} not found&quot;
             </span>))),
-            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">format!</span>(
+            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Unhandled error {status_code}&quot;
             </span>))),
         }
@@ -504,10 +472,9 @@
             request_builder.header(MITHRIL_API_VERSION_HEADER, current_api_version);
 
         <span class="kw">let </span>response = request_builder.send().<span class="kw">await</span>.map_err(|e| {
-            AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(<span class="string">&quot;Error while POSTing data &#39;{json}&#39; to URL=&#39;{url}&#39;.&quot;</span>),
-                error: e.into(),
-            }
+            AggregatorHTTPClientError::SubsystemError(
+                <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;Error while POSTing data &#39;{json}&#39; to URL=&#39;{url}&#39;.&quot;</span>),
+            )
         })<span class="question-mark">?</span>;
 
         <span class="kw">match </span>response.status() {
@@ -521,10 +488,10 @@
 
                 <span class="prelude-val">Err</span>(<span class="self">self</span>.handle_api_error(<span class="kw-2">&amp;</span>response).<span class="kw">await</span>)
             }
-            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">format!</span>(
+            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Url=&#39;{url} not found&quot;
             </span>))),
-            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">format!</span>(
+            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Unhandled error {status_code}&quot;
             </span>))),
         }
@@ -533,13 +500,13 @@
     <span class="doccomment">/// API version error handling
     </span><span class="kw">async fn </span>handle_api_error(<span class="kw-2">&amp;</span><span class="self">self</span>, response: <span class="kw-2">&amp;</span>Response) -&gt; AggregatorHTTPClientError {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(version) = response.headers().get(MITHRIL_API_VERSION_HEADER) {
-            AggregatorHTTPClientError::ApiVersionMismatch(<span class="macro">format!</span>(
+            AggregatorHTTPClientError::ApiVersionMismatch(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;server version: &#39;{}&#39;, signer version: &#39;{}&#39;&quot;</span>,
                 version.to_str().unwrap(),
                 <span class="self">self</span>.compute_current_api_version().<span class="kw">await</span>.unwrap()
             ))
         } <span class="kw">else </span>{
-            AggregatorHTTPClientError::ApiVersionMismatch(<span class="macro">format!</span>(
+            AggregatorHTTPClientError::ApiVersionMismatch(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;version precondition failed, sent version &#39;{}&#39;.&quot;</span>,
                 <span class="self">self</span>.compute_current_api_version().<span class="kw">await</span>.unwrap()
             ))
@@ -555,13 +522,11 @@
         <span class="kw">let </span>response = <span class="self">self</span>.get(<span class="kw-2">&amp;</span>url).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>content = <span class="macro">format!</span>(<span class="string">&quot;{response:?}&quot;</span>);
 
-        response
-            .text()
-            .<span class="kw">await
-            </span>.map_err(|e| AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(<span class="string">&quot;Could not find a JSON body in the response &#39;{content}&#39;.&quot;</span>),
-                error: e.into(),
-            })
+        response.text().<span class="kw">await</span>.map_err(|e| {
+            AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(e).context(<span class="macro">format!</span>(
+                <span class="string">&quot;Could not find a JSON body in the response &#39;{content}&#39;.&quot;
+            </span>)))
+        })
     }
 
     <span class="kw">async fn </span>post_content(
@@ -572,13 +537,11 @@
         <span class="kw">let </span>url = <span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="self">self</span>.aggregator_endpoint.trim_end_matches(<span class="string">&#39;/&#39;</span>), url);
         <span class="kw">let </span>response = <span class="self">self</span>.post(<span class="kw-2">&amp;</span>url, json).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        response
-            .text()
-            .<span class="kw">await
-            </span>.map_err(|e| AggregatorHTTPClientError::SubsystemError {
-                message: <span class="string">&quot;Could not find a text body in the response.&quot;</span>.to_string(),
-                error: e.into(),
-            })
+        response.text().<span class="kw">await</span>.map_err(|e| {
+            AggregatorHTTPClientError::SubsystemError(
+                <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;Could not find a text body in the response.&quot;</span>),
+            )
+        })
     }
 
     <span class="kw">async fn </span>download_unpack(
@@ -589,13 +552,10 @@
         progress_reporter: DownloadProgressReporter,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AggregatorHTTPClientError&gt; {
         <span class="kw">if </span>!target_dir.is_dir() {
-            <span class="prelude-val">Err</span>(AggregatorHTTPClientError::SubsystemError {
-                message: <span class="string">&quot;Download-Unpack: prerequisite error&quot;</span>.to_string(),
-                error: <span class="macro">anyhow!</span>(
-                    <span class="string">&quot;target path is not a directory or does not exist: `{}`&quot;</span>,
-                    target_dir.display()
-                ),
-            })<span class="question-mark">?</span>;
+            <span class="prelude-val">Err</span>(AggregatorHTTPClientError::SubsystemError(
+                <span class="macro">anyhow!</span>(<span class="string">&quot;target path is not a directory or does not exist: `{target_dir:?}`&quot;</span>)
+                    .context(<span class="string">&quot;Download-Unpack: prerequisite error&quot;</span>),
+            ))<span class="question-mark">?</span>;
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>downloaded_bytes: u64 = <span class="number">0</span>;
@@ -610,16 +570,16 @@
 
         <span class="kw">while let </span><span class="prelude-val">Some</span>(item) = remote_stream.next().<span class="kw">await </span>{
             <span class="kw">let </span>chunk = item.map_err(|e| {
-                AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">format!</span>(
+                AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
                     <span class="string">&quot;Download: Could not read from byte stream: {e}&quot;
                 </span>))
             })<span class="question-mark">?</span>;
 
             sender.send_async(chunk.to_vec()).<span class="kw">await</span>.map_err(|e| {
-                AggregatorHTTPClientError::SubsystemError {
-                    message: <span class="macro">format!</span>(<span class="string">&quot;Download: could not write {} bytes to stream.&quot;</span>, chunk.len()),
-                    error: e.into(),
-                }
+                AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(e).context(<span class="macro">format!</span>(
+                    <span class="string">&quot;Download: could not write {} bytes to stream.&quot;</span>,
+                    chunk.len()
+                )))
             })<span class="question-mark">?</span>;
 
             downloaded_bytes += chunk.len() <span class="kw">as </span>u64;
@@ -629,16 +589,17 @@
         drop(sender); <span class="comment">// Signal EOF
         </span>unpack_thread
             .<span class="kw">await
-            </span>.map_err(|join_error| AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(
+            </span>.map_err(|join_error| {
+                AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(join_error).context(<span class="macro">format!</span>(
                     <span class="string">&quot;Unpack: panic while unpacking to dir &#39;{}&#39;&quot;</span>,
                     target_dir.display()
-                ),
-                error: join_error.into(),
+                )))
             })<span class="question-mark">?
-            </span>.map_err(|unpack_error| AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(<span class="string">&quot;Unpack: could not unpack to dir &#39;{}&#39;&quot;</span>, target_dir.display()),
-                error: unpack_error,
+            </span>.map_err(|unpack_error| {
+                AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(unpack_error).context(<span class="macro">format!</span>(
+                    <span class="string">&quot;Unpack: could not unpack to dir &#39;{}&#39;&quot;</span>,
+                    target_dir.display()
+                )))
             })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
@@ -648,17 +609,16 @@
         <span class="macro">debug!</span>(<span class="string">&quot;HEAD url=&#39;{url}&#39;.&quot;</span>);
         <span class="kw">let </span>request_builder = Client::new().head(url.to_owned());
         <span class="kw">let </span>response = request_builder.send().<span class="kw">await</span>.map_err(|e| {
-            AggregatorHTTPClientError::SubsystemError {
-                message: <span class="macro">format!</span>(<span class="string">&quot;Cannot perform a HEAD for url=&#39;{url}&#39;&quot;</span>),
-                error: e.into(),
-            }
+            AggregatorHTTPClientError::SubsystemError(
+                <span class="macro">anyhow!</span>(e).context(<span class="string">&quot;Cannot perform a HEAD for url=&#39;{url}&#39;&quot;</span>),
+            )
         })<span class="question-mark">?</span>;
         <span class="kw">match </span>response.status() {
             StatusCode::OK =&gt; <span class="prelude-val">Ok</span>(()),
-            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">format!</span>(
+            StatusCode::NOT_FOUND =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Url=&#39;{url} not found&quot;
             </span>))),
-            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">format!</span>(
+            status_code =&gt; <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerTechnical(<span class="macro">anyhow!</span>(
                 <span class="string">&quot;Unhandled error {status_code}&quot;
             </span>))),
         }

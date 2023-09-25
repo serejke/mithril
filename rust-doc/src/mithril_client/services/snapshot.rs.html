@@ -824,6 +824,7 @@
 <a href="#824" id="824">824</a>
 <a href="#825" id="825">825</a>
 <a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
@@ -1137,6 +1138,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>anyhow::anyhow;
     <span class="kw">use </span>chrono::{DateTime, Utc};
     <span class="kw">use </span>config::{builder::DefaultState, ConfigBuilder};
     <span class="kw">use </span>flate2::{write::GzEncoder, Compression};
@@ -1298,9 +1300,9 @@
         http_client
             .expect_get_content()
             .returning(|<span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerUnreachable(
-                    <span class="string">&quot;whatever&quot;</span>.to_string(),
-                ))
+                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;an error&quot;
+                </span>)))
             })
             .times(<span class="number">1</span>);
         <span class="kw">let </span>snapshot_service = get_dep_builder(Arc::new(http_client))
@@ -1335,9 +1337,9 @@
         http_client
             .expect_get_content()
             .return_once(<span class="kw">move </span>|<span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(
+                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="macro">anyhow!</span>(
                     <span class="string">&quot;whatever&quot;</span>.to_string(),
-                ))
+                )))
             })
             .times(<span class="number">1</span>);
         <span class="kw">let </span>snapshot_service = get_dep_builder(Arc::new(http_client))
@@ -1354,9 +1356,9 @@
         http_client
             .expect_get_content()
             .return_once(<span class="kw">move </span>|<span class="kw">_</span>| {
-                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::ApiVersionMismatch(
-                    <span class="string">&quot;whatever&quot;</span>.to_string(),
-                ))
+                <span class="prelude-val">Err</span>(AggregatorHTTPClientError::ApiVersionMismatch(<span class="macro">anyhow!</span>(
+                    <span class="string">&quot;whatever&quot;</span>.to_string()
+                )))
             })
             .times(<span class="number">1</span>);
         <span class="kw">let </span>snapshot_service = get_dep_builder(Arc::new(http_client))
