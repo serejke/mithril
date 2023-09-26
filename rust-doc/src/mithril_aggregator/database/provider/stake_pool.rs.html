@@ -515,7 +515,7 @@
         EntityCursor, HydrationError, Projection, Provider, SourceAlias, SqLiteEntity,
         WhereCondition,
     },
-    store::{adapter::AdapterError, StakeStorer, StoreError},
+    store::{adapter::AdapterError, StakeStorer},
     StdResult,
 };
 
@@ -749,7 +749,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
         stakes: StakeDistribution,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = InsertOrReplaceStakePoolProvider::new(connection);
         <span class="kw">let </span><span class="kw-2">mut </span>new_stakes = StakeDistribution::new();
@@ -782,7 +782,7 @@
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(new_stakes))
     }
 
-    <span class="kw">async fn </span>get_stakes(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;, StoreError&gt; {
+    <span class="kw">async fn </span>get_stakes(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = StakePoolProvider::new(connection);
         <span class="kw">let </span>cursor = provider

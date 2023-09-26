@@ -545,9 +545,6 @@
 <a href="#545" id="545">545</a>
 <a href="#546" id="546">546</a>
 <a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>sqlite::{Connection, Value};
@@ -560,7 +557,7 @@
         EntityCursor, HydrationError, Projection, Provider, SourceAlias, SqLiteEntity,
         WhereCondition,
     },
-    store::{adapter::AdapterError, StoreError},
+    store::adapter::AdapterError,
     StdResult,
 };
 
@@ -814,7 +811,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
         protocol_parameters: ProtocolParameters,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = UpdateEpochSettingProvider::new(connection);
         connection
@@ -841,10 +838,7 @@
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(epoch_setting_record.protocol_parameters))
     }
 
-    <span class="kw">async fn </span>get_protocol_parameters(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;, StoreError&gt; {
+    <span class="kw">async fn </span>get_protocol_parameters(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = EpochSettingProvider::new(connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider

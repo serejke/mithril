@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["StoreError"],"mod":["adapter"],"struct":["StakeStore"],"trait":["StakeStorer","StorePruner"]};
+window.SIDEBAR_ITEMS = {"mod":["adapter"],"struct":["StakeStore"],"trait":["StakeStorer","StorePruner"]};

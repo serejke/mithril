@@ -133,10 +133,20 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>tokio::sync::RwLock;
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
+<span class="kw">use </span>mithril_common::StdResult;
+<span class="kw">use </span>tokio::sync::RwLock;
 
 <span class="kw">use </span>mithril_common::entities::CertificatePending;
-<span class="kw">use </span>mithril_common::store::{adapter::StoreAdapter, StoreError};
+<span class="kw">use </span>mithril_common::store::adapter::StoreAdapter;
 
 <span class="kw">type </span>Adapter = Box&lt;<span class="kw">dyn </span>StoreAdapter&lt;Key = String, Record = CertificatePending&gt;&gt;;
 
@@ -156,34 +166,40 @@
     }
 
     <span class="doccomment">/// Fetch the current [CertificatePending] if any.
-    </span><span class="kw">pub async fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;, StoreError&gt; {
-        <span class="kw">let </span>record = <span class="self">self
-            </span>.adapter
+    </span><span class="kw">pub async fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;&gt; {
+        <span class="self">self</span>.adapter
             .read()
             .<span class="kw">await
             </span>.get_record(<span class="kw-2">&amp;</span>KEY.to_string())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(record)
+            .<span class="kw">await
+            </span>.with_context(|| <span class="string">&quot;Certificate pending store: could not GET store.&quot;</span>.to_string())
     }
 
     <span class="doccomment">/// Save the given [CertificatePending].
-    </span><span class="kw">pub async fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, certificate: CertificatePending) -&gt; <span class="prelude-ty">Result</span>&lt;(), StoreError&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self
+    </span><span class="kw">pub async fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, certificate: CertificatePending) -&gt; StdResult&lt;()&gt; {
+        <span class="self">self
             </span>.adapter
             .write()
             .<span class="kw">await
             </span>.store_record(<span class="kw-2">&amp;</span>KEY.to_string(), <span class="kw-2">&amp;</span>certificate)
-            .<span class="kw">await</span><span class="question-mark">?</span>)
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Certificate pending store: error while saving pending certificate for epoch &#39;{}&#39;.&quot;</span>, certificate.beacon.epoch))
     }
 
     <span class="doccomment">/// Remove and return the current [CertificatePending] if any.
-    </span><span class="kw">pub async fn </span>remove(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;, StoreError&gt; {
+    </span><span class="kw">pub async fn </span>remove(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;&gt; {
         <span class="self">self</span>.adapter
             .write()
             .<span class="kw">await
             </span>.remove(<span class="kw-2">&amp;</span>KEY.to_string())
             .<span class="kw">await
-            </span>.map_err(StoreError::AdapterError)
+            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
+            .with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Could not delete certificate pending (key = &#39;{}&#39;) from store.&quot;</span>,
+                    <span class="kw-2">&amp;</span>KEY
+                )
+            })
     }
 }
 

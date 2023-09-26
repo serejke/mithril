@@ -906,7 +906,7 @@
         EntityCursor, HydrationError, Projection, Provider, SourceAlias, SqLiteEntity,
         WhereCondition,
     },
-    store::{adapter::AdapterError, StoreError},
+    store::adapter::AdapterError,
     StdResult,
 };
 
@@ -1310,7 +1310,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
         signer: SignerWithStake,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = InsertOrReplaceSignerRegistrationRecordProvider::new(connection);
         <span class="kw">let </span>existing_record = SignerRegistrationRecordProvider::new(connection)
@@ -1340,7 +1340,7 @@
     <span class="kw">async fn </span>get_verification_keys(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(connection);
         <span class="kw">let </span>cursor = provider
@@ -1357,7 +1357,7 @@
         }
     }
 
-    <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; <span class="prelude-ty">Result</span>&lt;(), StoreError&gt; {
+    <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>_deleted_records = DeleteSignerRegistrationRecordProvider::new(connection)
             <span class="comment">// we want to prune including the given epoch (+1)
@@ -1371,7 +1371,7 @@
     <span class="kw">async fn </span>get_stake_distribution_for_epoch(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt; {
         <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
         <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(connection);
         <span class="kw">let </span>cursor = provider

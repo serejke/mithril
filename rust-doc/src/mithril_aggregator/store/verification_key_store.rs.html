@@ -374,12 +374,27 @@
 <a href="#374" id="374">374</a>
 <a href="#375" id="375">375</a>
 <a href="#376" id="376">376</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>mithril_common::StdResult;
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>tokio::sync::RwLock;
 
 <span class="kw">use </span>mithril_common::entities::{Epoch, PartyId, Signer, SignerWithStake, StakeDistribution};
-<span class="kw">use </span>mithril_common::store::{adapter::StoreAdapter, StoreError};
+<span class="kw">use </span>mithril_common::store::adapter::StoreAdapter;
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
@@ -399,22 +414,22 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
         signer: SignerWithStake,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;, StoreError&gt;;
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;&gt;;
 
     <span class="doccomment">/// Returns a HashMap of [Signer] indexed by [PartyId] for the given `Beacon`.
     </span><span class="kw">async fn </span>get_verification_keys(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;, StoreError&gt;;
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;&gt;;
 
     <span class="doccomment">/// Prune all verification keys that are at or below the given epoch.
-    </span><span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; <span class="prelude-ty">Result</span>&lt;(), StoreError&gt;;
+    </span><span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Return the parties that are stored at the given epoch.
     </span><span class="kw">async fn </span>get_stake_distribution_for_epoch(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;, StoreError&gt;;
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt;;
 }
 
 <span class="doccomment">/// Store for the `VerificationKey`.
@@ -437,7 +452,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
         signer: SignerWithStake,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>signers = <span class="kw">match </span><span class="self">self</span>.adapter.read().<span class="kw">await</span>.get_record(<span class="kw-2">&amp;</span>epoch).<span class="kw">await</span><span class="question-mark">? </span>{
             <span class="prelude-val">Some</span>(s) =&gt; s,
             <span class="prelude-val">None </span>=&gt; HashMap::new(),
@@ -455,21 +470,32 @@
     <span class="kw">async fn </span>get_verification_keys(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;, StoreError&gt; {
-        <span class="kw">let </span>record = <span class="self">self</span>.adapter.read().<span class="kw">await</span>.get_record(<span class="kw-2">&amp;</span>epoch).<span class="kw">await</span><span class="question-mark">?</span>;
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;&gt; {
+        <span class="kw">let </span>record = <span class="self">self
+            </span>.adapter
+            .read()
+            .<span class="kw">await
+            </span>.get_record(<span class="kw-2">&amp;</span>epoch)
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Could not get verification keys for epoch {epoch}.&quot;</span>))<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(record.map(|h| h.into_iter().map(|(k, v)| (k, v.into())).collect()))
     }
 
-    <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; <span class="prelude-ty">Result</span>&lt;(), StoreError&gt; {
+    <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>adapter = <span class="self">self</span>.adapter.write().<span class="kw">await</span>;
 
         <span class="kw">for </span>(epoch, _record) <span class="kw">in </span>adapter
             .get_last_n_records(usize::MAX)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="string">&quot;Pruning verification keys: could not read last records from database&quot;</span>.to_string()
+            })<span class="question-mark">?
             </span>.into_iter()
             .filter(|(e, <span class="kw">_</span>)| e &lt;= <span class="kw-2">&amp;</span>max_epoch_to_prune)
         {
-            adapter.remove(<span class="kw-2">&amp;</span>epoch).<span class="kw">await</span><span class="question-mark">?</span>;
+            adapter.remove(<span class="kw-2">&amp;</span>epoch).<span class="kw">await
+                </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Pruning verification keys: could not remove record for epoch &#39;{epoch}&#39; from the database.&quot;</span>))<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
@@ -478,7 +504,7 @@
     <span class="kw">async fn </span>get_stake_distribution_for_epoch(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;, StoreError&gt; {
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt; {
         <span class="kw">let </span>record = <span class="self">self</span>.adapter.read().<span class="kw">await</span>.get_record(<span class="kw-2">&amp;</span>epoch).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(record.map(|r| {
             StakeDistribution::from_iter(

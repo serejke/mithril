@@ -550,7 +550,7 @@
             </span>.stake_store
             .get_stakes(epoch)
             .<span class="kw">await
-            </span>.map_err(|e| StakePoolDistributionServiceError::technical_subsystem(e.into()))<span class="question-mark">?
+            </span>.map_err(StakePoolDistributionServiceError::technical_subsystem)<span class="question-mark">?
             </span>.unwrap_or_default();
 
         <span class="kw">if </span>!stake_distribution.is_empty() {
@@ -597,7 +597,7 @@
             </span>.stake_store
             .save_stakes(current_epoch, stake_distribution)
             .<span class="kw">await
-            </span>.map_err(|e| StakePoolDistributionServiceError::technical_subsystem(e.into()))<span class="question-mark">?</span>;
+            </span>.map_err(StakePoolDistributionServiceError::technical_subsystem)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }

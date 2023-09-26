@@ -2179,7 +2179,7 @@
                 .<span class="kw">await
                 </span>.map_err(|e| DependenciesBuilderError::Initialization {
                     message: <span class="string">&quot;can not create aggregator runner&quot;</span>.to_string(),
-                    error: <span class="prelude-val">Some</span>(e.into()),
+                    error: <span class="prelude-val">Some</span>(e),
                 })<span class="question-mark">?
                 </span>.is_none()
             {
@@ -2194,7 +2194,7 @@
                         .<span class="kw">await
                         </span>.map_err(|e| DependenciesBuilderError::Initialization {
                             message: <span class="string">&quot;can not create aggregator runner&quot;</span>.to_string(),
-                            error: <span class="prelude-val">Some</span>(e.into()),
+                            error: <span class="prelude-val">Some</span>(e),
                         })<span class="question-mark">?</span>;
                 }
             }
