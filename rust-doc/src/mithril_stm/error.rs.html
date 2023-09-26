@@ -267,6 +267,7 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Crate specific errors
 
 </span><span class="kw">use </span><span class="kw">crate</span>::merkle_tree::{BatchPath, Path};
@@ -347,8 +348,9 @@
     </span><span class="attr">#[error(<span class="string">&quot;Batch verification of STM aggregate signatures failed&quot;</span>)]
     </span>BatchInvalid,
 
-    <span class="attr">#[error(<span class="string">&quot;Core verification error: {0}&quot;</span>)]
-    </span>CoreVerificationError(CoreVerifierError),
+    <span class="doccomment">/// `CoreVerifier` check failed
+    </span><span class="attr">#[error(<span class="string">&quot;Core verification error: {0}&quot;</span>)]
+    </span>CoreVerificationError(<span class="attr">#[source] </span>CoreVerifierError),
 }
 
 <span class="doccomment">/// Errors which can be output by `CoreVerifier`.
@@ -368,7 +370,7 @@
 
     <span class="doccomment">/// One of the aggregated signatures is invalid
     </span><span class="attr">#[error(<span class="string">&quot;Individual signature is invalid: {0}&quot;</span>)]
-    </span>IndividualSignatureInvalid(StmSignatureError),
+    </span>IndividualSignatureInvalid(<span class="attr">#[source] </span>StmSignatureError),
 }
 
 <span class="doccomment">/// Error types for aggregation.

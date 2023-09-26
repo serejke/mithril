@@ -452,8 +452,6 @@
 <a href="#452" id="452">452</a>
 <a href="#453" id="453">453</a>
 <a href="#454" id="454">454</a>
-<a href="#455" id="455">455</a>
-<a href="#456" id="456">456</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! API for mithril key certification.
 //! Includes the wrappers for StmInitializer and KeyReg, and ProtocolRegistrationErrorWrapper.
 //! These wrappers allows keeping mithril-stm agnostic to Cardano, while providing some
@@ -532,16 +530,16 @@
     </span>PoolAddressEncoding,
 
     <span class="doccomment">/// Error raised when a core registration error occurs
-    </span><span class="attr">#[error(<span class="string">&quot;core registration error: &#39;{0:?}&#39;&quot;</span>)]
-    </span>CoreRegister(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;core registration error&quot;</span>)]
+    </span>CoreRegister(<span class="attr">#[source] </span>RegisterError),
 }
 
 <span class="doccomment">/// New initializer error
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ProtocolInitializerErrorWrapper {
     <span class="doccomment">/// Error raised when the underlying protocol initializer fails
-    </span><span class="attr">#[error(<span class="string">&quot;protocol initializer error {0:?}&quot;</span>)]
-    </span>ProtocolInitializer(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;protocol initializer error&quot;</span>)]
+    </span>ProtocolInitializer(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when a KES update error occurs
     </span><span class="attr">#[error(<span class="string">&quot;KES key cannot be updated for period {0}&quot;</span>)]
@@ -657,8 +655,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;StmSigner&lt;D&gt;, ProtocolRegistrationErrorWrapper&gt; {
         <span class="self">self</span>.stm_initializer
             .new_signer(closed_reg)
-            .with_context(|| <span class="string">&quot;StmInitializerWrapper can not create a new signer&quot;</span>)
-            .map_err(|e| ProtocolRegistrationErrorWrapper::CoreRegister(<span class="macro">anyhow!</span>(e)))
+            .map_err(ProtocolRegistrationErrorWrapper::CoreRegister)
     }
 
     <span class="doccomment">/// Convert to bytes
@@ -745,8 +742,7 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>stake) = <span class="self">self</span>.stake_distribution.get(<span class="kw-2">&amp;</span>pool_id_bech32) {
             <span class="self">self</span>.stm_key_reg
                 .register(stake, pk.into())
-                .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;KeyRegWrapper can not register pool {pool_id_bech32}&quot;</span>))
-                .map_err(|e| ProtocolRegistrationErrorWrapper::CoreRegister(<span class="macro">anyhow!</span>(e)))<span class="question-mark">?</span>;
+                .map_err(ProtocolRegistrationErrorWrapper::CoreRegister)<span class="question-mark">?</span>;
             <span class="kw">return </span><span class="prelude-val">Ok</span>(pool_id_bech32);
         }
         <span class="prelude-val">Err</span>(ProtocolRegistrationErrorWrapper::PartyIdNonExisting)

@@ -325,6 +325,9 @@
 <a href="#325" id="325">325</a>
 <a href="#326" id="326">326</a>
 <a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>rand_chacha::ChaCha20Rng;
 <span class="kw">use </span>rand_core::{CryptoRng, RngCore, SeedableRng};
@@ -510,7 +513,12 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span><span class="kw">crate</span>::test_utils::{fake_data, MithrilFixtureBuilder};
+    <span class="kw">use </span>mithril_stm::RegisterError;
+
+    <span class="kw">use crate</span>::{
+        crypto_helper::ProtocolRegistrationErrorWrapper,
+        test_utils::{fake_data, MithrilFixtureBuilder},
+    };
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -525,7 +533,7 @@
 
         <span class="kw">match </span>error.downcast_ref::&lt;SignerBuilderError&gt;() {
             <span class="prelude-val">Some</span>(SignerBuilderError::EmptySigners) =&gt; (),
-            <span class="prelude-val">None </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected an EmptySigners error, got: {error}&quot;</span>),
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected an EmptySigners error, got: {error:?}&quot;</span>),
         }
     }
 
@@ -550,12 +558,10 @@
             <span class="string">&quot;We should not be able to construct a signer builder if a signer registration fail&quot;</span>,
         );
 
-        <span class="macro">assert!</span>(
-            error.to_string().contains(<span class="string">&quot;Registration failed for signer&quot;</span>),
-            <span class="string">&quot;Expected Registration error, got: {}, cause: {}&quot;</span>,
-            error,
-            error.root_cause()
-        );
+        <span class="kw">match </span>error.downcast_ref::&lt;ProtocolRegistrationErrorWrapper&gt;() {
+            <span class="prelude-val">Some</span>(ProtocolRegistrationErrorWrapper::CoreRegister(<span class="kw">_</span>)) =&gt; (),
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected an CoreRegister error, got: {error:?}&quot;</span>),
+        }
     }
 
     <span class="attr">#[test]
@@ -592,14 +598,14 @@
             <span class="string">&quot;We should not be able to construct a single signer from a not registered party&quot;</span>,
         );
 
-        <span class="macro">assert!</span>(
-            error
-                .to_string()
-                .contains(<span class="string">&quot;Could not create a protocol signer for party&quot;</span>),
-            <span class="string">&quot;Expected protocol signer creation error, got: {}, cause: {}&quot;</span>,
-            error,
-            error.root_cause()
-        );
+        <span class="kw">match </span>error.downcast_ref::&lt;ProtocolRegistrationErrorWrapper&gt;() {
+            <span class="prelude-val">Some</span>(ProtocolRegistrationErrorWrapper::CoreRegister(
+                RegisterError::UnregisteredInitializer,
+            )) =&gt; (),
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(
+                <span class="string">&quot;Expected an ProtocolRegistrationErrorWrapper::CoreRegister error, got: {error:?}&quot;
+            </span>),
+        }
     }
 
     <span class="attr">#[test]

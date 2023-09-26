@@ -242,7 +242,6 @@
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>mithril_stm::stm::StmParameters;
 
@@ -323,7 +322,6 @@
                 <span class="kw-2">&amp;</span>avk,
                 message.compute_hash().as_bytes(),
             )
-            .map_err(|e| <span class="macro">anyhow!</span>(e))
             .with_context(|| {
                 <span class="macro">format!</span>(
                     <span class="string">&quot;Invalid signature for party: &#39;{}&#39;&quot;</span>,
@@ -337,6 +335,8 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
+    <span class="kw">use </span>mithril_stm::StmSignatureError;
+
     <span class="kw">use crate</span>::{
         entities::{ProtocolMessagePartKey, ProtocolParameters},
         protocol::SignerBuilder,
@@ -437,11 +437,10 @@
                 <span class="string">&quot;Verify single signature should fail if the signer isn&#39;t in the registered parties&quot;</span>,
             );
 
-        <span class="macro">assert!</span>(
-            error.to_string().contains(<span class="string">&quot;Invalid signature for party&quot;</span>),
-            <span class="string">&quot;Expected invalid signature of party error, got: {error}, cause: {}&quot;</span>,
-            error.root_cause()
-        )
+        <span class="kw">match </span>error.downcast_ref::&lt;StmSignatureError&gt;() {
+            <span class="prelude-val">Some</span>(StmSignatureError::SignatureInvalid(<span class="kw">_</span>)) =&gt; (),
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected an SignatureInvalid error, got: {error:?}&quot;</span>),
+        }
     }
 
     <span class="attr">#[test]
@@ -464,11 +463,10 @@
             .verify_single_signature(<span class="kw-2">&amp;</span>ProtocolMessage::default(), <span class="kw-2">&amp;</span>single_signature)
             .expect_err(<span class="string">&quot;Verify single signature should fail&quot;</span>);
 
-        <span class="macro">assert!</span>(
-            error.to_string().contains(<span class="string">&quot;Invalid signature for party&quot;</span>),
-            <span class="string">&quot;Expected invalid signature of party error, got: {error}, cause: {}&quot;</span>,
-            error.root_cause()
-        )
+        <span class="kw">match </span>error.downcast_ref::&lt;StmSignatureError&gt;() {
+            <span class="prelude-val">Some</span>(StmSignatureError::SignatureInvalid(<span class="kw">_</span>)) =&gt; (),
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected an SignatureInvalid error, got: {error:?}&quot;</span>),
+        }
     }
 
     <span class="attr">#[test]
