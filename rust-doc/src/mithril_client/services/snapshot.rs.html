@@ -825,6 +825,14 @@
 <a href="#825" id="825">825</a>
 <a href="#826" id="826">826</a>
 <a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
@@ -993,7 +1001,9 @@
 
     <span class="kw">async fn </span>expand_eventual_snapshot_alias(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot_id: <span class="kw-2">&amp;</span>str) -&gt; StdResult&lt;String&gt; {
         <span class="kw">if </span>snapshot_id.to_lowercase() == <span class="string">&quot;latest&quot; </span>{
-            <span class="kw">let </span>last_snapshot = <span class="self">self</span>.list().<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>last_snapshot = <span class="self">self</span>.list().<span class="kw">await</span>.with_context(|| {
+                <span class="string">&quot;Can not get the list of snapshots while retrieving the latest snapshot digest&quot;
+            </span>})<span class="question-mark">?</span>;
             <span class="kw">let </span>last_snapshot = last_snapshot
                 .first()
                 .ok_or_else(|| SnapshotServiceError::SnapshotNotFound(snapshot_id.to_string()))<span class="question-mark">?</span>;
@@ -1063,7 +1073,13 @@
         <span class="kw">let </span>certificate = <span class="self">self
             </span>.certificate_client
             .get(<span class="kw-2">&amp;</span>snapshot_entity.certificate_id)
-            .<span class="kw">await</span><span class="question-mark">?
+            .<span class="kw">await
+            </span>.with_context(|| {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Snapshot Service can not get the certificate for id: &#39;{}&#39;&quot;</span>,
+                    snapshot_entity.certificate_id
+                )
+            })<span class="question-mark">?
             </span>.ok_or_else(|| {
                 SnapshotServiceError::CouldNotFindCertificate(
                     snapshot_entity.certificate_id.clone(),
