@@ -214,9 +214,9 @@
     </span><span class="kw">pub async fn </span>increase(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;u64&gt; {
         <span class="kw">let </span>new_number = <span class="self">self
             </span>.shall_return
-            .read()
+            .write()
             .<span class="kw">await
-            </span>.unwrap() <span class="comment">// I do not understand why ok_or_else does not work here, TODO: fix this
+            </span>.ok_or_else(|| <span class="macro">anyhow!</span>(ImmutableFileObserverError::Missing()))<span class="question-mark">?
             </span>.add(<span class="number">1</span>);
         <span class="self">self</span>.shall_return(<span class="prelude-val">Some</span>(new_number)).<span class="kw">await</span>;
 
