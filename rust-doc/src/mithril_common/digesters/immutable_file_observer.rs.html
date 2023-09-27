@@ -145,8 +145,8 @@
     </span>Missing(),
 
     <span class="doccomment">/// Raised when [immutable file listing][ImmutableFile::list_completed_in_dir] fails.
-    </span><span class="attr">#[error(<span class="string">&quot;immutable file creation error: {0}&quot;</span>)]
-    </span>ImmutableFileListing(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;immutable file creation error&quot;</span>)]
+    </span>ImmutableFileListing(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// An [ImmutableFileObserver] using the filesystem.

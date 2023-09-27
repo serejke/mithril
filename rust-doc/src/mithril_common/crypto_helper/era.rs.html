@@ -196,8 +196,8 @@
 </span><span class="doccomment">/// [EraMarkersSigner] and [EraMarkersVerifier] related errors.
 </span><span class="kw">pub enum </span>EraMarkersVerifierError {
     <span class="doccomment">/// Error raised when a Signature verification fail
-    </span><span class="attr">#[error(<span class="string">&quot;era markers signature verification error: &#39;{0}&#39;&quot;</span>)]
-    </span>SignatureVerification(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;era markers signature verification error&quot;</span>)]
+    </span>SignatureVerification(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// A cryptographic signer that is responsible for signing the EraMarkers

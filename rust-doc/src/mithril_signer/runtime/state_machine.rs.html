@@ -829,8 +829,10 @@
 <a href="#829" id="829">829</a>
 <a href="#830" id="830">830</a>
 <a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>slog_scope::{crit, debug, error, info};
-<span class="kw">use </span>std::{fmt::Display, thread::sleep, time::Duration};
+<span class="kw">use </span>std::{fmt::Display, time::Duration};
+<span class="kw">use </span>tokio::time::sleep;
 
 <span class="kw">use </span>mithril_common::{
     crypto_helper::ProtocolInitializerError,
@@ -958,7 +960,7 @@
                 <span class="string">&quot;… Cycle finished, Sleeping for {} ms&quot;</span>,
                 <span class="self">self</span>.state_sleep.as_millis()
             );
-            sleep(<span class="self">self</span>.state_sleep);
+            sleep(<span class="self">self</span>.state_sleep).<span class="kw">await</span>;
         }
     }
 

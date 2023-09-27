@@ -175,8 +175,8 @@
 
 <span class="attr">#[derive(Error, Debug)]
 </span><span class="doccomment">/// [ProtocolGenesisSigner] and [ProtocolGenesisVerifier] related errors.
-</span><span class="attr">#[error(<span class="string">&quot;genesis signature verification error: &#39;{0}&#39;&quot;</span>)]
-</span><span class="kw">pub struct </span>ProtocolGenesisError(StdError);
+</span><span class="attr">#[error(<span class="string">&quot;genesis signature verification error&quot;</span>)]
+</span><span class="kw">pub struct </span>ProtocolGenesisError(<span class="attr">#[source] </span>StdError);
 
 <span class="doccomment">/// A protocol Genesis Signer that is responsible for signing the
 /// [Genesis Certificate](https://mithril.network/doc/mithril/mithril-protocol/certificates#the-certificate-chain-design)

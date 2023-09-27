@@ -319,7 +319,7 @@
     },
 
     <span class="doccomment">/// Raised when the immutable file number parsing, from the filename, fails.
-    </span><span class="attr">#[error(<span class="string">&quot;Error while parsing immutable file number: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Error while parsing immutable file number&quot;</span>)]
     </span>FileNumberParsing(<span class="attr">#[from] </span>ParseIntError),
 }
 
@@ -327,11 +327,11 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ImmutableFileListingError {
     <span class="doccomment">/// Raised when the metadata of a file could not be read.
-    </span><span class="attr">#[error(<span class="string">&quot;metadata parsing failed: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;metadata parsing failed&quot;</span>)]
     </span>MetadataParsing(<span class="attr">#[from] </span>io::Error),
 
     <span class="doccomment">/// Raised when [ImmutableFile::new] fails.
-    </span><span class="attr">#[error(<span class="string">&quot;immutable file creation error: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;immutable file creation error&quot;</span>)]
     </span>ImmutableFileCreation(<span class="attr">#[from] </span>ImmutableFileCreationError),
 }
 

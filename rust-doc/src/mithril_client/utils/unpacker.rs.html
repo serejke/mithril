@@ -123,6 +123,7 @@
 <a href="#123" id="123">123</a>
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>flate2::read::GzDecoder;
 <span class="kw">use </span>flume::Receiver;
@@ -166,16 +167,17 @@
     </span>UnpackDirectoryAlreadyExists(PathBuf),
 
     <span class="doccomment">/// Cannot write in the given directory.
-    </span><span class="attr">#[error(<span class="string">&quot;Unpack directory &#39;{0}&#39; is not writable. (underlying error: « {1} »).&quot;</span>)]
-    </span>UnpackDirectoryIsNotWritable(PathBuf, StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;Unpack directory &#39;{0}&#39; is not writable.&quot;</span>)]
+    </span>UnpackDirectoryIsNotWritable(PathBuf, <span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Unpacking error
-    </span><span class="attr">#[error(<span class="string">&quot;Could not unpack from streamed data snapshot to directory &#39;{dirpath}&#39;. Error: « {error:?} ».&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Could not unpack from streamed data snapshot to directory &#39;{dirpath}&#39;&quot;</span>)]
     </span>UnpackFailed {
         <span class="doccomment">/// Location where the archive is to be extracted.
         </span>dirpath: PathBuf,
 
         <span class="doccomment">/// Subsystem error
+        </span><span class="attr">#[source]
         </span>error: StdError,
     },
 }

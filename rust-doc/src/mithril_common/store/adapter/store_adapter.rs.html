@@ -70,24 +70,24 @@
 </span><span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>AdapterError {
     <span class="doccomment">/// Generic [StoreAdapter] error.
-    </span><span class="attr">#[error(<span class="string">&quot;something wrong happened: {0:?}&quot;</span>)]
-    </span>GeneralError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;something wrong happened&quot;</span>)]
+    </span>GeneralError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the store initialization fails.
-    </span><span class="attr">#[error(<span class="string">&quot;problem creating the repository: {0:?}&quot;</span>)]
-    </span>InitializationError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;problem creating the repository&quot;</span>)]
+    </span>InitializationError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the opening of a IO stream fails.
-    </span><span class="attr">#[error(<span class="string">&quot;problem opening the IO stream: {0:?}&quot;</span>)]
-    </span>OpeningStreamError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;problem opening the IO stream&quot;</span>)]
+    </span>OpeningStreamError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the parsing of a IO stream fails.
-    </span><span class="attr">#[error(<span class="string">&quot;problem parsing the IO stream: {0:?}&quot;</span>)]
-    </span>ParsingDataError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;problem parsing the IO stream&quot;</span>)]
+    </span>ParsingDataError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error while querying the subsystem.
-    </span><span class="attr">#[error(<span class="string">&quot;problem when querying the adapter: {0:?}&quot;</span>)]
-    </span>QueryError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;problem when querying the adapter&quot;</span>)]
+    </span>QueryError(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// Represent a way to store Key/Value pair data.

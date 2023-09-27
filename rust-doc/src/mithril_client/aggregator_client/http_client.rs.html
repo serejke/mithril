@@ -335,20 +335,20 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>AggregatorHTTPClientError {
     <span class="doccomment">/// Error raised when querying the aggregator returned a 5XX error.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server technical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerTechnical(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;remote server technical error&quot;</span>)]
+    </span>RemoteServerTechnical(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when querying the aggregator returned a 4XX error.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server logical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerLogical(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;remote server logical error&quot;</span>)]
+    </span>RemoteServerLogical(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the server API version mismatch the client API version.
-    </span><span class="attr">#[error(<span class="string">&quot;API version mismatch: {0}&quot;</span>)]
-    </span>ApiVersionMismatch(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;API version mismatch&quot;</span>)]
+    </span>ApiVersionMismatch(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// HTTP subsystem error
-    </span><span class="attr">#[error(<span class="string">&quot;HTTP subsystem error: {0}&quot;</span>)]
-    </span>SubsystemError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;HTTP subsystem error&quot;</span>)]
+    </span>SubsystemError(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// API that defines a client for the Aggregator

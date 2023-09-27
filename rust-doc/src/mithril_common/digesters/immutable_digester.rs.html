@@ -141,7 +141,7 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ImmutableDigesterError {
     <span class="doccomment">/// Error raised when the files listing failed.
-    </span><span class="attr">#[error(<span class="string">&quot;Immutable files listing failed: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Immutable files listing failed&quot;</span>)]
     </span>ListImmutablesError(<span class="attr">#[from] </span>ImmutableFileListingError),
 
     <span class="doccomment">/// Error raised when there&#39;s less than the required number of completed immutables in
@@ -157,7 +157,7 @@
     },
 
     <span class="doccomment">/// Error raised when the digest computation failed.
-    </span><span class="attr">#[error(<span class="string">&quot;Digest computation failed: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Digest computation failed&quot;</span>)]
     </span>DigestComputationError(<span class="attr">#[from] </span>io::Error),
 }
 </code></pre></div></section></main></body></html>

@@ -818,47 +818,47 @@
 </span><span class="kw">pub enum </span>ProtocolError {
     <span class="doccomment">/// Signer is already registered.
     </span><span class="attr">#[error(<span class="string">&quot;signer already registered&quot;</span>)]
-    </span>ExistingSigner(),
+    </span>ExistingSigner,
 
     <span class="doccomment">/// Signer was not registered.
     </span><span class="attr">#[error(<span class="string">&quot;signer did not register&quot;</span>)]
-    </span>UnregisteredParty(),
+    </span>UnregisteredParty,
 
     <span class="doccomment">/// Signer registration failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer registration failed&quot;</span>)]
-    </span>FailedSignerRegistration(StdError),
+    </span>FailedSignerRegistration(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Single signature already recorded.
     </span><span class="attr">#[error(<span class="string">&quot;single signature already recorded&quot;</span>)]
     </span>ExistingSingleSignature(entities::PartyId),
 
     <span class="doccomment">/// Mithril STM library returned an error.
-    </span><span class="attr">#[error(<span class="string">&quot;core error: &#39;{0}&#39;&quot;</span>)]
-    </span>Core(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;core error&quot;</span>)]
+    </span>Core(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// No message available.
     </span><span class="attr">#[error(<span class="string">&quot;no message available&quot;</span>)]
-    </span>UnavailableMessage(),
+    </span>UnavailableMessage,
 
     <span class="doccomment">/// No protocol parameters available.
     </span><span class="attr">#[error(<span class="string">&quot;no protocol parameters available&quot;</span>)]
-    </span>UnavailableProtocolParameters(),
+    </span>UnavailableProtocolParameters,
 
     <span class="doccomment">/// No clerk available.
     </span><span class="attr">#[error(<span class="string">&quot;no clerk available&quot;</span>)]
-    </span>UnavailableClerk(),
+    </span>UnavailableClerk,
 
     <span class="doccomment">/// No beacon available.
     </span><span class="attr">#[error(<span class="string">&quot;no beacon available&quot;</span>)]
-    </span>UnavailableBeacon(),
+    </span>UnavailableBeacon,
 
     <span class="doccomment">/// Store error.
-    </span><span class="attr">#[error(<span class="string">&quot;store error: {0}&quot;</span>)]
-    </span>StoreError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;store error&quot;</span>)]
+    </span>StoreError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Beacon error.
-    </span><span class="attr">#[error(<span class="string">&quot;beacon error: &#39;{0}&#39;&quot;</span>)]
-    </span>Beacon(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;beacon error&quot;</span>)]
+    </span>Beacon(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// MultiSigner is the cryptographic engine in charge of producing multi signatures from individual signatures
@@ -917,7 +917,7 @@
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
+            </span>.ok_or(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.compute_aggregate_verification_key(<span class="kw-2">&amp;</span>signers_with_stake, <span class="kw-2">&amp;</span>protocol_parameters)
             .<span class="kw">await</span><span class="question-mark">?</span>)
@@ -931,7 +931,7 @@
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_next_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
+            </span>.ok_or(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.compute_aggregate_verification_key(<span class="kw-2">&amp;</span>next_signers_with_stake, <span class="kw-2">&amp;</span>protocol_parameters)
             .<span class="kw">await</span><span class="question-mark">?</span>)
@@ -1078,7 +1078,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_signer_retrieval_epoch()
             .with_context(|| <span class="string">&quot;Multi Signer can not offset to signer retrieveal epoch while retrivieving protocol parameters&quot;</span>)
@@ -1095,7 +1095,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_protocol_parameters_recording_epoch();
 
@@ -1115,7 +1115,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_next_signer_retrieval_epoch();
         <span class="self">self</span>.get_protocol_parameters_at_epoch(epoch).<span class="kw">await
@@ -1127,7 +1127,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_signer_retrieval_epoch()
             .with_context(|| <span class="string">&quot;Multi Signer can not offset to signer retrieveal epoch while retrieving stake distribution&quot;</span>)
@@ -1143,7 +1143,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_next_signer_retrieval_epoch();
         <span class="self">self</span>.get_stake_distribution_at_epoch(epoch).<span class="kw">await
@@ -1158,7 +1158,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_recording_epoch();
         <span class="kw">let </span>stakes = StakeDistribution::from_iter(stakes.iter().cloned());
@@ -1190,7 +1190,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch;
         <span class="kw">let </span>epoch = epoch
             .offset_to_signer_retrieval_epoch()
@@ -1232,7 +1232,7 @@
         <span class="kw">let </span>epoch = <span class="self">self
             </span>.current_beacon
             .as_ref()
-            .ok_or_else(ProtocolError::UnavailableBeacon)<span class="question-mark">?
+            .ok_or(ProtocolError::UnavailableBeacon)<span class="question-mark">?
             </span>.epoch
             .offset_to_next_signer_retrieval_epoch();
         <span class="kw">let </span>signers = <span class="self">self
@@ -1279,7 +1279,7 @@
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
+            </span>.ok_or(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>signers_with_stakes = <span class="self">self</span>.get_signers_with_stake().<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1301,7 +1301,7 @@
         <span class="kw">let </span>protocol_parameters = <span class="self">self
             </span>.get_protocol_parameters()
             .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
+            </span>.ok_or(ProtocolError::UnavailableProtocolParameters)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>signers_with_stakes = <span class="self">self</span>.get_signers_with_stake().<span class="kw">await</span><span class="question-mark">?</span>;
 

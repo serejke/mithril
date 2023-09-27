@@ -215,8 +215,8 @@
 
 <span class="doccomment">/// Parse error
 </span><span class="attr">#[derive(Error, Debug)]
-#[error(<span class="string">&quot;Codec parse error: `{0:?}`&quot;</span>)]
-</span><span class="kw">pub struct </span>CodecParseError(StdError);
+#[error(<span class="string">&quot;Codec parse error&quot;</span>)]
+</span><span class="kw">pub struct </span>CodecParseError(<span class="attr">#[source] </span>StdError);
 
 <span class="doccomment">/// Fields for a shelley formatted file (holds for vkeys, skeys or certs)
 </span><span class="attr">#[derive(Clone, Debug, Default, Serialize, Deserialize)]

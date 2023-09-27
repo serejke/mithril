@@ -208,12 +208,12 @@
     </span>MissingParameters(),
 
     <span class="doccomment">/// Parameters parse error.
-    </span><span class="attr">#[error(<span class="string">&quot;era reader adapter parameters parse error: {0:?}&quot;</span>)]
-    </span>ParseParameters(serde_json::Error),
+    </span><span class="attr">#[error(<span class="string">&quot;era reader adapter parameters parse error&quot;</span>)]
+    </span>ParseParameters(<span class="attr">#[source] </span>serde_json::Error),
 
     <span class="doccomment">/// Parameters decode error.
-    </span><span class="attr">#[error(<span class="string">&quot;era reader adapter parameters decode error: {0:?}&quot;</span>)]
-    </span>Decode(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;era reader adapter parameters decode error&quot;</span>)]
+    </span>Decode(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// Era adapter builder

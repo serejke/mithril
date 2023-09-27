@@ -348,6 +348,7 @@
 <a href="#348" id="348">348</a>
 <a href="#349" id="349">349</a>
 <a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
@@ -453,12 +454,13 @@
 </span><span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>EraReaderError {
     <span class="doccomment">/// Underlying adapter fails to return data.
-    </span><span class="attr">#[error(<span class="string">&quot;Adapter Error message: «{message}» caught error: {error:?}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Adapter Error message: «{message}»&quot;</span>)]
     </span>AdapterFailure {
         <span class="doccomment">/// context message
         </span>message: String,
 
         <span class="doccomment">/// nested underlying adapter error
+        </span><span class="attr">#[source]
         </span>error: StdError,
     },
 

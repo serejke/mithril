@@ -85,11 +85,11 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ImmutableDigesterCacheProviderError {
     <span class="doccomment">/// Error raised by [ImmutableFileDigestCacheProvider::store].
-    </span><span class="attr">#[error(<span class="string">&quot;Could not store immutable file digests cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Could not store immutable file digests cache&quot;</span>)]
     </span>Store(<span class="attr">#[from] </span>ImmutableDigesterCacheStoreError),
 
     <span class="doccomment">/// Error raised by [ImmutableFileDigestCacheProvider::get].
-    </span><span class="attr">#[error(<span class="string">&quot;Could not read immutable file digests cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Could not read immutable file digests cache&quot;</span>)]
     </span>Get(<span class="attr">#[from] </span>ImmutableDigesterCacheGetError),
 }
 
@@ -97,11 +97,11 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ImmutableDigesterCacheStoreError {
     <span class="doccomment">/// Raised when an IO error is raised when storing a cache.
-    </span><span class="attr">#[error(<span class="string">&quot;IO error when storing cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;IO error when storing cache&quot;</span>)]
     </span>Io(<span class="attr">#[from] </span>io::Error),
 
     <span class="doccomment">/// Raised when json cache serialization fails.
-    </span><span class="attr">#[error(<span class="string">&quot;IO error when serializing json cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;IO error when serializing json cache&quot;</span>)]
     </span>JsonSerialization(<span class="attr">#[from] </span>serde_json::Error),
 }
 
@@ -109,11 +109,11 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>ImmutableDigesterCacheGetError {
     <span class="doccomment">/// Raised when an IO error is raised when getting a cache.
-    </span><span class="attr">#[error(<span class="string">&quot;IO error when getting cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;IO error when getting cache&quot;</span>)]
     </span>Io(<span class="attr">#[from] </span>io::Error),
 
     <span class="doccomment">/// Raised when json cache deserialization fails.
-    </span><span class="attr">#[error(<span class="string">&quot;IO error when deserializing json cache: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;IO error when deserializing json cache&quot;</span>)]
     </span>JsonDeserialization(<span class="attr">#[from] </span>serde_json::Error),
 }
 

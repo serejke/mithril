@@ -244,24 +244,24 @@
 </span><span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>EraMarkersPayloadError {
     <span class="doccomment">/// Error raised when the message serialization fails
-    </span><span class="attr">#[error(<span class="string">&quot;could not serialize message: {0:?}&quot;</span>)]
-    </span>SerializeMessage(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;could not serialize message&quot;</span>)]
+    </span>SerializeMessage(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the signature deserialization fails
-    </span><span class="attr">#[error(<span class="string">&quot;could not deserialize signature: {0:?}&quot;</span>)]
-    </span>DeserializeSignature(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;could not deserialize signature&quot;</span>)]
+    </span>DeserializeSignature(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the signature is missing
     </span><span class="attr">#[error(<span class="string">&quot;could not verify signature: signature is missing&quot;</span>)]
     </span>MissingSignature,
 
     <span class="doccomment">/// Error raised when the signature is invalid
-    </span><span class="attr">#[error(<span class="string">&quot;could not verify signature: {0:?}&quot;</span>)]
-    </span>VerifySignature(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;could not verify signature&quot;</span>)]
+    </span>VerifySignature(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Error raised when the signing the markers
-    </span><span class="attr">#[error(<span class="string">&quot;could not create signature: {0:?}&quot;</span>)]
-    </span>CreateSignature(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;could not create signature&quot;</span>)]
+    </span>CreateSignature(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="doccomment">/// Era markers payload

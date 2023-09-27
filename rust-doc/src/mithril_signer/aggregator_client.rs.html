@@ -840,40 +840,40 @@
 </span><span class="attr">#[derive(Error, Debug)]
 </span><span class="kw">pub enum </span>AggregatorClientError {
     <span class="doccomment">/// The aggregator host has returned a technical error.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server technical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerTechnical(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;remote server technical error&quot;</span>)]
+    </span>RemoteServerTechnical(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// The aggregator host responded it cannot fulfill our request.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server logical error: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerLogical(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;remote server logical error&quot;</span>)]
+    </span>RemoteServerLogical(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Could not reach aggregator.
-    </span><span class="attr">#[error(<span class="string">&quot;remote server unreachable: &#39;{0}&#39;&quot;</span>)]
-    </span>RemoteServerUnreachable(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;remote server unreachable&quot;</span>)]
+    </span>RemoteServerUnreachable(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Could not parse response.
-    </span><span class="attr">#[error(<span class="string">&quot;json parsing failed: &#39;{0}&#39;&quot;</span>)]
-    </span>JsonParseFailed(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;json parsing failed&quot;</span>)]
+    </span>JsonParseFailed(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Mostly network errors.
-    </span><span class="attr">#[error(<span class="string">&quot;Input/Output error: {0}&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">&quot;Input/Output error&quot;</span>)]
     </span>IOError(<span class="attr">#[from] </span>io::Error),
 
     <span class="doccomment">/// Incompatible API version error
-    </span><span class="attr">#[error(<span class="string">&quot;HTTP API version mismatch: {0}&quot;</span>)]
-    </span>ApiVersionMismatch(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;HTTP API version mismatch&quot;</span>)]
+    </span>ApiVersionMismatch(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// HTTP client creation error
-    </span><span class="attr">#[error(<span class="string">&quot;HTTP client creation failed: {0}&quot;</span>)]
-    </span>HTTPClientCreation(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;HTTP client creation failed&quot;</span>)]
+    </span>HTTPClientCreation(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Proxy creation error
-    </span><span class="attr">#[error(<span class="string">&quot;proxy creation failed: {0}&quot;</span>)]
-    </span>ProxyCreation(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;proxy creation failed&quot;</span>)]
+    </span>ProxyCreation(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Adapter error
-    </span><span class="attr">#[error(<span class="string">&quot;adapter failed: {0}&quot;</span>)]
-    </span>Adapter(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;adapter failed&quot;</span>)]
+    </span>Adapter(<span class="attr">#[source] </span>StdError),
 }
 
 <span class="attr">#[cfg(test)]

@@ -487,6 +487,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::VerificationKeyStorer;
 
+<span class="kw">use </span>mithril_common::chain_observer::ChainObserverError;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
 
@@ -507,20 +508,20 @@
     },
 
     <span class="doccomment">/// Chain observer error.
-    </span><span class="attr">#[error(<span class="string">&quot;chain observer error: &#39;{0}&#39;&quot;</span>)]
-    </span>ChainObserver(String),
+    </span><span class="attr">#[error(<span class="string">&quot;chain observer error&quot;</span>)]
+    </span>ChainObserver(<span class="attr">#[from] </span>ChainObserverError),
 
     <span class="doccomment">/// Signer is already registered.
     </span><span class="attr">#[error(<span class="string">&quot;signer already registered&quot;</span>)]
     </span>ExistingSigner(Box&lt;SignerWithStake&gt;),
 
     <span class="doccomment">/// Store error.
-    </span><span class="attr">#[error(<span class="string">&quot;store error: {0}&quot;</span>)]
-    </span>StoreError(StdError),
+    </span><span class="attr">#[error(<span class="string">&quot;store error&quot;</span>)]
+    </span>StoreError(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Signer registration failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer registration failed&quot;</span>)]
-    </span>FailedSignerRegistration(StdError),
+    </span>FailedSignerRegistration(<span class="attr">#[source] </span>StdError),
 
     <span class="doccomment">/// Signer recorder failed.
     </span><span class="attr">#[error(<span class="string">&quot;signer recorder failed: &#39;{0}&#39;&quot;</span>)]
@@ -703,8 +704,7 @@
             <span class="prelude-val">Some</span>(operational_certificate) =&gt; <span class="prelude-val">Some</span>(
                 <span class="self">self</span>.chain_observer
                     .get_current_kes_period(operational_certificate)
-                    .<span class="kw">await
-                    </span>.map_err(|e| SignerRegistrationError::ChainObserver(e.to_string()))<span class="question-mark">?
+                    .<span class="kw">await</span><span class="question-mark">?
                     </span>.unwrap_or_default()
                     - operational_certificate.start_kes_period <span class="kw">as </span>KESPeriod,
             ),
