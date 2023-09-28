@@ -88,6 +88,13 @@
 <a href="#88" id="88">88</a>
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
     dependency_injection::MultiSignerWrapper,
     event_store::{EventMessage, TransmitterService},
@@ -97,7 +104,7 @@
     SignerRegisterer, VerificationKeyStorer,
 };
 
-<span class="kw">use </span>mithril_common::BeaconProvider;
+<span class="kw">use </span>mithril_common::{api_version::APIVersionProvider, BeaconProvider};
 <span class="kw">use </span>std::convert::Infallible;
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>warp::Filter;
@@ -177,5 +184,12 @@
     dependency_manager: Arc&lt;DependencyContainer&gt;,
 ) -&gt; <span class="kw">impl </span>Filter&lt;Extract = (Arc&lt;<span class="kw">dyn </span>VerificationKeyStorer&gt;,), Error = Infallible&gt; + Clone {
     warp::any().map(<span class="kw">move </span>|| dependency_manager.verification_key_store.clone())
+}
+
+<span class="doccomment">/// With API version provider
+</span><span class="kw">pub fn </span>with_api_version_provider(
+    dependency_manager: Arc&lt;DependencyContainer&gt;,
+) -&gt; <span class="kw">impl </span>Filter&lt;Extract = (Arc&lt;APIVersionProvider&gt;,), Error = Infallible&gt; + Clone {
+    warp::any().map(<span class="kw">move </span>|| dependency_manager.api_version_provider.clone())
 }
 </code></pre></div></section></main></body></html>

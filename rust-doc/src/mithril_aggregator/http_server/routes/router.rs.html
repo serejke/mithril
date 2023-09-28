@@ -178,9 +178,12 @@
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
 <a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::{
-    artifact_routes, certificate_routes, epoch_routes, signatures_routes, signer_routes,
-    statistics_routes,
+    artifact_routes, certificate_routes, epoch_routes, root_routes, signatures_routes,
+    signer_routes, statistics_routes,
 };
 <span class="kw">use </span><span class="kw">crate</span>::http_server::SERVER_BASE_PATH;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
@@ -194,6 +197,8 @@
 <span class="kw">use </span>warp::http::Method;
 <span class="kw">use </span>warp::reject::Reject;
 <span class="kw">use </span>warp::{Filter, Rejection, Reply};
+
+<span class="kw">use </span><span class="kw">super</span>::middlewares;
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>VersionMismatchError;
@@ -216,7 +221,7 @@
 
     warp::any()
         .and(header_must_be(
-            dependency_manager.clone().api_version_provider.clone(),
+            dependency_manager.api_version_provider.clone(),
         ))
         .and(warp::path(SERVER_BASE_PATH))
         .and(
@@ -231,10 +236,11 @@
                 .or(signatures_routes::routes(dependency_manager.clone()))
                 .or(epoch_routes::routes(dependency_manager.clone()))
                 .or(statistics_routes::routes(dependency_manager.clone()))
+                .or(root_routes::routes(dependency_manager.clone()))
                 .with(cors),
         )
         .recover(handle_custom)
-        .and(warp::any().map(<span class="kw">move </span>|| dependency_manager.clone().api_version_provider.clone()))
+        .and(middlewares::with_api_version_provider(dependency_manager))
         .map(|reply, api_version_provider: Arc&lt;APIVersionProvider&gt;| {
             warp::reply::with_header(
                 reply,
