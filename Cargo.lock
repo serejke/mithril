@@ -2885,6 +2885,7 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "hex",
+ "js-sys",
  "kes-summed-ed25519",
  "mithril-stm",
  "serde",
@@ -2892,6 +2893,8 @@ dependencies = [
  "serde_json",
  "sha2",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
