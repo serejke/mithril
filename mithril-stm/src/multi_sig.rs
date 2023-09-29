@@ -409,6 +409,7 @@ impl Signature {
         vks: &[VerificationKey],
         sigs: &[Signature],
     ) -> Result<(), MultiSignatureError> {
+        /*
         let batched_sig: BlstSig = match AggregateSignature::aggregate(
             &(sigs.iter().map(|sig| &sig.0).collect::<Vec<&BlstSig>>()),
             false,
@@ -428,6 +429,8 @@ impl Signature {
             None,
         )
         .map_err(|_| MultiSignatureError::BatchInvalid)
+        */
+        todo!()
     }
 }
 
