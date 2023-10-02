@@ -2914,6 +2914,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "poc_wasm_client"
+version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "polling"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
