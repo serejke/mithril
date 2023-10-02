@@ -2917,6 +2917,15 @@ dependencies = [
 name = "poc_wasm_client"
 version = "0.1.0"
 dependencies = [
+ "blake2 0.10.6",
+ "chrono",
+ "ed25519-dalek",
+ "hex",
+ "mithril-stm",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2",
  "wasm-bindgen",
 ]
 
