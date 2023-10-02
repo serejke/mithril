@@ -2921,12 +2921,15 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "hex",
+ "js-sys",
  "mithril-stm",
  "serde",
  "serde_bytes",
  "serde_json",
  "sha2",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
