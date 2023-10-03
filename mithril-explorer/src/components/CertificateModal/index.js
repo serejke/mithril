@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Badge, Button, Col, Container, ListGroup, Modal, Row, Table } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import RawJsonButton from "../RawJsonButton";
+import LinkButton from "../LinkButton";
 import Stake from "../Stake";
 import ProtocolParameters from "../ProtocolParameters";
 import PoolTicker from "../PoolTicker";
@@ -15,6 +16,10 @@ export default function CertificateModal(props) {
     (state) => `${selectedAggregator(state)}/certificate/${props.hash}`,
   );
   const aggregator = useSelector(selectedAggregator);
+  const networkCode = (state) => {
+    return selectedAggregator(state).split("/")[2].split(".")[1]
+  };
+  const verifyCertificateUrl = useSelector((state) => `http://localhost:8080/?certificate=${props.hash}&aggregator=${selectedAggregator(state)}&genesis_verification_key=https://raw.githubusercontent.com/input-output-hk/mithril/main/mithril-infra/configuration/${networkCode(state)}/genesis.vkey`);
 
   useEffect(() => {
     if (!props.hash) {
@@ -66,6 +71,11 @@ export default function CertificateModal(props) {
                 </ListGroup>
                 <h4>Protocol Parameters</h4>
                 <ProtocolParameters protocolParameters={certificate.metadata.parameters} />
+                <br  />
+                <h4>Live Verification</h4>
+                <LinkButton href={verifyCertificateUrl} target="_blank">
+                  Verify Certificate Now!
+                </LinkButton>
               </Col>
               <Col xl={8}>
                 <h4>Signers</h4>
