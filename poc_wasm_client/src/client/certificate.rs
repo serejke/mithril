@@ -4,11 +4,9 @@ use mithril_stm::stm::StmParameters;
 use mithril_stm::stm::{StmAggrSig, StmAggrVerificationKey};
 use serde::Deserialize;
 use std::convert::{TryFrom, TryInto};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use wasm_bindgen::JsValue;
 
-use super::key_decode_hex;
+use super::{fetch_certificate, fetch_genesis_verification_key, key_decode_hex, print_window};
 
 pub(crate) type D = Blake2b<U32>;
 
@@ -42,6 +40,12 @@ pub struct CertificateMetadata {
     pub parameters: StmParameters,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct CertificateBeacon {
+    pub network: String,
+    pub epoch: u64,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CertificateMessage {
     hash: String,
@@ -50,6 +54,7 @@ pub struct CertificateMessage {
     genesis_signature: String,
     aggregate_verification_key: String,
     signed_message: String,
+    beacon: CertificateBeacon,
     metadata: CertificateMetadata,
 }
 
@@ -57,6 +62,7 @@ pub struct CertificateMessage {
 pub struct Certificate {
     pub hash: String,
     pub previous_hash: Option<String>,
+    pub epoch: u64,
     pub signature: CertificateSignature,
     pub avk: StmAggrVerificationKey<D>,
     pub message: Vec<u8>,
@@ -76,6 +82,7 @@ impl TryFrom<CertificateMessage> for Certificate {
         Certificate::new(
             &value.hash,
             &value.previous_hash,
+            &value.beacon.epoch,
             signature,
             &value.aggregate_verification_key,
             &value.signed_message,
@@ -88,6 +95,7 @@ impl Certificate {
     pub fn new(
         hash: &str,
         previous_hash: &str,
+        epoch: &u64,
         signature: &str,
         avk: &str,
         message: &str,
@@ -116,6 +124,7 @@ impl Certificate {
         let myself = Self {
             hash: hash.to_owned(),
             previous_hash,
+            epoch: epoch.to_owned(),
             signature,
             avk: key_decode_hex(avk)?,
             message: message.as_bytes().to_owned(),
@@ -125,6 +134,12 @@ impl Certificate {
         Ok(myself)
     }
 
+    pub fn is_genesis(&self) -> bool {
+        self.previous_hash.is_none()
+    }
+
+    // In this PoC, the certificate is considered valid if the signature is valid (multi-signature or genesis signature).
+    // In particular, the hash of the certificate is not verified.
     pub fn verify(
         &self,
         genesis_verification_key: &ed25519_dalek::VerifyingKey,
@@ -140,42 +155,43 @@ impl Certificate {
     }
 }
 
-pub async fn fetch_certificate(
+// In this PoC, the certificate chain is considered valid if each of its certificate is valid
+// We don't test if the AVK of the next epoch is signed in the master certificate of the previous epoch.
+pub async fn verify_certificate_chain(
     aggregator_endpoint: &str,
-    hash: &str,
-) -> Result<Certificate, String> {
-    let mut opts = RequestInit::new();
-    opts.method("GET");
-    opts.mode(RequestMode::Cors);
-    let url = format!("{aggregator_endpoint}/certificate/{hash}");
-    let request = Request::new_with_str_and_init(&url, &opts)
-        .map_err(|e| format!("WEB-SYS: request error: {e:?}"))?;
-    request
-        .headers()
-        .set("Accept", "application/vnd.github.v3+json")
-        .map_err(|e| format!("WEB-SYS: headers error: {e:?}"))?;
-    let window = web_sys::window().ok_or_else(|| "WEB-SYS: no Window created!".to_string())?;
-    let resp_value = JsFuture::from(window.fetch_with_request(&request))
-        .await
-        .map_err(|e| format!("WEB-SYS: fetch error: {e:?}"))?;
-    let response: Response = resp_value
-        .dyn_into()
-        .map_err(|e| format!("WEB-SYS: response error: {e:?}"))?;
-    let js_value = JsFuture::from(
-        response
-            .text()
-            .map_err(|e| format!("WEB-SYS: Cannot read JSON response from body: {e:?}"))?,
-    )
-    .await
-    .map_err(|e| format!("WEB-SYS: Cannot read JS memory: {e:?}"))?;
-    let certificate_message: CertificateMessage = serde_json::from_str(
-        &js_value
-            .as_string()
-            .ok_or_else(|| "WEB-SYS: given JSON is not a String".to_string())?,
-    )
-    .map_err(|_| {
-        "SERDE-JSON: Could not deserialize CertificateMessge from given JSON ".to_string()
-    })?;
+    certificate_hash: &str,
+    genesis_verification_key_url: &str,
+) -> Result<Certificate, JsValue> {
+    print_window("<h3>Verifying the certificate chain:</h3>").unwrap();
 
-    certificate_message.try_into()
+    let genesis_verification_key =
+        fetch_genesis_verification_key(genesis_verification_key_url).await?;
+
+    let mut certificate = fetch_certificate(aggregator_endpoint, certificate_hash).await?;
+    loop {
+        certificate.verify(&genesis_verification_key).map_err(|e| {
+            format!(
+                "Verification failed for certificate hash='{}', ERROR = '{e}",
+                certificate.hash
+            )
+        })?;
+        let certificate_hash = &certificate.hash;
+        let certificate_type = if certificate.is_genesis() {
+            "Genesis"
+        } else {
+            "Mithril"
+        };
+        let certificate_epoch = certificate.epoch;
+        print_window(&format!(
+            ">> ✔️ {certificate_type} certificate <a href='{aggregator_endpoint}/certificate/{certificate_hash}' target='_blank'>#<b>{certificate_hash}</b></a> at epoch <b>#{certificate_epoch}</b> is valid.",
+        ))
+        .unwrap();
+
+        certificate = match &certificate.previous_hash {
+            None => break,
+            Some(hash) => fetch_certificate(aggregator_endpoint, hash).await?,
+        }
+    }
+
+    Ok(certificate)
 }
