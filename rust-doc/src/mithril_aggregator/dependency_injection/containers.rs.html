@@ -321,6 +321,8 @@
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
 <a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>sqlite::Connection;
 <span class="kw">use </span>std::{collections::HashMap, sync::Arc};
 <span class="kw">use </span>tokio::sync::{Mutex, RwLock};
@@ -339,10 +341,9 @@
     BeaconProvider,
 };
 
-<span class="kw">use </span><span class="kw">crate</span>::database::provider::CertificateRepository;
 <span class="kw">use crate</span>::{
     configuration::<span class="kw-2">*</span>,
-    database::provider::{SignedEntityStorer, StakePoolStore},
+    database::provider::{CertificateRepository, SignedEntityStorer, SignerGetter, StakePoolStore},
     event_store::{EventMessage, TransmitterService},
     multi_signer::MultiSigner,
     services::{CertifierService, SignedEntityService, StakeDistributionService, TickerService},
@@ -446,6 +447,9 @@
 
     <span class="doccomment">/// Signed Entity storer
     </span><span class="kw">pub </span>signed_entity_storer: Arc&lt;<span class="kw">dyn </span>SignedEntityStorer&gt;,
+
+    <span class="doccomment">/// Signer getter service
+    </span><span class="kw">pub </span>signer_getter: Arc&lt;<span class="kw">dyn </span>SignerGetter&gt;,
 }
 
 <span class="attr">#[doc(hidden)]
@@ -608,9 +612,9 @@
     <span class="kw">async fn </span>fill_verification_key_store(<span class="kw-2">&amp;</span><span class="self">self</span>, target_epoch: Epoch, signers: <span class="kw-2">&amp;</span>[SignerWithStake]) {
         <span class="kw">for </span>signer <span class="kw">in </span>signers {
             <span class="self">self</span>.signer_recorder
-                .record_signer_id(signer.party_id.clone())
+                .record_signer_registration(signer.party_id.clone())
                 .<span class="kw">await
-                </span>.expect(<span class="string">&quot;record_signer_id should not fail&quot;</span>);
+                </span>.expect(<span class="string">&quot;record_signer_registration should not fail&quot;</span>);
             <span class="self">self</span>.verification_key_store
                 .save_verification_key(target_epoch, signer.clone())
                 .<span class="kw">await

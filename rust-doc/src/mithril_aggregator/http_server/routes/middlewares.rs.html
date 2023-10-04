@@ -95,6 +95,14 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
     dependency_injection::MultiSignerWrapper,
     event_store::{EventMessage, TransmitterService},
@@ -104,6 +112,7 @@
     SignerRegisterer, VerificationKeyStorer,
 };
 
+<span class="kw">use </span><span class="kw">crate</span>::database::provider::SignerGetter;
 <span class="kw">use </span>mithril_common::{api_version::APIVersionProvider, BeaconProvider};
 <span class="kw">use </span>std::convert::Infallible;
 <span class="kw">use </span>std::sync::Arc;
@@ -135,6 +144,13 @@
     dependency_manager: Arc&lt;DependencyContainer&gt;,
 ) -&gt; <span class="kw">impl </span>Filter&lt;Extract = (Arc&lt;<span class="kw">dyn </span>SignerRegisterer&gt;,), Error = Infallible&gt; + Clone {
     warp::any().map(<span class="kw">move </span>|| dependency_manager.signer_registerer.clone())
+}
+
+<span class="doccomment">/// With signer getter middleware
+</span><span class="kw">pub fn </span>with_signer_getter(
+    dependency_manager: Arc&lt;DependencyContainer&gt;,
+) -&gt; <span class="kw">impl </span>Filter&lt;Extract = (Arc&lt;<span class="kw">dyn </span>SignerGetter&gt;,), Error = Infallible&gt; + Clone {
+    warp::any().map(<span class="kw">move </span>|| dependency_manager.signer_getter.clone())
 }
 
 <span class="doccomment">/// With config middleware

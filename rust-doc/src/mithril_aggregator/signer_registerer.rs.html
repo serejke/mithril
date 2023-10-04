@@ -465,13 +465,6 @@
 <a href="#465" id="465">465</a>
 <a href="#466" id="466">466</a>
 <a href="#467" id="467">467</a>
-<a href="#468" id="468">468</a>
-<a href="#469" id="469">469</a>
-<a href="#470" id="470">470</a>
-<a href="#471" id="471">471</a>
-<a href="#472" id="472">472</a>
-<a href="#473" id="473">473</a>
-<a href="#474" id="474">474</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::sync::Arc;
@@ -581,15 +574,8 @@
 </span><span class="attr">#[cfg_attr(test, automock)]
 #[async_trait]
 </span><span class="kw">pub trait </span>SignerRecorder: Sync + Send {
-    <span class="doccomment">/// Record signer_id
-    </span><span class="kw">async fn </span>record_signer_id(<span class="kw-2">&amp;</span><span class="self">self</span>, signer_id: String) -&gt; StdResult&lt;()&gt;;
-
-    <span class="doccomment">/// Record pool ticker by id
-    </span><span class="kw">async fn </span>record_signer_pool_ticker(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        signer_id: String,
-        pool_ticker: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    ) -&gt; StdResult&lt;()&gt;;
+    <span class="doccomment">/// Record a signer registration
+    </span><span class="kw">async fn </span>record_signer_registration(<span class="kw-2">&amp;</span><span class="self">self</span>, signer_id: String) -&gt; StdResult&lt;()&gt;;
 }
 
 <span class="doccomment">/// Implementation of a [SignerRegisterer]
@@ -735,7 +721,7 @@
         signer_save.party_id = party_id_save.clone();
 
         <span class="self">self</span>.signer_recorder
-            .record_signer_id(party_id_save)
+            .record_signer_registration(party_id_save)
             .<span class="kw">await
             </span>.map_err(|e| SignerRegistrationError::FailedSignerRecorder(e.to_string()))<span class="question-mark">?</span>;
 
@@ -790,7 +776,7 @@
         )));
         <span class="kw">let </span><span class="kw-2">mut </span>signer_recorder = MockSignerRecorder::new();
         signer_recorder
-            .expect_record_signer_id()
+            .expect_record_signer_registration()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()))
             .once();
         <span class="kw">let </span>signer_registerer = MithrilSignerRegisterer::new(
@@ -835,7 +821,7 @@
         )));
         <span class="kw">let </span><span class="kw-2">mut </span>signer_recorder = MockSignerRecorder::new();
         signer_recorder
-            .expect_record_signer_id()
+            .expect_record_signer_registration()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()))
             .once();
         <span class="kw">let </span>signer_registerer = MithrilSignerRegisterer::new(

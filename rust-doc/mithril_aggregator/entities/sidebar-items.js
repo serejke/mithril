@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["OpenMessage","SignerRegistrationsListItemMessage","SignerRegistrationsMessage"]};
+window.SIDEBAR_ITEMS = {"struct":["OpenMessage","SignerRegistrationsListItemMessage","SignerRegistrationsMessage","SignerTickerListItemMessage","SignersTickersMessage"]};
