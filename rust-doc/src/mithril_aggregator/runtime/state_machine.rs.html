@@ -898,14 +898,14 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, RuntimeError&gt; {
         <span class="macro">info!</span>(<span class="string">&quot;initializing runtime&quot;</span>);
 
-        <span class="kw">let </span>state = <span class="kw">if </span>init_state.is_none() {
+        <span class="kw">let </span>state = <span class="kw">if let </span><span class="prelude-val">Some</span>(init_state) = init_state {
+            <span class="macro">trace!</span>(<span class="string">&quot;got initial state from caller&quot;</span>);
+            init_state
+        } <span class="kw">else </span>{
             <span class="macro">trace!</span>(<span class="string">&quot;idle state, no current beacon&quot;</span>);
             AggregatorState::Idle(IdleState {
                 current_beacon: <span class="prelude-val">None</span>,
             })
-        } <span class="kw">else </span>{
-            <span class="macro">trace!</span>(<span class="string">&quot;got initial state from caller&quot;</span>);
-            init_state.unwrap()
         };
 
         <span class="prelude-val">Ok</span>::&lt;<span class="self">Self</span>, RuntimeError&gt;(<span class="self">Self </span>{

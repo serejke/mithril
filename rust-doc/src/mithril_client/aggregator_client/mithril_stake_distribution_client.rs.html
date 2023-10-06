@@ -185,7 +185,7 @@
 
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(stake_distribution_entity))
             }
-            <span class="prelude-val">Err</span>(e) <span class="kw">if </span><span class="macro">matches!</span>(e, AggregatorHTTPClientError::RemoteServerLogical(<span class="kw">_</span>)) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+            <span class="prelude-val">Err</span>(AggregatorHTTPClientError::RemoteServerLogical(<span class="kw">_</span>)) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
             <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e.into()),
         }
     }

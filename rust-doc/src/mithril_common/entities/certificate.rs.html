@@ -489,7 +489,7 @@
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
         <span class="comment">// Order by beacon first then per hash
         </span><span class="kw">match </span><span class="self">self</span>.beacon.partial_cmp(<span class="kw-2">&amp;</span>other.beacon) {
-            <span class="prelude-val">Some</span>(ordering) <span class="kw">if </span>ordering == Ordering::Equal =&gt; <span class="self">self</span>.hash.partial_cmp(<span class="kw-2">&amp;</span>other.hash),
+            <span class="prelude-val">Some</span>(Ordering::Equal) =&gt; <span class="self">self</span>.hash.partial_cmp(<span class="kw-2">&amp;</span>other.hash),
             <span class="prelude-val">Some</span>(other) =&gt; <span class="prelude-val">Some</span>(other),
             <span class="comment">// Beacons may be not comparable (most likely because the network isn&#39;t the same) in
             // that case we can still order per hash
