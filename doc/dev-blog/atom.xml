@@ -2,11 +2,29 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://mithril.network/doc/dev-blog</id>
     <title>Mithril. A complete guide. Blog</title>
-    <updated>2023-07-21T00:00:00.000Z</updated>
+    <updated>2023-10-10T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://mithril.network/doc/dev-blog"/>
     <subtitle>Mithril. A complete guide. Blog</subtitle>
     <icon>https://mithril.network/doc/img/logo.svg</icon>
+    <entry>
+        <title type="html"><![CDATA[Mithril Protocol’s Mainnet Beta Launch]]></title>
+        <id>https://mithril.network/doc/dev-blog/2023/10/10/relay-security-advisory</id>
+        <link href="https://mithril.network/doc/dev-blog/2023/10/10/relay-security-advisory"/>
+        <updated>2023-10-10T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Mithril relay could expose Cardano block producer internal IP when updated (Security Advisory)]]></summary>
+        <content type="html"><![CDATA[<h3 class="anchor anchorWithStickyNavbar_LWe7" id="mithril-relay-could-expose-cardano-block-producer-internal-ip-when-updated-security-advisory">Mithril relay could expose Cardano block producer internal IP when updated (Security Advisory)<a href="#mithril-relay-could-expose-cardano-block-producer-internal-ip-when-updated-security-advisory" class="hash-link" aria-label="Direct link to Mithril relay could expose Cardano block producer internal IP when updated (Security Advisory)" title="Direct link to Mithril relay could expose Cardano block producer internal IP when updated (Security Advisory)">​</a></h3><p>The Mithril team has published a <a href="https://github.com/input-output-hk/mithril/security/advisories/GHSA-9m3h-72xj-x2gq" target="_blank" rel="noopener noreferrer">security advisory</a> to destination of SPOs running a Mithril signer/relay on the <code>mainnet</code> infrastructure:</p><ul><li><strong>Identifier</strong>: GHSA-9m3h-72xj-x2gq</li><li><strong>Title</strong>: Mithril relay could expose Cardano block producer internal IP when updated</li><li><strong>Location</strong>: <a href="https://github.com/input-output-hk/mithril/security/advisories/GHSA-9m3h-72xj-x2gq" target="_blank" rel="noopener noreferrer">https://github.com/input-output-hk/mithril/security/advisories/GHSA-9m3h-72xj-x2gq</a></li><li><strong>Severity</strong>: High (7.2/10)</li></ul><div class="theme-admonition theme-admonition-danger alert alert--danger admonition_LlT9"><div class="admonitionHeading_tbUL"><span class="admonitionIcon_kALy"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path></svg></span>danger</div><div class="admonitionContent_S0QG"><p>We strongly encourage all the <code>mainnet</code> SPOs to update the listening port of their <strong>Mithril relay</strong> in order to prevent the issue, with the process explained in the <strong>Workarounds</strong> section of the <a href="https://github.com/input-output-hk/mithril/security/advisories/GHSA-9m3h-72xj-x2gq" target="_blank" rel="noopener noreferrer">security advisory</a>.</p></div></div><p>Feel free to reach out to us on the <a href="https://discord.gg/5kaErDKDRq" target="_blank" rel="noopener noreferrer">Discord channel</a> for questions and/or help.</p>]]></content>
+        <author>
+            <name>Mithril Team</name>
+        </author>
+        <category label="spo" term="spo"/>
+        <category label="mithril signer" term="mithril signer"/>
+        <category label="mithril relay" term="mithril relay"/>
+        <category label="mainnet" term="mainnet"/>
+        <category label="production" term="production"/>
+        <category label="beta" term="beta"/>
+        <category label="security" term="security"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Mithril Protocol’s Mainnet Beta Launch]]></title>
         <id>https://mithril.network/doc/dev-blog/2023/07/21/mainnet-beta-launch</id>
