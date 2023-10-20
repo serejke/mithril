@@ -378,22 +378,13 @@
 <a href="#378" id="378">378</a>
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
-<a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
-<a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>mithril_common::StdResult;
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>tokio::sync::RwLock;
 
-<span class="kw">use </span>mithril_common::entities::{Epoch, PartyId, Signer, SignerWithStake, StakeDistribution};
+<span class="kw">use </span>mithril_common::entities::{Epoch, PartyId, Signer, SignerWithStake};
 <span class="kw">use </span>mithril_common::store::adapter::StoreAdapter;
 
 <span class="attr">#[cfg(test)]
@@ -416,20 +407,17 @@
         signer: SignerWithStake,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;&gt;;
 
-    <span class="doccomment">/// Returns a HashMap of [Signer] indexed by [PartyId] for the given `Beacon`.
+    <span class="doccomment">/// Returns a HashMap of [Signer] indexed by [PartyId] for the given `epoch`.
     </span><span class="kw">async fn </span>get_verification_keys(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;&gt;;
 
+    <span class="doccomment">/// Returns the list of signers for the given `epoch`.
+    </span><span class="kw">async fn </span>get_signers(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;SignerWithStake&gt;&gt;&gt;;
+
     <span class="doccomment">/// Prune all verification keys that are at or below the given epoch.
     </span><span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt;;
-
-    <span class="doccomment">/// Return the parties that are stored at the given epoch.
-    </span><span class="kw">async fn </span>get_stake_distribution_for_epoch(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        epoch: Epoch,
-    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt;;
 }
 
 <span class="doccomment">/// Store for the `VerificationKey`.
@@ -482,6 +470,18 @@
         <span class="prelude-val">Ok</span>(record.map(|h| h.into_iter().map(|(k, v)| (k, v.into())).collect()))
     }
 
+    <span class="kw">async fn </span>get_signers(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;SignerWithStake&gt;&gt;&gt; {
+        <span class="kw">let </span>record = <span class="self">self
+            </span>.adapter
+            .read()
+            .<span class="kw">await
+            </span>.get_record(<span class="kw-2">&amp;</span>epoch)
+            .<span class="kw">await
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Could not get signers for epoch {epoch}.&quot;</span>))<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(record.map(|h| h.into_values().collect()))
+    }
+
     <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>adapter = <span class="self">self</span>.adapter.write().<span class="kw">await</span>;
 
@@ -499,19 +499,6 @@
         }
 
         <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">async fn </span>get_stake_distribution_for_epoch(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        epoch: Epoch,
-    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;StakeDistribution&gt;&gt; {
-        <span class="kw">let </span>record = <span class="self">self</span>.adapter.read().<span class="kw">await</span>.get_record(<span class="kw-2">&amp;</span>epoch).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(record.map(|r| {
-            StakeDistribution::from_iter(
-                r.into_iter()
-                    .map(|(party_id, signer)| (party_id, signer.stake)),
-            )
-        }))
     }
 }
 
@@ -539,8 +526,8 @@
             }
 
             <span class="attr">#[tokio::test]
-            </span><span class="kw">async fn </span>get_stake_distribution_for_empty_epoch() {
-                test_suite::get_stake_distribution_for_empty_epoch(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$store_builder</span>).<span class="kw">await</span>;
+            </span><span class="kw">async fn </span>get_signers_for_empty_epoch() {
+                test_suite::get_signers_for_empty_epoch(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$store_builder</span>).<span class="kw">await</span>;
             }
 
             <span class="attr">#[tokio::test]
@@ -549,8 +536,8 @@
             }
 
             <span class="attr">#[tokio::test]
-            </span><span class="kw">async fn </span>get_stake_distribution_for_existing_epoch() {
-                test_suite::get_stake_distribution_for_existing_epoch(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$store_builder</span>).<span class="kw">await</span>;
+            </span><span class="kw">async fn </span>get_signers_for_existing_epoch() {
+                test_suite::get_signers_for_existing_epoch(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$store_builder</span>).<span class="kw">await</span>;
             }
 
             <span class="attr">#[tokio::test]
@@ -567,9 +554,9 @@
 <span class="attr">#[macro_use]
 #[cfg(test)]
 </span><span class="kw">pub mod </span>test_suite {
-    <span class="kw">use </span>mithril_common::entities::{Epoch, PartyId, Signer, SignerWithStake, StakeDistribution};
+    <span class="kw">use </span>mithril_common::entities::{Epoch, PartyId, Signer, SignerWithStake};
     <span class="kw">use </span>mithril_common::test_utils::fake_keys;
-    <span class="kw">use </span>std::collections::{BTreeMap, HashMap};
+    <span class="kw">use </span>std::collections::{BTreeMap, BTreeSet, HashMap};
     <span class="kw">use </span>std::sync::Arc;
 
     <span class="kw">use </span><span class="kw">crate</span>::VerificationKeyStorer;
@@ -671,13 +658,10 @@
         <span class="macro">assert!</span>(res.is_none());
     }
 
-    <span class="kw">pub async fn </span>get_stake_distribution_for_empty_epoch(store_builder: <span class="kw-2">&amp;</span>StoreBuilder) {
+    <span class="kw">pub async fn </span>get_signers_for_empty_epoch(store_builder: <span class="kw-2">&amp;</span>StoreBuilder) {
         <span class="kw">let </span>signers = build_signers(<span class="number">2</span>, <span class="number">1</span>);
         <span class="kw">let </span>store = store_builder(signers);
-        <span class="kw">let </span>res = store
-            .get_stake_distribution_for_epoch(Epoch(<span class="number">0</span>))
-            .<span class="kw">await
-            </span>.unwrap();
+        <span class="kw">let </span>res = store.get_signers(Epoch(<span class="number">0</span>)).<span class="kw">await</span>.unwrap();
 
         <span class="macro">assert!</span>(res.is_none());
     }
@@ -702,24 +686,22 @@
         <span class="macro">assert_eq!</span>(expected_signers, res);
     }
 
-    <span class="kw">pub async fn </span>get_stake_distribution_for_existing_epoch(store_builder: <span class="kw-2">&amp;</span>StoreBuilder) {
+    <span class="kw">pub async fn </span>get_signers_for_existing_epoch(store_builder: <span class="kw-2">&amp;</span>StoreBuilder) {
         <span class="kw">let </span>signers = build_signers(<span class="number">2</span>, <span class="number">2</span>);
         <span class="kw">let </span>store = store_builder(signers.clone());
 
-        <span class="kw">let </span>expected: <span class="prelude-ty">Option</span>&lt;StakeDistribution&gt; = signers
+        <span class="kw">let </span>expected_signers: <span class="prelude-ty">Option</span>&lt;BTreeSet&lt;SignerWithStake&gt;&gt; = signers
             .into_iter()
             .filter(|(e, <span class="kw">_</span>)| e == <span class="number">1</span>)
-            .map(|(<span class="kw">_</span>, signers)| {
-                StakeDistribution::from_iter(signers.into_iter().map(|(p, s)| (p, s.stake)))
-            })
+            .map(|(<span class="kw">_</span>, signers)| BTreeSet::from_iter(signers.into_values()))
             .next();
         <span class="kw">let </span>res = store
-            .get_stake_distribution_for_epoch(Epoch(<span class="number">1</span>))
+            .get_signers(Epoch(<span class="number">1</span>))
             .<span class="kw">await
             </span>.unwrap()
-            .map(|x| BTreeMap::from_iter(x.into_iter()));
+            .map(|x| BTreeSet::from_iter(x.into_iter()));
 
-        <span class="macro">assert_eq!</span>(expected, res);
+        <span class="macro">assert_eq!</span>(expected_signers, res);
     }
 
     <span class="kw">pub async fn </span>can_prune_keys_from_given_epoch_retention_limit(store_builder: <span class="kw-2">&amp;</span>StoreBuilder) {

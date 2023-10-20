@@ -292,7 +292,6 @@
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::middlewares;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 <span class="kw">use </span>std::sync::Arc;
@@ -381,7 +380,7 @@
                         }
                         <span class="prelude-val">Some</span>(<span class="kw">_</span>) | <span class="prelude-val">None </span>=&gt; {
                             <span class="macro">warn!</span>(<span class="string">&quot;register_signatures::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                            <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                            <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
                         }
                     },
                     <span class="prelude-val">Ok</span>(()) =&gt; <span class="prelude-val">Ok</span>(reply::empty(StatusCode::CREATED)),
@@ -389,7 +388,7 @@
             }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;register_signatures::cant_retrieve_signed_entity_type&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
             }
         }
     }
@@ -410,7 +409,6 @@
         http_server::SERVER_BASE_PATH,
         initialize_dependencies,
         services::{CertifierServiceError, MockCertifierService},
-        ProtocolError,
     };
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -562,7 +560,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
         mock_certifier_service
             .expect_register_single_signature()
-            .return_once(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Err</span>(ProtocolError::Core(<span class="macro">anyhow!</span>(<span class="string">&quot;an error occurred&quot;</span>)).into()));
+            .return_once(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">&quot;an error occurred&quot;</span>)));
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
         dependency_manager.certifier_service = Arc::new(mock_certifier_service);
 

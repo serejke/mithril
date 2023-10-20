@@ -798,29 +798,6 @@
 <a href="#798" id="798">798</a>
 <a href="#799" id="799">799</a>
 <a href="#800" id="800">800</a>
-<a href="#801" id="801">801</a>
-<a href="#802" id="802">802</a>
-<a href="#803" id="803">803</a>
-<a href="#804" id="804">804</a>
-<a href="#805" id="805">805</a>
-<a href="#806" id="806">806</a>
-<a href="#807" id="807">807</a>
-<a href="#808" id="808">808</a>
-<a href="#809" id="809">809</a>
-<a href="#810" id="810">810</a>
-<a href="#811" id="811">811</a>
-<a href="#812" id="812">812</a>
-<a href="#813" id="813">813</a>
-<a href="#814" id="814">814</a>
-<a href="#815" id="815">815</a>
-<a href="#816" id="816">816</a>
-<a href="#817" id="817">817</a>
-<a href="#818" id="818">818</a>
-<a href="#819" id="819">819</a>
-<a href="#820" id="820">820</a>
-<a href="#821" id="821">821</a>
-<a href="#822" id="822">822</a>
-<a href="#823" id="823">823</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
     entities::OpenMessage,
     runtime::{AggregatorRunnerTrait, RuntimeError},
@@ -937,7 +914,7 @@
                         message: <span class="kw">_</span>,
                         nested_error: <span class="kw">_</span>,
                     } =&gt; {
-                        <span class="macro">crit!</span>(<span class="string">&quot;state machine: a critical error occurred: {e}&quot;</span>);
+                        <span class="macro">crit!</span>(<span class="string">&quot;state machine: a critical error occurred: {e:?}&quot;</span>);
 
                         <span class="kw">return </span><span class="prelude-val">Err</span>(e);
                     }
@@ -949,7 +926,7 @@
                             <span class="string">&quot;KeepState Error: {message}. Nested error: «{}».&quot;</span>,
                             nested_error
                                 .as_ref()
-                                .map(|e| <span class="macro">format!</span>(<span class="string">&quot;{e}&quot;</span>))
+                                .map(|e| <span class="macro">format!</span>(<span class="string">&quot;{e:?}&quot;</span>))
                                 .unwrap_or(<span class="string">&quot;None&quot;</span>.into())
                         );
                     }
@@ -961,7 +938,7 @@
                             <span class="string">&quot;ReInit Error: {message}. Nested error: «{}».&quot;</span>,
                             nested_error
                                 .as_ref()
-                                .map(|e| <span class="macro">format!</span>(<span class="string">&quot;{e}&quot;</span>))
+                                .map(|e| <span class="macro">format!</span>(<span class="string">&quot;{e:?}&quot;</span>))
                                 .unwrap_or(<span class="string">&quot;None&quot;</span>.into())
                         );
                         <span class="self">self</span>.state = AggregatorState::Idle(IdleState {
@@ -1022,7 +999,7 @@
                     });
                 } <span class="kw">else if let </span><span class="prelude-val">Some</span>(open_message) = <span class="self">self
                     </span>.runner
-                    .get_current_non_certified_open_message()
+                    .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>chain_beacon)
                     .<span class="kw">await</span>.with_context(|| <span class="string">&quot;AggregatorRuntime can not get the current non certified open message&quot;</span>)<span class="question-mark">?
                 </span>{
                     <span class="comment">// transition READY &gt; SIGNING
@@ -1094,8 +1071,6 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RuntimeError&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;trying transition from IDLE to READY state&quot;</span>);
 
-        <span class="self">self</span>.runner.update_beacon(<span class="kw-2">&amp;</span>new_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
-
         <span class="kw">if </span>maybe_current_beacon.is_none() || maybe_current_beacon.unwrap().epoch &lt; new_beacon.epoch
         {
             <span class="self">self</span>.runner.close_signer_registration_round().<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1103,16 +1078,13 @@
                 .update_era_checker(<span class="kw-2">&amp;</span>new_beacon)
                 .<span class="kw">await
                 </span>.map_err(|e| RuntimeError::critical(<span class="string">&quot;transiting IDLE → READY&quot;</span>, <span class="prelude-val">Some</span>(e)))<span class="question-mark">?</span>;
-            <span class="self">self</span>.runner
-                .certifier_inform_new_epoch(<span class="kw-2">&amp;</span>new_beacon.epoch)
-                .<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="self">self</span>.runner.inform_new_epoch(new_beacon.epoch).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="self">self</span>.runner.update_stake_distribution(<span class="kw-2">&amp;</span>new_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="self">self</span>.runner
                 .open_signer_registration_round(<span class="kw-2">&amp;</span>new_beacon)
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="self">self</span>.runner
-                .update_protocol_parameters_in_multisigner(<span class="kw-2">&amp;</span>new_beacon)
-                .<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="self">self</span>.runner.update_protocol_parameters().<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="self">self</span>.runner.precompute_epoch_data().<span class="kw">await</span><span class="question-mark">?</span>;
         }
 
         <span class="self">self</span>.runner
@@ -1199,14 +1171,10 @@
         open_message: OpenMessage,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SigningState, RuntimeError&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;launching transition from READY to SIGNING state&quot;</span>);
-        <span class="self">self</span>.runner.update_beacon(<span class="kw-2">&amp;</span>new_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>certificate_pending = <span class="self">self
             </span>.runner
-            .create_new_pending_certificate_from_multisigner(
-                new_beacon.clone(),
-                <span class="kw-2">&amp;</span>open_message.signed_entity_type,
-            )
+            .create_new_pending_certificate(new_beacon.clone(), <span class="kw-2">&amp;</span>open_message.signed_entity_type)
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.runner
             .save_pending_certificate(certificate_pending.clone())
@@ -1262,16 +1230,6 @@
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         runner
-            .expect_update_protocol_parameters_in_multisigner()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        runner
-            .expect_update_beacon()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        runner
             .expect_is_certificate_chain_valid()
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">&quot;error&quot;</span>)));
@@ -1281,10 +1239,18 @@
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         runner
-            .expect_certifier_inform_new_epoch()
+            .expect_inform_new_epoch()
             .with(predicate::eq(fake_data::beacon().epoch))
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
+        runner
+            .expect_update_protocol_parameters()
+            .once()
+            .returning(|| <span class="prelude-val">Ok</span>(()));
+        runner
+            .expect_precompute_epoch_data()
+            .once()
+            .returning(|| <span class="prelude-val">Ok</span>(()));
 
         <span class="kw">let </span><span class="kw-2">mut </span>runtime = init_runtime(
             <span class="prelude-val">Some</span>(AggregatorState::Idle(IdleState {
@@ -1326,16 +1292,6 @@
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         runner
-            .expect_update_protocol_parameters_in_multisigner()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        runner
-            .expect_update_beacon()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        runner
             .expect_is_certificate_chain_valid()
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
@@ -1345,10 +1301,18 @@
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         runner
-            .expect_certifier_inform_new_epoch()
+            .expect_inform_new_epoch()
             .with(predicate::eq(fake_data::beacon().epoch))
             .once()
             .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
+        runner
+            .expect_update_protocol_parameters()
+            .once()
+            .returning(|| <span class="prelude-val">Ok</span>(()));
+        runner
+            .expect_precompute_epoch_data()
+            .once()
+            .returning(|| <span class="prelude-val">Ok</span>(()));
 
         <span class="kw">let </span><span class="kw-2">mut </span>runtime = init_runtime(
             <span class="prelude-val">Some</span>(AggregatorState::Idle(IdleState {
@@ -1402,7 +1366,7 @@
         runner
             .expect_get_current_non_certified_open_message()
             .once()
-            .returning(|| <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
+            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
         <span class="kw">let </span><span class="kw-2">mut </span>runtime = init_runtime(
             <span class="prelude-val">Some</span>(AggregatorState::Ready(ReadyState {
                 current_beacon: beacon.clone(),
@@ -1431,7 +1395,7 @@
         runner
             .expect_get_current_non_certified_open_message()
             .once()
-            .returning(|| {
+            .returning(|<span class="kw">_</span>| {
                 <span class="kw">let </span>open_message = OpenMessage {
                     is_certified: <span class="bool-val">false</span>,
                     ..OpenMessage::dummy()
@@ -1439,12 +1403,7 @@
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(open_message))
             });
         runner
-            .expect_update_beacon()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
-        runner
-            .expect_create_new_pending_certificate_from_multisigner()
+            .expect_create_new_pending_certificate()
             .once()
             .returning(|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Ok</span>(fake_data::certificate_pending()));
         runner
@@ -1617,11 +1576,6 @@
             .expect_get_beacon_from_chain()
             .once()
             .returning(|| <span class="prelude-val">Ok</span>(fake_data::beacon()));
-        runner
-            .expect_update_beacon()
-            .with(predicate::eq(fake_data::beacon()))
-            .once()
-            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         runner
             .expect_update_era_checker()
             .with(predicate::eq(fake_data::beacon()))

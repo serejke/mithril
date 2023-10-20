@@ -621,6 +621,34 @@
 <a href="#621" id="621">621</a>
 <a href="#622" id="622">622</a>
 <a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a>
+<a href="#630" id="630">630</a>
+<a href="#631" id="631">631</a>
+<a href="#632" id="632">632</a>
+<a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::http_server::routes::middlewares;
 <span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 <span class="kw">use </span>std::sync::Arc;
@@ -719,7 +747,7 @@
                 <span class="prelude-val">None </span>=&gt; {
                     <span class="kw">let </span>err = SignerRegistrationError::RegistrationRoundNotYetOpened;
                     <span class="macro">warn!</span>(<span class="string">&quot;register_signer::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                    <span class="kw">return </span><span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()));
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(reply::service_unavailable(err.to_string()));
                 }
             },
         };
@@ -783,6 +811,12 @@
                     err.to_string(),
                 ))
             }
+            <span class="prelude-val">Err</span>(SignerRegistrationError::RegistrationRoundNotYetOpened) =&gt; {
+                <span class="macro">warn!</span>(<span class="string">&quot;register_signer::registration_round_not_yed_opened&quot;</span>);
+                <span class="prelude-val">Ok</span>(reply::service_unavailable(
+                    SignerRegistrationError::RegistrationRoundNotYetOpened.to_string(),
+                ))
+            }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;register_signer::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
                 <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
@@ -811,11 +845,11 @@
         <span class="comment">// The given epoch is the epoch at which the signer registered, the store works on
         // the recording epoch so we need to offset.
         </span><span class="kw">match </span>verification_key_store
-            .get_stake_distribution_for_epoch(registered_at.offset_to_recording_epoch())
+            .get_signers(registered_at.offset_to_recording_epoch())
             .<span class="kw">await
         </span>{
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(stake_distribution)) =&gt; {
-                <span class="kw">let </span>message = SignerRegistrationsMessage::new(registered_at, stake_distribution);
+            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(signers)) =&gt; {
+                <span class="kw">let </span>message = SignerRegistrationsMessage::new(registered_at, signers);
                 <span class="prelude-val">Ok</span>(reply::json(<span class="kw-2">&amp;</span>message, StatusCode::OK))
             }
             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
@@ -824,7 +858,7 @@
             }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;registered_signers::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
             }
         }
     }
@@ -853,7 +887,7 @@
             }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;registered_signers::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
             }
         }
     }
@@ -865,7 +899,6 @@
     <span class="kw">use </span>mithril_common::entities::Epoch;
     <span class="kw">use </span>mithril_common::{
         crypto_helper::ProtocolRegistrationError,
-        entities::StakeDistribution,
         messages::RegisterSignerMessage,
         store::adapter::AdapterError,
         test_utils::{apispec::APISpec, fake_data},
@@ -1046,19 +1079,47 @@
     }
 
     <span class="attr">#[tokio::test]
+    </span><span class="kw">async fn </span>test_register_signer_post_ko_503() {
+        <span class="kw">let </span><span class="kw-2">mut </span>mock_signer_registerer = MockSignerRegisterer::new();
+        mock_signer_registerer
+            .expect_register_signer()
+            .return_once(|<span class="kw">_</span>, <span class="kw">_</span>| <span class="prelude-val">Err</span>(SignerRegistrationError::RegistrationRoundNotYetOpened));
+        mock_signer_registerer
+            .expect_get_current_round()
+            .return_once(|| <span class="prelude-val">None</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
+        dependency_manager.signer_registerer = Arc::new(mock_signer_registerer);
+
+        <span class="kw">let </span>signer: RegisterSignerMessage = RegisterSignerMessage::dummy();
+        <span class="kw">let </span>method = Method::POST.as_str();
+        <span class="kw">let </span>path = <span class="string">&quot;/register-signer&quot;</span>;
+
+        <span class="kw">let </span>response = request()
+            .method(method)
+            .path(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/{SERVER_BASE_PATH}{path}&quot;</span>))
+            .json(<span class="kw-2">&amp;</span>signer)
+            .reply(<span class="kw-2">&amp;</span>setup_router(Arc::new(dependency_manager)))
+            .<span class="kw">await</span>;
+
+        APISpec::verify_conformity(
+            APISpec::get_all_spec_files(),
+            method,
+            path,
+            <span class="string">&quot;application/json&quot;</span>,
+            <span class="kw-2">&amp;</span>signer,
+            <span class="kw-2">&amp;</span>response,
+        );
+    }
+
+    <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_registered_signers_get_offset_given_epoch_to_registration_epoch() {
         <span class="kw">let </span>asked_epoch = Epoch(<span class="number">1</span>);
         <span class="kw">let </span>expected_retrieval_epoch = asked_epoch.offset_to_recording_epoch();
-        <span class="kw">let </span>stake_distribution = StakeDistribution::from_iter(
-            fake_data::signers_with_stakes(<span class="number">3</span>)
-                .into_iter()
-                .map(|s| (s.party_id, s.stake)),
-        );
         <span class="kw">let </span><span class="kw-2">mut </span>mock_verification_key_store = MockVerificationKeyStorer::new();
         mock_verification_key_store
-            .expect_get_stake_distribution_for_epoch()
+            .expect_get_signers()
             .with(eq(expected_retrieval_epoch))
-            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(stake_distribution)))
+            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(fake_data::signers_with_stakes(<span class="number">3</span>))))
             .once();
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
         dependency_manager.verification_key_store = Arc::new(mock_verification_key_store);
@@ -1080,15 +1141,10 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_registered_signers_get_ok() {
-        <span class="kw">let </span>stake_distribution = StakeDistribution::from_iter(
-            fake_data::signers_with_stakes(<span class="number">3</span>)
-                .into_iter()
-                .map(|s| (s.party_id, s.stake)),
-        );
         <span class="kw">let </span><span class="kw-2">mut </span>mock_verification_key_store = MockVerificationKeyStorer::new();
         mock_verification_key_store
-            .expect_get_stake_distribution_for_epoch()
-            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(stake_distribution)))
+            .expect_get_signers()
+            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(fake_data::signers_with_stakes(<span class="number">3</span>))))
             .once();
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
         dependency_manager.verification_key_store = Arc::new(mock_verification_key_store);
@@ -1116,7 +1172,7 @@
     </span><span class="kw">async fn </span>test_registered_signers_get_ok_noregistration() {
         <span class="kw">let </span><span class="kw-2">mut </span>mock_verification_key_store = MockVerificationKeyStorer::new();
         mock_verification_key_store
-            .expect_get_stake_distribution_for_epoch()
+            .expect_get_signers()
             .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>))
             .once();
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
@@ -1145,7 +1201,7 @@
     </span><span class="kw">async fn </span>test_registered_signers_get_ko() {
         <span class="kw">let </span><span class="kw-2">mut </span>mock_verification_key_store = MockVerificationKeyStorer::new();
         mock_verification_key_store
-            .expect_get_stake_distribution_for_epoch()
+            .expect_get_signers()
             .return_once(|<span class="kw">_</span>| <span class="prelude-val">Err</span>(AdapterError::GeneralError(<span class="macro">anyhow!</span>(<span class="string">&quot;invalid query&quot;</span>)).into()));
         <span class="kw">let </span><span class="kw-2">mut </span>dependency_manager = initialize_dependencies().<span class="kw">await</span>;
         dependency_manager.verification_key_store = Arc::new(mock_verification_key_store);

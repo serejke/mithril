@@ -126,47 +126,24 @@
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
 <a href="#128" id="128">128</a>
-<a href="#129" id="129">129</a>
-<a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
-<a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a>
-<a href="#134" id="134">134</a>
-<a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
-<a href="#138" id="138">138</a>
-<a href="#139" id="139">139</a>
-<a href="#140" id="140">140</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>thiserror::Error;
-<span class="kw">use </span>tokio::sync::RwLock;
 
 <span class="kw">use </span><span class="kw">super</span>::ArtifactBuilder;
-<span class="kw">use </span><span class="kw">crate</span>::MultiSigner;
+<span class="kw">use </span><span class="kw">crate</span>::dependency_injection::EpochServiceWrapper;
 <span class="kw">use </span>mithril_common::{
     entities::{Certificate, Epoch, MithrilStakeDistribution},
     StdResult,
 };
 
-<span class="doccomment">/// Error linked to [MithrilStakeDistributionArtifactBuilder].
-</span><span class="attr">#[derive(Debug, Error)]
-</span><span class="kw">pub enum </span>MithrilStakeDistributionArtifactBuilderError {
-    <span class="doccomment">/// Protocol parameters are missing
-    </span><span class="attr">#[error(<span class="string">&quot;Missing protocol parameter for epoch: &#39;{0}&#39;.&quot;</span>)]
-    </span>MissingProtocolParameters(Epoch),
-}
-
 <span class="doccomment">/// A [MithrilStakeDistributionArtifact] builder
 </span><span class="kw">pub struct </span>MithrilStakeDistributionArtifactBuilder {
-    multi_signer: Arc&lt;RwLock&lt;<span class="kw">dyn </span>MultiSigner&gt;&gt;,
+    epoch_service: EpochServiceWrapper,
 }
 
 <span class="kw">impl </span>MithrilStakeDistributionArtifactBuilder {
     <span class="doccomment">/// MithrilStakeDistribution artifact builder factory
-    </span><span class="kw">pub fn </span>new(multi_signer: Arc&lt;RwLock&lt;<span class="kw">dyn </span>MultiSigner&gt;&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ multi_signer }
+    </span><span class="kw">pub fn </span>new(epoch_service: EpochServiceWrapper) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ epoch_service }
     }
 }
 
@@ -177,14 +154,12 @@
         epoch: Epoch,
         _certificate: <span class="kw-2">&amp;</span>Certificate,
     ) -&gt; StdResult&lt;MithrilStakeDistribution&gt; {
-        <span class="kw">let </span>multi_signer = <span class="self">self</span>.multi_signer.read().<span class="kw">await</span>;
-        <span class="kw">let </span>protocol_parameters = multi_signer.get_next_protocol_parameters().<span class="kw">await</span><span class="question-mark">?</span>.ok_or(
-            MithrilStakeDistributionArtifactBuilderError::MissingProtocolParameters(epoch),
-        )<span class="question-mark">?</span>;
+        <span class="kw">let </span>epoch_service = <span class="self">self</span>.epoch_service.read().<span class="kw">await</span>;
+        <span class="kw">let </span>protocol_parameters = epoch_service.next_protocol_parameters()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(MithrilStakeDistribution::new(
             epoch,
-            multi_signer.get_next_signers_with_stake().<span class="kw">await</span><span class="question-mark">?</span>,
-            <span class="kw-2">&amp;</span>protocol_parameters.into(),
+            epoch_service.next_signers_with_stake()<span class="question-mark">?</span>.clone(),
+            <span class="kw-2">&amp;</span>protocol_parameters.clone(),
         ))
     }
 }
@@ -192,27 +167,28 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>mithril_common::{crypto_helper::ProtocolParameters, test_utils::fake_data};
+    <span class="kw">use </span>std::sync::Arc;
+    <span class="kw">use </span>tokio::sync::RwLock;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">use </span><span class="kw">crate</span>::multi_signer::MockMultiSigner;
+    <span class="kw">use </span><span class="kw">crate</span>::services::FakeEpochService;
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>should_compute_valid_artifact() {
         <span class="kw">let </span>signers_with_stake = fake_data::signers_with_stakes(<span class="number">5</span>);
-        <span class="kw">let </span>signers_with_stake_clone = signers_with_stake.clone();
         <span class="kw">let </span>certificate = fake_data::certificate(<span class="string">&quot;certificate-123&quot;</span>.to_string());
         <span class="kw">let </span>protocol_parameters = fake_data::protocol_parameters();
-        <span class="kw">let </span>protocol_parameters_clone = protocol_parameters.clone();
-        <span class="kw">let </span><span class="kw-2">mut </span>mock_multi_signer = MockMultiSigner::new();
-        mock_multi_signer
-            .expect_get_next_signers_with_stake()
-            .return_once(<span class="kw">move </span>|| <span class="prelude-val">Ok</span>(signers_with_stake_clone));
-        mock_multi_signer
-            .expect_get_next_protocol_parameters()
-            .return_once(<span class="kw">move </span>|| <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(protocol_parameters_clone.into())));
+        <span class="kw">let </span>epoch_service = FakeEpochService::with_data(
+            Epoch(<span class="number">1</span>),
+            <span class="kw-2">&amp;</span>protocol_parameters,
+            <span class="kw-2">&amp;</span>protocol_parameters,
+            <span class="kw-2">&amp;</span>protocol_parameters,
+            <span class="kw-2">&amp;</span>signers_with_stake,
+            <span class="kw-2">&amp;</span>signers_with_stake,
+        );
         <span class="kw">let </span>mithril_stake_distribution_artifact_builder =
-            MithrilStakeDistributionArtifactBuilder::new(Arc::new(RwLock::new(mock_multi_signer)));
+            MithrilStakeDistributionArtifactBuilder::new(Arc::new(RwLock::new(epoch_service)));
         <span class="kw">let </span>artifact = mithril_stake_distribution_artifact_builder
             .compute_artifact(Epoch(<span class="number">1</span>), <span class="kw-2">&amp;</span>certificate)
             .<span class="kw">await

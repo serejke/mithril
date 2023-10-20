@@ -1057,88 +1057,23 @@
 <a href="#1057" id="1057">1057</a>
 <a href="#1058" id="1058">1058</a>
 <a href="#1059" id="1059">1059</a>
-<a href="#1060" id="1060">1060</a>
-<a href="#1061" id="1061">1061</a>
-<a href="#1062" id="1062">1062</a>
-<a href="#1063" id="1063">1063</a>
-<a href="#1064" id="1064">1064</a>
-<a href="#1065" id="1065">1065</a>
-<a href="#1066" id="1066">1066</a>
-<a href="#1067" id="1067">1067</a>
-<a href="#1068" id="1068">1068</a>
-<a href="#1069" id="1069">1069</a>
-<a href="#1070" id="1070">1070</a>
-<a href="#1071" id="1071">1071</a>
-<a href="#1072" id="1072">1072</a>
-<a href="#1073" id="1073">1073</a>
-<a href="#1074" id="1074">1074</a>
-<a href="#1075" id="1075">1075</a>
-<a href="#1076" id="1076">1076</a>
-<a href="#1077" id="1077">1077</a>
-<a href="#1078" id="1078">1078</a>
-<a href="#1079" id="1079">1079</a>
-<a href="#1080" id="1080">1080</a>
-<a href="#1081" id="1081">1081</a>
-<a href="#1082" id="1082">1082</a>
-<a href="#1083" id="1083">1083</a>
-<a href="#1084" id="1084">1084</a>
-<a href="#1085" id="1085">1085</a>
-<a href="#1086" id="1086">1086</a>
-<a href="#1087" id="1087">1087</a>
-<a href="#1088" id="1088">1088</a>
-<a href="#1089" id="1089">1089</a>
-<a href="#1090" id="1090">1090</a>
-<a href="#1091" id="1091">1091</a>
-<a href="#1092" id="1092">1092</a>
-<a href="#1093" id="1093">1093</a>
-<a href="#1094" id="1094">1094</a>
-<a href="#1095" id="1095">1095</a>
-<a href="#1096" id="1096">1096</a>
-<a href="#1097" id="1097">1097</a>
-<a href="#1098" id="1098">1098</a>
-<a href="#1099" id="1099">1099</a>
-<a href="#1100" id="1100">1100</a>
-<a href="#1101" id="1101">1101</a>
-<a href="#1102" id="1102">1102</a>
-<a href="#1103" id="1103">1103</a>
-<a href="#1104" id="1104">1104</a>
-<a href="#1105" id="1105">1105</a>
-<a href="#1106" id="1106">1106</a>
-<a href="#1107" id="1107">1107</a>
-<a href="#1108" id="1108">1108</a>
-<a href="#1109" id="1109">1109</a>
-<a href="#1110" id="1110">1110</a>
-<a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a>
-<a href="#1113" id="1113">1113</a>
-<a href="#1114" id="1114">1114</a>
-<a href="#1115" id="1115">1115</a>
-<a href="#1116" id="1116">1116</a>
-<a href="#1117" id="1117">1117</a>
-<a href="#1118" id="1118">1118</a>
-<a href="#1119" id="1119">1119</a>
-<a href="#1120" id="1120">1120</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>slog_scope::{debug, info, warn};
 <span class="kw">use </span>std::{path::Path, path::PathBuf, sync::Arc};
 
-<span class="kw">use </span>mithril_common::crypto_helper::ProtocolStakeDistribution;
 <span class="kw">use </span>mithril_common::entities::{
     Beacon, Certificate, CertificatePending, Epoch, ProtocolMessage, ProtocolMessagePartKey,
-    SignedEntityType,
+    SignedEntityType, Signer,
 };
 <span class="kw">use </span>mithril_common::store::StakeStorer;
 <span class="kw">use </span>mithril_common::{CardanoNetwork, StdResult};
 
 <span class="kw">use </span><span class="kw">crate</span>::entities::OpenMessage;
-<span class="kw">use </span><span class="kw">crate</span>::RuntimeError;
-<span class="kw">use crate</span>::{DependencyContainer, ProtocolError};
+<span class="kw">use </span><span class="kw">crate</span>::DependencyContainer;
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>mockall::automock;
-
-<span class="kw">use </span><span class="kw">super</span>::error::RunnerError;
 
 <span class="doccomment">/// Configuration structure dedicated to the AggregatorRuntime.
 </span><span class="attr">#[derive(Debug, Clone)]
@@ -1178,13 +1113,13 @@
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessage&gt;&gt;;
 
     <span class="doccomment">/// Retrieves the current non certified open message.
-    </span><span class="kw">async fn </span>get_current_non_certified_open_message(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessage&gt;&gt;;
+    </span><span class="kw">async fn </span>get_current_non_certified_open_message(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        current_beacon: <span class="kw-2">&amp;</span>Beacon,
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessage&gt;&gt;;
 
     <span class="doccomment">/// Check if a certificate chain is valid.
     </span><span class="kw">async fn </span>is_certificate_chain_valid(<span class="kw-2">&amp;</span><span class="self">self</span>, beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt;;
-
-    <span class="doccomment">/// Update the multisigner with the given beacon.
-    </span><span class="kw">async fn </span>update_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Read the stake distribution from the blockchain and store it.
     </span><span class="kw">async fn </span>update_stake_distribution(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt;;
@@ -1195,9 +1130,8 @@
     <span class="doccomment">/// Close the signer registration round of an epoch.
     </span><span class="kw">async fn </span>close_signer_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt;;
 
-    <span class="doccomment">/// Update the multisigner with the protocol parameters from configuration.
-    </span><span class="kw">async fn </span>update_protocol_parameters_in_multisigner(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon)
-        -&gt; StdResult&lt;()&gt;;
+    <span class="doccomment">/// Ask the EpochService to update the protocol parameters.
+    </span><span class="kw">async fn </span>update_protocol_parameters(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Compute the protocol message
     </span><span class="kw">async fn </span>compute_protocol_message(
@@ -1205,8 +1139,8 @@
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
     ) -&gt; StdResult&lt;ProtocolMessage&gt;;
 
-    <span class="doccomment">/// Return the actual pending certificate from the multisigner.
-    </span><span class="kw">async fn </span>create_new_pending_certificate_from_multisigner(
+    <span class="doccomment">/// Create a new pending certificate.
+    </span><span class="kw">async fn </span>create_new_pending_certificate(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         beacon: Beacon,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
@@ -1218,10 +1152,10 @@
         pending_certificate: CertificatePending,
     ) -&gt; StdResult&lt;()&gt;;
 
-    <span class="doccomment">/// Drop the multisigner&#39;s actual pending certificate.
+    <span class="doccomment">/// Drop the actual pending certificate in the store.
     </span><span class="kw">async fn </span>drop_pending_certificate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;CertificatePending&gt;&gt;;
 
-    <span class="doccomment">/// Create multi-signature.
+    <span class="doccomment">/// Tell the certifier to try to create a new certificate.
     </span><span class="kw">async fn </span>create_certificate(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
@@ -1237,8 +1171,11 @@
     <span class="doccomment">/// Update the EraChecker with EraReader information.
     </span><span class="kw">async fn </span>update_era_checker(<span class="kw-2">&amp;</span><span class="self">self</span>, beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt;;
 
-    <span class="doccomment">/// Certifier inform new epoch
-    </span><span class="kw">async fn </span>certifier_inform_new_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: <span class="kw-2">&amp;</span>Epoch) -&gt; StdResult&lt;()&gt;;
+    <span class="doccomment">/// Ask services to update themselves for the new epoch
+    </span><span class="kw">async fn </span>inform_new_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;()&gt;;
+
+    <span class="doccomment">/// Precompute what doesn&#39;t change for the actual epoch
+    </span><span class="kw">async fn </span>precompute_epoch_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt;;
 
     <span class="doccomment">/// Create new open message
     </span><span class="kw">async fn </span>create_open_message(
@@ -1255,7 +1192,7 @@
 }
 
 <span class="kw">impl </span>AggregatorRunner {
-    <span class="doccomment">/// Create a new instance of the Aggrergator Runner.
+    <span class="doccomment">/// Create a new instance of the Aggregator Runner.
     </span><span class="kw">pub fn </span>new(dependencies: Arc&lt;DependencyContainer&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ dependencies }
     }
@@ -1309,14 +1246,6 @@
                     <span class="string">&quot;RUNNER: get_current_non_certified_open_message_for_signed_entity_type: no open message found, a new one will be created&quot;</span>;
                     <span class="string">&quot;signed_entity_type&quot; </span>=&gt; <span class="question-mark">?</span>signed_entity_type
                 );
-                <span class="comment">// In order to fix flakiness in the end to end tests, we are
-                // compelled to update the beacon (of the multi-signer) This
-                // avoids the computation of the next AVK on the wrong epoch (in
-                // &#39;compute_protocol_message&#39;)
-                // TODO: remove &#39;current_beacon&#39; from the multi-signer state
-                // which will avoid this fix
-                </span><span class="kw">let </span>chain_beacon: Beacon = <span class="self">self</span>.get_beacon_from_chain().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="self">self</span>.update_beacon(<span class="kw-2">&amp;</span>chain_beacon).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let </span>protocol_message = <span class="self">self</span>.compute_protocol_message(signed_entity_type).<span class="kw">await</span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not compute protocol message for signed_entity_type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Some</span>(
@@ -1330,23 +1259,14 @@
         <span class="prelude-val">Ok</span>(open_message_maybe)
     }
 
-    <span class="kw">async fn </span>get_current_non_certified_open_message(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessage&gt;&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: get_current_non_certified_open_message&quot;</span>);
+    <span class="kw">async fn </span>get_current_non_certified_open_message(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        current_beacon: <span class="kw-2">&amp;</span>Beacon,
+    ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessage&gt;&gt; {
+        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: get_current_non_certified_open_message&quot;</span>; <span class="string">&quot;beacon&quot; </span>=&gt; #<span class="question-mark">?</span>current_beacon);
         <span class="kw">let </span>signed_entity_types = <span class="macro">vec!</span>[
-            SignedEntityType::MithrilStakeDistribution(
-                <span class="self">self</span>.dependencies
-                    .ticker_service
-                    .get_current_epoch()
-                    .<span class="kw">await
-                    </span>.with_context(|| <span class="string">&quot;DependencyContainer can not get current epoch&quot;</span>)<span class="question-mark">?</span>,
-            ),
-            SignedEntityType::CardanoImmutableFilesFull(
-                <span class="self">self</span>.dependencies
-                    .ticker_service
-                    .get_current_immutable_beacon()
-                    .<span class="kw">await
-                    </span>.with_context(|| <span class="string">&quot;DependencyContainer can not get current immutable beacon&quot;</span>)<span class="question-mark">?</span>,
-            ),
+            SignedEntityType::MithrilStakeDistribution(current_beacon.epoch),
+            SignedEntityType::CardanoImmutableFilesFull(current_beacon.clone()),
         ];
 
         <span class="kw">for </span>signed_entity_type <span class="kw">in </span>signed_entity_types {
@@ -1376,65 +1296,13 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="comment">// TODO: is this still useful?
-    </span><span class="kw">async fn </span>update_beacon(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: update beacon&quot;</span>; <span class="string">&quot;beacon&quot; </span>=&gt; #<span class="question-mark">?</span>new_beacon);
-        <span class="self">self</span>.dependencies
-            .multi_signer
-            .write()
-            .<span class="kw">await
-            </span>.update_current_beacon(new_beacon.to_owned())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(())
-    }
-
     <span class="kw">async fn </span>update_stake_distribution(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt; {
         <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: update stake distribution&quot;</span>; <span class="string">&quot;beacon&quot; </span>=&gt; #<span class="question-mark">?</span>new_beacon);
-        <span class="kw">let </span>exists_stake_distribution = !<span class="self">self
-            </span>.dependencies
-            .stake_store
-            .get_stakes(
-                <span class="self">self</span>.dependencies
-                    .multi_signer
-                    .read()
-                    .<span class="kw">await
-                    </span>.get_current_beacon()
-                    .<span class="kw">await
-                    </span>.ok_or_else(|| {
-                        RuntimeError::keep_state(<span class="string">&quot;Current beacon is not available&quot;</span>, <span class="prelude-val">None</span>)
-                    })<span class="question-mark">?
-                    </span>.epoch
-                    .offset_to_recording_epoch(),
-            )
-            .<span class="kw">await</span><span class="question-mark">?
-            </span>.unwrap_or_default()
-            .is_empty();
-        <span class="kw">if </span>exists_stake_distribution {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-        }
-
-        <span class="kw">let </span>stake_distribution = <span class="self">self
-            </span>.dependencies
-            .chain_observer
-            .get_current_stake_distribution()
-            .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(|| {
-                RunnerError::MissingStakeDistribution(<span class="macro">format!</span>(
-                    <span class="string">&quot;Chain observer: no stake distribution for beacon {new_beacon:?}.&quot;
-                </span>))
-            })<span class="question-mark">?</span>;
-        <span class="kw">let </span>stake_distribution = stake_distribution
-            .iter()
-            .map(|(party_id, stake)| (party_id.to_owned(), <span class="kw-2">*</span>stake))
-            .collect::&lt;ProtocolStakeDistribution&gt;();
-
-        <span class="prelude-val">Ok</span>(<span class="self">self
-            </span>.dependencies
-            .multi_signer
-            .write()
+        <span class="self">self</span>.dependencies
+            .stake_distribution_service
+            .update_stake_distribution()
             .<span class="kw">await
-            </span>.update_stake_distribution(<span class="kw-2">&amp;</span>stake_distribution)
-            .<span class="kw">await</span><span class="question-mark">?</span>)
+            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner could not update stake distribution for beacon: &#39;{new_beacon}&#39;&quot;</span>))
     }
 
     <span class="kw">async fn </span>open_signer_registration_round(<span class="kw-2">&amp;</span><span class="self">self</span>, new_beacon: <span class="kw-2">&amp;</span>Beacon) -&gt; StdResult&lt;()&gt; {
@@ -1463,30 +1331,14 @@
             .<span class="kw">await
     </span>}
 
-    <span class="kw">async fn </span>update_protocol_parameters_in_multisigner(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        new_beacon: <span class="kw-2">&amp;</span>Beacon,
-    ) -&gt; StdResult&lt;()&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: update protocol parameters&quot;</span>; <span class="string">&quot;beacon&quot; </span>=&gt; #<span class="question-mark">?</span>new_beacon);
-        <span class="kw">let </span>protocol_parameters = <span class="self">self</span>.dependencies.config.protocol_parameters.clone();
-
-        <span class="self">self</span>.update_beacon(new_beacon)
-            .<span class="kw">await
-            </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;AggregatorRunner can not update beacon: &#39;{new_beacon}&#39;&quot;</span>))<span class="question-mark">?</span>;
+    <span class="kw">async fn </span>update_protocol_parameters(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt; {
         <span class="self">self</span>.dependencies
-            .multi_signer
+            .epoch_service
             .write()
             .<span class="kw">await
-            </span>.update_protocol_parameters(<span class="kw-2">&amp;</span>protocol_parameters.clone().into())
+            </span>.update_protocol_parameters()
             .<span class="kw">await
-            </span>.map_err(|e| <span class="macro">anyhow!</span>(e))
-            .with_context(|| {
-                <span class="macro">format!</span>(
-                    <span class="string">&quot;Multi Signer can not update protocol parameters: &#39;{:?}&#39;&quot;</span>,
-                    <span class="kw-2">&amp;</span>protocol_parameters
-                )
-            })
-    }
+    </span>}
 
     <span class="kw">async fn </span>compute_protocol_message(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -1500,12 +1352,11 @@
             .<span class="kw">await
             </span>.with_context(|| <span class="macro">format!</span>(<span class="string">&quot;Runner can not compute protocol message for signed entity type: &#39;{signed_entity_type}&#39;&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>multi_signer = <span class="self">self</span>.dependencies.multi_signer.write().<span class="kw">await</span>;
+        <span class="kw">let </span>epoch_service = <span class="self">self</span>.dependencies.epoch_service.read().<span class="kw">await</span>;
         protocol_message.set_message_part(
             ProtocolMessagePartKey::NextAggregateVerificationKey,
-            multi_signer
-                .compute_next_stake_distribution_aggregate_verification_key()
-                .<span class="kw">await</span><span class="question-mark">?
+            epoch_service
+                .next_aggregate_verification_key()<span class="question-mark">?
                 </span>.to_json_hex()
                 .with_context(|| <span class="string">&quot;convert next avk to json hex failure&quot;</span>)<span class="question-mark">?</span>,
         );
@@ -1513,51 +1364,34 @@
         <span class="prelude-val">Ok</span>(protocol_message)
     }
 
-    <span class="kw">async fn </span>create_new_pending_certificate_from_multisigner(
+    <span class="kw">async fn </span>create_new_pending_certificate(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         beacon: Beacon,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
     ) -&gt; StdResult&lt;CertificatePending&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: create new pending certificate from multisigner&quot;</span>);
-        <span class="kw">let </span>multi_signer = <span class="self">self</span>.dependencies.multi_signer.read().<span class="kw">await</span>;
+        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: create new pending certificate&quot;</span>);
+        <span class="kw">let </span>epoch_service = <span class="self">self</span>.dependencies.epoch_service.read().<span class="kw">await</span>;
 
-        <span class="kw">let </span>signers = <span class="kw">match </span>multi_signer.get_signers().<span class="kw">await </span>{
-            <span class="prelude-val">Ok</span>(signers) =&gt; signers,
-            <span class="prelude-val">Err</span>(ProtocolError::Beacon(<span class="kw">_</span>)) =&gt; <span class="macro">vec!</span>[],
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e.into()),
-        };
-        <span class="kw">let </span>next_signers = <span class="kw">match </span>multi_signer.get_next_signers_with_stake().<span class="kw">await </span>{
-            <span class="prelude-val">Ok</span>(signers) =&gt; signers,
-            <span class="prelude-val">Err</span>(ProtocolError::Beacon(<span class="kw">_</span>)) =&gt; <span class="macro">vec!</span>[],
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e.into()),
-        };
+        <span class="kw">let </span>signers = epoch_service.current_signers_with_stake()<span class="question-mark">?</span>;
+        <span class="kw">let </span>next_signers = epoch_service.next_signers_with_stake()<span class="question-mark">?</span>;
 
         <span class="kw">let </span>protocol_parameters =
-            multi_signer
-                .get_protocol_parameters()
-                .<span class="kw">await</span><span class="question-mark">?
-                </span>.ok_or_else(|| {
-                    RunnerError::MissingProtocolParameters(<span class="macro">format!</span>(
-                        <span class="string">&quot;no current protocol parameters found for beacon {beacon:?}&quot;
-                    </span>))
+            epoch_service
+                .current_protocol_parameters()
+                .with_context(|| {
+                    <span class="macro">format!</span>(<span class="string">&quot;no current protocol parameters found for beacon {beacon:?}&quot;</span>)
                 })<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>next_protocol_parameters = multi_signer
-            .get_next_protocol_parameters()
-            .<span class="kw">await</span><span class="question-mark">?
-            </span>.ok_or_else(|| {
-                RunnerError::MissingProtocolParameters(<span class="macro">format!</span>(
-                    <span class="string">&quot;no next protocol parameters found for beacon {beacon:?}&quot;
-                </span>))
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>next_protocol_parameters = epoch_service
+            .next_protocol_parameters()
+            .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;no next protocol parameters found for beacon {beacon:?}&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>pending_certificate = CertificatePending::new(
             beacon,
             signed_entity_type.to_owned(),
-            protocol_parameters.into(),
-            next_protocol_parameters.into(),
-            signers,
-            next_signers.into_iter().map(|s| s.into()).collect(),
+            protocol_parameters.clone(),
+            next_protocol_parameters.clone(),
+            Signer::vec_from(signers.clone()),
+            Signer::vec_from(next_signers.clone()),
         );
 
         <span class="prelude-val">Ok</span>(pending_certificate)
@@ -1593,7 +1427,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: create multi-signature&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">&quot;RUNNER: create_certificate&quot;</span>);
 
         <span class="self">self</span>.dependencies
             .certifier_service
@@ -1659,10 +1493,28 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async fn </span>certifier_inform_new_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: <span class="kw-2">&amp;</span>Epoch) -&gt; StdResult&lt;()&gt; {
+    <span class="kw">async fn </span>precompute_epoch_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;()&gt; {
+        <span class="self">self</span>.dependencies
+            .epoch_service
+            .write()
+            .<span class="kw">await
+            </span>.precompute_epoch_data()
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">async fn </span>inform_new_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;()&gt; {
         <span class="self">self</span>.dependencies
             .certifier_service
-            .inform_epoch(<span class="kw-2">*</span>epoch)
+            .inform_epoch(epoch)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="self">self</span>.dependencies
+            .epoch_service
+            .write()
+            .<span class="kw">await
+            </span>.inform_epoch(epoch)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
@@ -1682,11 +1534,12 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">pub mod </span>tests {
+    <span class="kw">use </span><span class="kw">crate</span>::services::FakeEpochService;
     <span class="kw">use crate</span>::{
         entities::OpenMessage,
         initialize_dependencies,
         runtime::{AggregatorRunner, AggregatorRunnerTrait},
-        services::MockCertifierService,
+        services::{MithrilStakeDistributionService, MockCertifierService},
         DependencyContainer, MithrilSignerRegisterer, SignerRegistrationRound,
     };
     <span class="kw">use </span>async_trait::async_trait;
@@ -1694,15 +1547,17 @@
         chain_observer::FakeObserver,
         digesters::DumbImmutableFileObserver,
         entities::{
-            Beacon, CertificatePending, Epoch, ProtocolMessage, SignedEntityType, StakeDistribution,
+            Beacon, CertificatePending, ProtocolMessage, SignedEntityType, Signer,
+            StakeDistribution,
         },
         signable_builder::SignableBuilderService,
         store::StakeStorer,
         test_utils::{fake_data, MithrilFixtureBuilder},
+        BeaconProviderImpl, CardanoNetwork, StdResult,
     };
-    <span class="kw">use </span>mithril_common::{BeaconProviderImpl, CardanoNetwork, StdResult};
     <span class="kw">use </span>mockall::{mock, predicate::eq};
     <span class="kw">use </span>std::sync::Arc;
+    <span class="kw">use </span>tokio::sync::RwLock;
 
     <span class="macro">mock! </span>{
         SignableBuilderServiceImpl { }
@@ -1718,24 +1573,25 @@
         }
     }
 
-    <span class="kw">async fn </span>init_runner_from_dependencies(deps: DependencyContainer) -&gt; AggregatorRunner {
+    <span class="kw">async fn </span>build_runner_with_fixture_data(deps: DependencyContainer) -&gt; AggregatorRunner {
         <span class="kw">let </span>fixture = MithrilFixtureBuilder::default().with_signers(<span class="number">5</span>).build();
+        <span class="kw">let </span>current_epoch = deps
+            .chain_observer
+            .get_current_epoch()
+            .<span class="kw">await
+            </span>.unwrap()
+            .unwrap();
         deps.init_state_from_fixture(
             <span class="kw-2">&amp;</span>fixture,
-            <span class="kw-2">&amp;</span>[deps
-                .chain_observer
-                .get_current_epoch()
-                .<span class="kw">await
-                </span>.unwrap()
-                .unwrap()],
+            <span class="kw-2">&amp;</span>[
+                current_epoch.offset_to_signer_retrieval_epoch().unwrap(),
+                current_epoch,
+                current_epoch.next(),
+            ],
         )
         .<span class="kw">await</span>;
 
-        <span class="kw">let </span>runner = AggregatorRunner::new(Arc::new(deps));
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>.unwrap();
-
-        runner
+        AggregatorRunner::new(Arc::new(deps))
     }
 
     <span class="attr">#[tokio::test]
@@ -1760,30 +1616,14 @@
     }
 
     <span class="attr">#[tokio::test]
-    </span><span class="kw">async fn </span>test_update_beacon() {
-        <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
-        <span class="kw">let </span>deps = Arc::new(deps);
-        <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        <span class="kw">let </span>res = runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>;
-
-        <span class="macro">assert!</span>(res.is_ok());
-        <span class="kw">let </span>stored_beacon = deps
-            .multi_signer
-            .read()
-            .<span class="kw">await
-            </span>.get_current_beacon()
-            .<span class="kw">await
-            </span>.unwrap();
-
-        <span class="macro">assert_eq!</span>(beacon, stored_beacon);
-    }
-
-    <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_update_stake_distribution() {
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         <span class="kw">let </span>chain_observer = Arc::new(FakeObserver::default());
         deps.chain_observer = chain_observer.clone();
+        deps.stake_distribution_service = Arc::new(MithrilStakeDistributionService::new(
+            deps.stake_store.clone(),
+            chain_observer.clone(),
+        ));
         <span class="kw">let </span>deps = Arc::new(deps);
         <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
         <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
@@ -1793,10 +1633,6 @@
         chain_observer
             .set_signers(fixture.signers_with_stake())
             .<span class="kw">await</span>;
-        runner
-            .update_beacon(<span class="kw-2">&amp;</span>beacon)
-            .<span class="kw">await
-            </span>.expect(<span class="string">&quot;setting the beacon should not fail&quot;</span>);
         runner
             .update_stake_distribution(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
@@ -1886,44 +1722,11 @@
     }
 
     <span class="attr">#[tokio::test]
-    </span><span class="kw">async fn </span>test_update_protocol_parameters_in_multisigner() {
+    </span><span class="kw">async fn </span>test_create_new_pending_certificate() {
         <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
         <span class="kw">let </span>deps = Arc::new(deps);
         <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
         <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner
-            .update_beacon(<span class="kw-2">&amp;</span>beacon)
-            .<span class="kw">await
-            </span>.expect(<span class="string">&quot;setting the beacon should not fail&quot;</span>);
-        runner
-            .update_protocol_parameters_in_multisigner(<span class="kw-2">&amp;</span>beacon)
-            .<span class="kw">await
-            </span>.expect(<span class="string">&quot;updating protocol parameters should not return an error&quot;</span>);
-
-        <span class="kw">let </span>current_protocol_parameters = deps.config.protocol_parameters.clone();
-
-        <span class="kw">let </span>saved_protocol_parameters = deps
-            .protocol_parameters_store
-            .get_protocol_parameters(beacon.epoch.offset_to_protocol_parameters_recording_epoch())
-            .<span class="kw">await
-            </span>.unwrap()
-            .unwrap_or_else(|| {
-                <span class="macro">panic!</span>(
-                    <span class="string">&quot;should have protocol parameters for the epoch {:?}&quot;</span>,
-                    beacon.epoch
-                )
-            });
-
-        <span class="macro">assert_eq!</span>(current_protocol_parameters, saved_protocol_parameters);
-    }
-
-    <span class="attr">#[tokio::test]
-    </span><span class="kw">async fn </span>test_create_new_pending_certificate_from_multisigner() {
-        <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
-        <span class="kw">let </span>deps = Arc::new(deps);
-        <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>.unwrap();
         <span class="kw">let </span>signed_entity_type = SignedEntityType::dummy();
 
         <span class="kw">let </span>fixture = MithrilFixtureBuilder::default().with_signers(<span class="number">5</span>).build();
@@ -1936,9 +1739,10 @@
             <span class="kw-2">&amp;</span>protocol_parameters.clone(),
         )
         .<span class="kw">await</span>;
+        runner.inform_new_epoch(beacon.epoch).<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span><span class="kw-2">mut </span>certificate = runner
-            .create_new_pending_certificate_from_multisigner(beacon.clone(), <span class="kw-2">&amp;</span>signed_entity_type)
+            .create_new_pending_certificate(beacon.clone(), <span class="kw-2">&amp;</span>signed_entity_type)
             .<span class="kw">await
             </span>.unwrap();
         certificate.signers.sort_by_key(|s| s.party_id.clone());
@@ -1948,8 +1752,8 @@
             signed_entity_type,
             protocol_parameters.clone(),
             protocol_parameters,
-            current_signers.into_iter().map(|s| s.into()).collect(),
-            next_signers.into_iter().map(|s| s.into()).collect(),
+            Signer::vec_from(current_signers),
+            Signer::vec_from(next_signers),
         );
         expected.signers.sort_by_key(|s| s.party_id.clone());
         expected.next_signers.sort_by_key(|s| s.party_id.clone());
@@ -1962,8 +1766,6 @@
         <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
         <span class="kw">let </span>deps = Arc::new(deps);
         <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>.unwrap();
         <span class="kw">let </span>pending_certificate = fake_data::certificate_pending();
 
         runner
@@ -1980,8 +1782,6 @@
         <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
         <span class="kw">let </span>deps = Arc::new(deps);
         <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>.unwrap();
         <span class="kw">let </span>pending_certificate = fake_data::certificate_pending();
         deps.certificate_pending_store
             .save(pending_certificate.clone())
@@ -1999,8 +1799,6 @@
         <span class="kw">let </span>deps = initialize_dependencies().<span class="kw">await</span>;
         <span class="kw">let </span>deps = Arc::new(deps);
         <span class="kw">let </span>runner = AggregatorRunner::new(deps.clone());
-        <span class="kw">let </span>beacon = runner.get_beacon_from_chain().<span class="kw">await</span>.unwrap();
-        runner.update_beacon(<span class="kw-2">&amp;</span>beacon).<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span>cert = runner.drop_pending_certificate().<span class="kw">await</span>.unwrap();
         <span class="macro">assert_eq!</span>(<span class="prelude-val">None</span>, cert);
@@ -2024,7 +1822,34 @@
     }
 
     <span class="attr">#[tokio::test]
-    </span><span class="kw">async fn </span>test_certifier_inform_new_epoch() {
+    </span><span class="kw">async fn </span>test_inform_new_epoch() {
+        <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
+        mock_certifier_service
+            .expect_inform_epoch()
+            .returning(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()))
+            .times(<span class="number">1</span>);
+
+        <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
+        <span class="kw">let </span>current_epoch = deps
+            .chain_observer
+            .get_current_epoch()
+            .<span class="kw">await
+            </span>.unwrap()
+            .unwrap();
+
+        deps.certifier_service = Arc::new(mock_certifier_service);
+        deps.epoch_service = Arc::new(RwLock::new(FakeEpochService::from_fixture(
+            current_epoch,
+            <span class="kw-2">&amp;</span>MithrilFixtureBuilder::default().build(),
+        )));
+
+        <span class="kw">let </span>runner = AggregatorRunner::new(Arc::new(deps));
+
+        runner.inform_new_epoch(current_epoch).<span class="kw">await</span>.unwrap();
+    }
+
+    <span class="attr">#[tokio::test]
+    </span><span class="kw">async fn </span>test_update_protocol_parameters() {
         <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
         mock_certifier_service
             .expect_inform_epoch()
@@ -2033,24 +1858,62 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         deps.certifier_service = Arc::new(mock_certifier_service);
+        <span class="kw">let </span>protocol_parameters_store = deps.protocol_parameters_store.clone();
+        <span class="kw">let </span>expected_protocol_parameters = deps.config.protocol_parameters.clone();
+        <span class="kw">let </span>current_epoch = deps.ticker_service.get_current_epoch().<span class="kw">await</span>.unwrap();
+        <span class="kw">let </span>insert_epoch = current_epoch.offset_to_protocol_parameters_recording_epoch();
+
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
+        runner.inform_new_epoch(current_epoch).<span class="kw">await</span>.unwrap();
+        runner
+            .update_protocol_parameters()
+            .<span class="kw">await
+            </span>.expect(<span class="string">&quot;update_protocol_parameters should not fail&quot;</span>);
+
+        <span class="kw">let </span>saved_protocol_parameters = protocol_parameters_store
+            .get_protocol_parameters(insert_epoch)
+            .<span class="kw">await
+            </span>.unwrap()
+            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;should have protocol parameters for epoch {insert_epoch}&quot;</span>,));
+
+        <span class="macro">assert_eq!</span>(expected_protocol_parameters, saved_protocol_parameters);
+    }
+
+    <span class="attr">#[tokio::test]
+    </span><span class="kw">async fn </span>test_precompute_epoch_data() {
+        <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
+        <span class="kw">let </span>current_epoch = deps
+            .chain_observer
+            .get_current_epoch()
+            .<span class="kw">await
+            </span>.unwrap()
+            .unwrap();
+
+        deps.epoch_service = Arc::new(RwLock::new(FakeEpochService::from_fixture(
+            current_epoch,
+            <span class="kw-2">&amp;</span>MithrilFixtureBuilder::default().build(),
+        )));
 
         <span class="kw">let </span>runner = AggregatorRunner::new(Arc::new(deps));
-        runner.certifier_inform_new_epoch(<span class="kw-2">&amp;</span>Epoch(<span class="number">1</span>)).<span class="kw">await</span>.unwrap();
+
+        runner.precompute_epoch_data().<span class="kw">await</span>.unwrap();
     }
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_current_non_certified_open_message_should_create_new_open_message_for_mithril_stake_distribution_if_none_exists(
     ) {
+        <span class="kw">let </span>beacon = fake_data::beacon();
         <span class="kw">let </span>open_message_expected = OpenMessage {
-            signed_entity_type: SignedEntityType::MithrilStakeDistribution(
-                fake_data::beacon().epoch,
-            ),
+            signed_entity_type: SignedEntityType::MithrilStakeDistribution(beacon.epoch),
             is_certified: <span class="bool-val">false</span>,
             ..OpenMessage::dummy()
         };
         <span class="kw">let </span>open_message_clone = open_message_expected.clone();
 
         <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
+        mock_certifier_service
+            .expect_inform_epoch()
+            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         mock_certifier_service
             .expect_get_open_message()
             .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>))
@@ -2063,10 +1926,18 @@
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         deps.certifier_service = Arc::new(mock_certifier_service);
 
-        <span class="kw">let </span>runner = init_runner_from_dependencies(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>current_epoch = runner
+            .dependencies
+            .ticker_service
+            .get_current_epoch()
+            .<span class="kw">await
+            </span>.unwrap();
+        runner.inform_new_epoch(current_epoch).<span class="kw">await</span>.unwrap();
+        runner.precompute_epoch_data().<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span>open_message_returned = runner
-            .get_current_non_certified_open_message()
+            .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(open_message_expected), open_message_returned);
@@ -2075,10 +1946,9 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_current_non_certified_open_message_should_return_existing_open_message_for_mithril_stake_distribution_if_already_exists(
     ) {
+        <span class="kw">let </span>beacon = fake_data::beacon();
         <span class="kw">let </span>open_message_expected = OpenMessage {
-            signed_entity_type: SignedEntityType::MithrilStakeDistribution(
-                fake_data::beacon().epoch,
-            ),
+            signed_entity_type: SignedEntityType::MithrilStakeDistribution(beacon.epoch),
             is_certified: <span class="bool-val">false</span>,
             ..OpenMessage::dummy()
         };
@@ -2094,10 +1964,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         deps.certifier_service = Arc::new(mock_certifier_service);
 
-        <span class="kw">let </span>runner = init_runner_from_dependencies(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
 
         <span class="kw">let </span>open_message_returned = runner
-            .get_current_non_certified_open_message()
+            .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(open_message_expected), open_message_returned);
@@ -2106,10 +1976,9 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_current_non_certified_open_message_should_return_existing_open_message_for_cardano_immutables_if_already_exists_and_open_message_mithril_stake_distribution_already_certified(
     ) {
+        <span class="kw">let </span>beacon = fake_data::beacon();
         <span class="kw">let </span>open_message_already_certified = OpenMessage {
-            signed_entity_type: SignedEntityType::MithrilStakeDistribution(
-                fake_data::beacon().epoch,
-            ),
+            signed_entity_type: SignedEntityType::MithrilStakeDistribution(beacon.epoch),
             is_certified: <span class="bool-val">true</span>,
             ..OpenMessage::dummy()
         };
@@ -2134,10 +2003,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         deps.certifier_service = Arc::new(mock_certifier_service);
 
-        <span class="kw">let </span>runner = init_runner_from_dependencies(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
 
         <span class="kw">let </span>open_message_returned = runner
-            .get_current_non_certified_open_message()
+            .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(open_message_expected), open_message_returned);
@@ -2146,10 +2015,9 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_current_non_certified_open_message_should_create_open_message_for_cardano_immutables_if_none_exists_and_open_message_mithril_stake_distribution_already_certified(
     ) {
+        <span class="kw">let </span>beacon = fake_data::beacon();
         <span class="kw">let </span>open_message_already_certified = OpenMessage {
-            signed_entity_type: SignedEntityType::MithrilStakeDistribution(
-                fake_data::beacon().epoch,
-            ),
+            signed_entity_type: SignedEntityType::MithrilStakeDistribution(beacon.epoch),
             is_certified: <span class="bool-val">true</span>,
             ..OpenMessage::dummy()
         };
@@ -2161,6 +2029,9 @@
         <span class="kw">let </span>open_message_clone = open_message_expected.clone();
 
         <span class="kw">let </span><span class="kw-2">mut </span>mock_certifier_service = MockCertifierService::new();
+        mock_certifier_service
+            .expect_inform_epoch()
+            .return_once(|<span class="kw">_</span>| <span class="prelude-val">Ok</span>(()));
         mock_certifier_service
             .expect_get_open_message()
             .with(eq(open_message_already_certified
@@ -2186,10 +2057,18 @@
         deps.certifier_service = Arc::new(mock_certifier_service);
         deps.signable_builder_service = Arc::new(mock_signable_builder_service);
 
-        <span class="kw">let </span>runner = init_runner_from_dependencies(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>current_epoch = runner
+            .dependencies
+            .ticker_service
+            .get_current_epoch()
+            .<span class="kw">await
+            </span>.unwrap();
+        runner.inform_new_epoch(current_epoch).<span class="kw">await</span>.unwrap();
+        runner.precompute_epoch_data().<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span>open_message_returned = runner
-            .get_current_non_certified_open_message()
+            .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(open_message_expected), open_message_returned);
@@ -2198,10 +2077,9 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_current_non_certified_open_message_should_return_none_if_all_open_message_already_certified(
     ) {
+        <span class="kw">let </span>beacon = fake_data::beacon();
         <span class="kw">let </span>open_message_already_certified_mithril_stake_distribution = OpenMessage {
-            signed_entity_type: SignedEntityType::MithrilStakeDistribution(
-                fake_data::beacon().epoch,
-            ),
+            signed_entity_type: SignedEntityType::MithrilStakeDistribution(beacon.epoch),
             is_certified: <span class="bool-val">true</span>,
             ..OpenMessage::dummy()
         };
@@ -2229,10 +2107,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>deps = initialize_dependencies().<span class="kw">await</span>;
         deps.certifier_service = Arc::new(mock_certifier_service);
 
-        <span class="kw">let </span>runner = init_runner_from_dependencies(deps).<span class="kw">await</span>;
+        <span class="kw">let </span>runner = build_runner_with_fixture_data(deps).<span class="kw">await</span>;
 
         <span class="kw">let </span>open_message_returned = runner
-            .get_current_non_certified_open_message()
+            .get_current_non_certified_open_message(<span class="kw-2">&amp;</span>beacon)
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert!</span>(open_message_returned.is_none());

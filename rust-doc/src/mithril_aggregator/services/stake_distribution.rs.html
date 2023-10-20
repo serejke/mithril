@@ -380,6 +380,10 @@
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Stake Pool manager for the Runners
 //!
 
@@ -398,6 +402,9 @@
 };
 
 <span class="kw">use </span><span class="kw">crate</span>::database::provider::StakePoolStore;
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">use </span>mockall::automock;
 
 <span class="doccomment">/// Errors related to the [StakeDistributionService].
 </span><span class="attr">#[derive(Debug)]
@@ -468,7 +475,8 @@
 <span class="kw">impl </span>std::error::Error <span class="kw">for </span>StakePoolDistributionServiceError {}
 
 <span class="doccomment">/// Responsible of synchronizing with Cardano stake distribution.
-</span><span class="attr">#[async_trait]
+</span><span class="attr">#[cfg_attr(test, automock)]
+#[async_trait]
 </span><span class="kw">pub trait </span>StakeDistributionService: Sync + Send {
     <span class="doccomment">/// Return the stake distribution fot the given epoch.
     </span><span class="kw">async fn </span>get_stake_distribution(

@@ -1167,6 +1167,33 @@
 <a href="#1167" id="1167">1167</a>
 <a href="#1168" id="1168">1168</a>
 <a href="#1169" id="1169">1169</a>
+<a href="#1170" id="1170">1170</a>
+<a href="#1171" id="1171">1171</a>
+<a href="#1172" id="1172">1172</a>
+<a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
+<a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
+<a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>anyhow::Context;
@@ -1221,7 +1248,7 @@
     event_store::{EventMessage, EventStore, TransmitterService},
     http_server::routes::router,
     services::{
-        CertifierService, MithrilCertifierService, MithrilSignedEntityService,
+        CertifierService, MithrilCertifierService, MithrilEpochService, MithrilSignedEntityService,
         MithrilStakeDistributionService, MithrilTickerService, SignedEntityService,
         StakeDistributionService, TickerService,
     },
@@ -1233,7 +1260,7 @@
     Snapshotter, SnapshotterCompressionAlgorithm, VerificationKeyStorer,
 };
 
-<span class="kw">use super</span>::{DependenciesBuilderError, <span class="prelude-ty">Result</span>};
+<span class="kw">use super</span>::{DependenciesBuilderError, EpochServiceWrapper, <span class="prelude-ty">Result</span>};
 
 <span class="kw">const </span>SQLITE_FILE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;aggregator.sqlite3&quot;</span>;
 
@@ -1349,6 +1376,9 @@
     <span class="doccomment">/// Certifier service
     </span><span class="kw">pub </span>certifier_service: <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>CertifierService&gt;&gt;,
 
+    <span class="doccomment">/// Epoch service.
+    </span><span class="kw">pub </span>epoch_service: <span class="prelude-ty">Option</span>&lt;EpochServiceWrapper&gt;,
+
     <span class="doccomment">/// Signed Entity storer
     </span><span class="kw">pub </span>signed_entity_storer: <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>SignedEntityStorer&gt;&gt;,
 }
@@ -1389,6 +1419,7 @@
             signable_builder_service: <span class="prelude-val">None</span>,
             signed_entity_service: <span class="prelude-val">None</span>,
             certifier_service: <span class="prelude-val">None</span>,
+            epoch_service: <span class="prelude-val">None</span>,
             signed_entity_storer: <span class="prelude-val">None</span>,
         }
     }
@@ -1505,11 +1536,7 @@
     }
 
     <span class="kw">async fn </span>build_multi_signer(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;RwLock&lt;<span class="kw">dyn </span>MultiSigner&gt;&gt;&gt; {
-        <span class="kw">let </span>multi_signer = MultiSignerImpl::new(
-            <span class="self">self</span>.get_verification_key_store().<span class="kw">await</span><span class="question-mark">?</span>,
-            <span class="self">self</span>.get_stake_store().<span class="kw">await</span><span class="question-mark">?</span>,
-            <span class="self">self</span>.get_protocol_parameters_store().<span class="kw">await</span><span class="question-mark">?</span>,
-        );
+        <span class="kw">let </span>multi_signer = MultiSignerImpl::new(<span class="self">self</span>.get_epoch_service().<span class="kw">await</span><span class="question-mark">?</span>);
 
         <span class="prelude-val">Ok</span>(Arc::new(RwLock::new(multi_signer)))
     }
@@ -2070,9 +2097,9 @@
 
     <span class="kw">async fn </span>build_signed_entity_service(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>SignedEntityService&gt;&gt; {
         <span class="kw">let </span>signed_entity_storer = <span class="self">self</span>.build_signed_entity_storer().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>multi_signer = <span class="self">self</span>.get_multi_signer().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>epoch_service = <span class="self">self</span>.get_epoch_service().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>mithril_stake_distribution_artifact_builder =
-            Arc::new(MithrilStakeDistributionArtifactBuilder::new(multi_signer));
+            Arc::new(MithrilStakeDistributionArtifactBuilder::new(epoch_service));
         <span class="kw">let </span>snapshotter = <span class="self">self</span>.build_snapshotter().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>snapshot_uploader = <span class="self">self</span>.build_snapshot_uploader().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>cardano_node_version = Version::parse(<span class="kw-2">&amp;</span><span class="self">self</span>.configuration.cardano_node_version)
@@ -2100,6 +2127,28 @@
         }
 
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.signed_entity_service.as_ref().cloned().unwrap())
+    }
+
+    <span class="kw">async fn </span>build_epoch_service(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EpochServiceWrapper&gt; {
+        <span class="kw">let </span>verification_key_store = <span class="self">self</span>.get_verification_key_store().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>protocol_parameters_store = <span class="self">self</span>.get_protocol_parameters_store().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>epoch_service = Arc::new(RwLock::new(MithrilEpochService::new(
+            <span class="self">self</span>.configuration.protocol_parameters.clone(),
+            protocol_parameters_store,
+            verification_key_store,
+        )));
+
+        <span class="prelude-val">Ok</span>(epoch_service)
+    }
+
+    <span class="doccomment">/// [EpochService][crate::services::EpochService] service
+    </span><span class="kw">pub async fn </span>get_epoch_service(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EpochServiceWrapper&gt; {
+        <span class="kw">if </span><span class="self">self</span>.epoch_service.is_none() {
+            <span class="self">self</span>.epoch_service = <span class="prelude-val">Some</span>(<span class="self">self</span>.build_epoch_service().<span class="kw">await</span><span class="question-mark">?</span>);
+        }
+
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.epoch_service.as_ref().cloned().unwrap())
     }
 
     <span class="kw">async fn </span>build_signed_entity_storer(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>SignedEntityStorer&gt;&gt; {
@@ -2149,6 +2198,7 @@
             signable_builder_service: <span class="self">self</span>.get_signable_builder_service().<span class="kw">await</span><span class="question-mark">?</span>,
             signed_entity_service: <span class="self">self</span>.get_signed_entity_service().<span class="kw">await</span><span class="question-mark">?</span>,
             certifier_service: <span class="self">self</span>.get_certifier_service().<span class="kw">await</span><span class="question-mark">?</span>,
+            epoch_service: <span class="self">self</span>.get_epoch_service().<span class="kw">await</span><span class="question-mark">?</span>,
             ticker_service: <span class="self">self</span>.get_ticker_service().<span class="kw">await</span><span class="question-mark">?</span>,
             signed_entity_storer: <span class="self">self</span>.get_signed_entity_storer().<span class="kw">await</span><span class="question-mark">?</span>,
             signer_getter: <span class="self">self</span>.get_signer_store().<span class="kw">await</span><span class="question-mark">?</span>,
@@ -2257,7 +2307,7 @@
             certificate_verifier: <span class="self">self</span>.get_certificate_verifier().<span class="kw">await</span><span class="question-mark">?</span>,
             genesis_verifier: <span class="self">self</span>.get_genesis_verifier().<span class="kw">await</span><span class="question-mark">?</span>,
             protocol_parameters_store: <span class="self">self</span>.get_protocol_parameters_store().<span class="kw">await</span><span class="question-mark">?</span>,
-            multi_signer: <span class="self">self</span>.get_multi_signer().<span class="kw">await</span><span class="question-mark">?</span>,
+            verification_key_store: <span class="self">self</span>.get_verification_key_store().<span class="kw">await</span><span class="question-mark">?</span>,
         };
 
         <span class="prelude-val">Ok</span>(dependencies)
@@ -2311,6 +2361,8 @@
         <span class="kw">let </span>certificate_verifier = <span class="self">self</span>.get_certificate_verifier().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>genesis_verifier = <span class="self">self</span>.get_genesis_verifier().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>multi_signer = <span class="self">self</span>.get_multi_signer().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>ticker_service = <span class="self">self</span>.get_ticker_service().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>epoch_service = <span class="self">self</span>.get_epoch_service().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>logger = <span class="self">self</span>.get_logger().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(Arc::new(MithrilCertifierService::new(
@@ -2320,6 +2372,8 @@
             certificate_verifier,
             genesis_verifier,
             multi_signer,
+            ticker_service,
+            epoch_service,
             logger,
         )))
     }

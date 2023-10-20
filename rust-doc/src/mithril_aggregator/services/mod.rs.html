@@ -18,6 +18,8 @@
 <a href="#18" id="18">18</a>
 <a href="#19" id="19">19</a>
 <a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! # Services
 //!
 //! This module regroups services. Services are adapters in charge of the different  bounded contexts of the application:
@@ -30,11 +32,13 @@
 //! Each service is defined by a public API (a trait) that is used in the controllers (runtimes).
 
 </span><span class="kw">mod </span>certifier;
+<span class="kw">mod </span>epoch_service;
 <span class="kw">mod </span>signed_entity;
 <span class="kw">mod </span>stake_distribution;
 <span class="kw">mod </span>ticker;
 
 <span class="kw">pub use </span>certifier::<span class="kw-2">*</span>;
+<span class="kw">pub use </span>epoch_service::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>signed_entity::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>stake_distribution::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>ticker::<span class="kw-2">*</span>;

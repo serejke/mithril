@@ -366,7 +366,7 @@
             }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;list_artifacts_mithril_stake_distribution&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
             }
         }
     }
@@ -392,7 +392,7 @@
             }
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">warn!</span>(<span class="string">&quot;get_mithril_stake_distribution_details::error&quot;</span>; <span class="string">&quot;error&quot; </span>=&gt; <span class="question-mark">?</span>err);
-                <span class="prelude-val">Ok</span>(reply::internal_server_error(err.to_string()))
+                <span class="prelude-val">Ok</span>(reply::internal_server_error(err))
             }
         }
     }
