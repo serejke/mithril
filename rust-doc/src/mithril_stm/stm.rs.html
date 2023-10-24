@@ -1635,6 +1635,17 @@
 <a href="#1635" id="1635">1635</a>
 <a href="#1636" id="1636">1636</a>
 <a href="#1637" id="1637">1637</a>
+<a href="#1638" id="1638">1638</a>
+<a href="#1639" id="1639">1639</a>
+<a href="#1640" id="1640">1640</a>
+<a href="#1641" id="1641">1641</a>
+<a href="#1642" id="1642">1642</a>
+<a href="#1643" id="1643">1643</a>
+<a href="#1644" id="1644">1644</a>
+<a href="#1645" id="1645">1645</a>
+<a href="#1646" id="1646">1646</a>
+<a href="#1647" id="1647">1647</a>
+<a href="#1648" id="1648">1648</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Top-level API for Mithril Stake-based Threshold Multisignature scheme.
 //! See figure 6 of [the paper](https://eprint.iacr.org/2021/916) for most of the
 //! protocol.
@@ -2539,13 +2550,14 @@
     ///     * Calculate the total stake of the eligible signers,
     ///     * Sort the eligible signers.
     </span><span class="kw">pub fn </span>setup(public_signers: <span class="kw-2">&amp;</span>[(VerificationKey, Stake)]) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>total_stake: Stake = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>total_stake: Stake = <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>unique_parties = HashSet::new();
         <span class="kw">for </span>signer <span class="kw">in </span>public_signers.iter() {
-            <span class="kw">let </span>(<span class="kw">_</span>, overflow) = total_stake.overflowing_add(signer.<span class="number">1</span>);
+            <span class="kw">let </span>(res, overflow) = total_stake.overflowing_add(signer.<span class="number">1</span>);
             <span class="kw">if </span>overflow {
                 <span class="macro">panic!</span>(<span class="string">&quot;Total stake overflow&quot;</span>);
             }
+            total_stake = res;
             unique_parties.insert(MTLeaf(signer.<span class="number">0</span>, signer.<span class="number">1</span>));
         }
 
@@ -3269,6 +3281,16 @@
                 <span class="prelude-val">Err</span>(CoreVerifierError::IndexNotUnique) =&gt; <span class="macro">unreachable!</span>(),
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
             }
+        }
+
+        <span class="attr">#[test]
+        </span><span class="kw">fn </span>test_total_stake_core_verifier(nparties <span class="kw">in </span><span class="number">2_usize</span>..<span class="number">30</span>,
+                              m <span class="kw">in </span><span class="number">10_u64</span>..<span class="number">20</span>,
+                              k <span class="kw">in </span><span class="number">1_u64</span>..<span class="number">5</span>,) {
+            <span class="kw">let </span>params = StmParameters { m, k, phi_f: <span class="number">0.2 </span>};
+            <span class="kw">let </span>(_initializers, public_signers) = setup_equal_core_parties(params, nparties);
+            <span class="kw">let </span>core_verifier = CoreVerifier::setup(<span class="kw-2">&amp;</span>public_signers);
+            <span class="macro">assert_eq!</span>(nparties <span class="kw">as </span>u64, core_verifier.total_stake, <span class="string">&quot;Total stake expected: {}, got: {}.&quot;</span>, nparties, core_verifier.total_stake);
         }
     }
 }
