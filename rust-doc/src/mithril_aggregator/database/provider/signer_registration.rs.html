@@ -878,19 +878,11 @@
 <a href="#878" id="878">878</a>
 <a href="#879" id="879">879</a>
 <a href="#880" id="880">880</a>
-<a href="#881" id="881">881</a>
-<a href="#882" id="882">882</a>
-<a href="#883" id="883">883</a>
-<a href="#884" id="884">884</a>
-<a href="#885" id="885">885</a>
-<a href="#886" id="886">886</a>
-<a href="#887" id="887">887</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::{DateTime, Utc};
-<span class="kw">use </span>sqlite::{Connection, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Value};
 <span class="kw">use </span>std::{collections::HashMap, sync::Arc};
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::{
     crypto_helper::KESPeriod,
@@ -1290,12 +1282,12 @@
 
 <span class="doccomment">/// Service to deal with signer_registration (read &amp; write).
 </span><span class="kw">pub struct </span>SignerRegistrationStore {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>SignerRegistrationStore {
     <span class="doccomment">/// Create a new [SignerRegistrationStore] service
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 }
@@ -1307,9 +1299,8 @@
         epoch: Epoch,
         signer: SignerWithStake,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignerWithStake&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertOrReplaceSignerRegistrationRecordProvider::new(connection);
-        <span class="kw">let </span>existing_record = SignerRegistrationRecordProvider::new(connection)
+        <span class="kw">let </span>provider = InsertOrReplaceSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
+        <span class="kw">let </span>existing_record = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection)
             .get_by_signer_id_and_epoch(signer.party_id.clone(), <span class="kw-2">&amp;</span>epoch)
             .with_context(|| {
                 <span class="macro">format!</span>(
@@ -1337,8 +1328,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;HashMap&lt;PartyId, Signer&gt;&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider
             .get_by_epoch(<span class="kw-2">&amp;</span>epoch)
             .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;get verification key failure, epoch: {epoch}&quot;</span>))
@@ -1354,8 +1344,7 @@
     }
 
     <span class="kw">async fn </span>get_signers(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;SignerWithStake&gt;&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider
             .get_by_epoch(<span class="kw-2">&amp;</span>epoch)
             .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;get verification key failure, epoch: {epoch}&quot;</span>))
@@ -1371,8 +1360,7 @@
     }
 
     <span class="kw">async fn </span>prune_verification_keys(<span class="kw-2">&amp;</span><span class="self">self</span>, max_epoch_to_prune: Epoch) -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>_deleted_records = DeleteSignerRegistrationRecordProvider::new(connection)
+        <span class="kw">let </span>_deleted_records = DeleteSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection)
             <span class="comment">// we want to prune including the given epoch (+1)
             </span>.prune(max_epoch_to_prune + <span class="number">1</span>)
             .map_err(AdapterError::QueryError)<span class="question-mark">?
@@ -1498,12 +1486,12 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_golden_master() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
         disable_foreign_key_support(<span class="kw-2">&amp;</span>connection).unwrap();
         insert_golden_signer_registration(<span class="kw-2">&amp;</span>connection);
 
-        <span class="kw">let </span>repository = SignerRegistrationStore::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>repository = SignerRegistrationStore::new(Arc::new(connection));
         repository
             .get_verification_keys(Epoch(<span class="number">292</span>))
             .<span class="kw">await
@@ -1544,7 +1532,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signer_registration_record_by_epoch() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.condition_by_epoch(<span class="kw-2">&amp;</span>Epoch(<span class="number">17</span>)).unwrap();
         <span class="kw">let </span>(filter, values) = condition.expand();
@@ -1555,7 +1543,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signer_registration_record_by_signer_id() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_signer_id(<span class="string">&quot;signer-123&quot;</span>.to_string())
@@ -1574,7 +1562,7 @@
             signer_with_stakes.first().unwrap().to_owned(),
             Epoch(<span class="number">1</span>),
         );
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = InsertOrReplaceSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition =
             provider.get_insert_or_replace_condition(signer_registration_record.clone());
@@ -1607,7 +1595,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>delete() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_delete_condition_by_epoch(Epoch(<span class="number">5</span>));
         <span class="kw">let </span>(condition, params) = condition.expand();
@@ -1618,7 +1606,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>prune() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_prune_condition(Epoch(<span class="number">5</span>));
         <span class="kw">let </span>(condition, params) = condition.expand();
@@ -1635,7 +1623,7 @@
             .map(|e| (Epoch(e), signer_with_stakes.clone()))
             .collect();
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_registration_db(<span class="kw-2">&amp;</span>connection, signer_with_stakes_by_epoch.clone()).unwrap();
 
         <span class="kw">let </span>provider = SignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1727,7 +1715,7 @@
             })
             .collect::&lt;Vec&lt;SignerWithStake&gt;&gt;();
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_registration_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
         <span class="kw">let </span>provider = InsertOrReplaceSignerRegistrationRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1754,7 +1742,7 @@
     <span class="kw">pub fn </span>init_signer_registration_store(
         initial_data: Vec&lt;(Epoch, HashMap&lt;PartyId, SignerWithStake&gt;)&gt;,
     ) -&gt; Arc&lt;<span class="kw">dyn </span>VerificationKeyStorer&gt; {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>initial_data: Vec&lt;(Epoch, Vec&lt;SignerWithStake&gt;)&gt; = initial_data
             .into_iter()
             .map(|(e, signers)| (e, signers.into_values().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()))
@@ -1762,9 +1750,7 @@
 
         setup_signer_registration_db(<span class="kw-2">&amp;</span>connection, initial_data).unwrap();
 
-        Arc::new(SignerRegistrationStore::new(Arc::new(Mutex::new(
-            connection,
-        ))))
+        Arc::new(SignerRegistrationStore::new(Arc::new(connection)))
     }
 
     <span class="macro">test_verification_key_storer!</span>(

@@ -1011,13 +1011,6 @@
 <a href="#1011" id="1011">1011</a>
 <a href="#1012" id="1012">1012</a>
 <a href="#1013" id="1013">1013</a>
-<a href="#1014" id="1014">1014</a>
-<a href="#1015" id="1015">1015</a>
-<a href="#1016" id="1016">1016</a>
-<a href="#1017" id="1017">1017</a>
-<a href="#1018" id="1018">1018</a>
-<a href="#1019" id="1019">1019</a>
-<a href="#1020" id="1020">1020</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>mithril_common::{
     entities::{Epoch, ProtocolMessage, SignedEntityType, SingleSignatures},
@@ -1026,9 +1019,9 @@
 };
 
 <span class="kw">use </span>chrono::{DateTime, Utc};
-<span class="kw">use </span>sqlite::{Connection, Row, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Row, Value};
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::Mutex;
+
 <span class="kw">use </span>uuid::Uuid;
 
 <span class="doccomment">/// ## OpenMessage
@@ -1503,12 +1496,12 @@ order by open_message.created_at desc, open_message.rowid desc
 /// This is a business oriented layer to perform actions on the database through
 /// providers.
 </span><span class="kw">pub struct </span>OpenMessageRepository {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>OpenMessageRepository {
     <span class="doccomment">/// Instanciate service
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 
@@ -1517,8 +1510,7 @@ order by open_message.created_at desc, open_message.rowid desc
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessageRecord&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>filters = provider
             .get_epoch_condition(signed_entity_type.get_epoch())
             .and_where(provider.get_signed_entity_type_condition(signed_entity_type)<span class="question-mark">?</span>);
@@ -1532,8 +1524,7 @@ order by open_message.created_at desc, open_message.rowid desc
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;OpenMessageWithSingleSignaturesRecord&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = OpenMessageWithSingleSignaturesProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = OpenMessageWithSingleSignaturesProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>filters = provider
             .get_epoch_condition(signed_entity_type.get_epoch())
             .and_where(provider.get_signed_entity_type_condition(signed_entity_type)<span class="question-mark">?</span>);
@@ -1549,8 +1540,7 @@ order by open_message.created_at desc, open_message.rowid desc
         signed_entity_type: <span class="kw-2">&amp;</span>SignedEntityType,
         protocol_message: <span class="kw-2">&amp;</span>ProtocolMessage,
     ) -&gt; StdResult&lt;OpenMessageRecord&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertOpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = InsertOpenMessageProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>filters = provider.get_insert_condition(epoch, signed_entity_type, protocol_message)<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider.find(filters)<span class="question-mark">?</span>;
 
@@ -1564,8 +1554,7 @@ order by open_message.created_at desc, open_message.rowid desc
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         open_message: <span class="kw-2">&amp;</span>OpenMessageRecord,
     ) -&gt; StdResult&lt;OpenMessageRecord&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = UpdateOpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = UpdateOpenMessageProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>filters = provider.get_update_condition(open_message)<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider.find(filters)<span class="question-mark">?</span>;
 
@@ -1577,8 +1566,7 @@ order by open_message.created_at desc, open_message.rowid desc
     <span class="doccomment">/// Remove all the [OpenMessageRecord] for the strictly previous epochs of the given epoch in the database.
     /// It returns the number of messages removed.
     </span><span class="kw">pub async fn </span>clean_epoch(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;usize&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = DeleteOpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = DeleteOpenMessageProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>filters = provider.get_epoch_condition(epoch);
         <span class="kw">let </span>cursor = provider.find(filters)<span class="question-mark">?</span>;
 
@@ -1601,17 +1589,17 @@ order by open_message.created_at desc, open_message.rowid desc
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">async fn </span>get_connection() -&gt; Arc&lt;Mutex&lt;Connection&gt;&gt; {
+    <span class="kw">async fn </span>get_connection() -&gt; Arc&lt;ConnectionWithFullMutex&gt; {
         <span class="kw">let </span>config = Configuration::new_sample();
         <span class="kw">let </span><span class="kw-2">mut </span>builder = DependenciesBuilder::new(config);
         <span class="kw">let </span>connection = builder.get_sqlite_connection().<span class="kw">await</span>.unwrap();
         {
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            lock.execute(
-                <span class="string">r#&quot;insert into epoch_setting(epoch_setting_id, protocol_parameters)
+            connection
+                .execute(
+                    <span class="string">r#&quot;insert into epoch_setting(epoch_setting_id, protocol_parameters)
 values (1, &#39;{&quot;k&quot;: 100, &quot;m&quot;: 5, &quot;phi&quot;: 0.65 }&#39;), (2, &#39;{&quot;k&quot;: 100, &quot;m&quot;: 5, &quot;phi&quot;: 0.65 }&#39;);&quot;#</span>,
-            )
-            .unwrap();
+                )
+                .unwrap();
         }
 
         connection
@@ -1649,12 +1637,12 @@ values (1, &#39;{&quot;k&quot;: 100, &quot;m&quot;: 5, &quot;phi&quot;: 0.65 }&#
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_golden_master() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
         disable_foreign_key_support(<span class="kw-2">&amp;</span>connection).unwrap();
         insert_golden_open_message_with_signature(<span class="kw-2">&amp;</span>connection);
 
-        <span class="kw">let </span>repository = OpenMessageRepository::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>repository = OpenMessageRepository::new(Arc::new(connection));
         repository
             .get_open_message(<span class="kw-2">&amp;</span>SignedEntityType::MithrilStakeDistribution(Epoch(<span class="number">275</span>)))
             .<span class="kw">await
@@ -1712,7 +1700,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>provider_epoch_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>(expr, params) = provider.get_epoch_condition(Epoch(<span class="number">12</span>)).expand();
 
@@ -1722,7 +1710,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>provider_message_type_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>beacon = Beacon {
             network: <span class="string">&quot;whatever&quot;</span>.to_string(),
@@ -1751,7 +1739,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>provider_message_id_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>(expr, params) = provider
             .get_open_message_id_condition(<span class="string">&quot;cecd7983-8b3a-42b1-b778-6d75e87828ee&quot;</span>)
@@ -1768,7 +1756,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>insert_provider_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = InsertOpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>epoch = Epoch(<span class="number">12</span>);
         <span class="kw">let </span>(expr, params) = provider
@@ -1801,7 +1789,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>update_provider_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = UpdateOpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>open_message = OpenMessageRecord {
             open_message_id: Uuid::new_v4(),
@@ -1836,7 +1824,7 @@ else json_group_array( \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>delete_provider_epoch_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteOpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>(expr, params) = provider.get_epoch_condition(Epoch(<span class="number">12</span>)).expand();
 
@@ -1894,8 +1882,7 @@ else json_group_array( \
         );
 
         <span class="kw">let </span>message = {
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>lock);
+            <span class="kw">let </span>provider = OpenMessageProvider::new(<span class="kw-2">&amp;</span>connection);
             <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider
                 .find(WhereCondition::new(
                     <span class="string">&quot;open_message_id = ?*&quot;</span>,
@@ -1973,10 +1960,10 @@ else json_group_array( \
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>repository_get_open_message_with_single_signatures_when_signatures_exist() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
         disable_foreign_key_support(<span class="kw-2">&amp;</span>connection).unwrap();
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection));
+        <span class="kw">let </span>connection = Arc::new(connection);
         <span class="kw">let </span>repository = OpenMessageRepository::new(connection.clone());
 
         <span class="kw">let </span>open_message = repository
@@ -1996,8 +1983,7 @@ else json_group_array( \
                 })
                 .collect();
         {
-            <span class="kw">let </span>conn = connection.lock().<span class="kw">await</span>;
-            insert_single_signatures_in_db(<span class="kw-2">&amp;</span>conn, single_signature_records).unwrap();
+            insert_single_signatures_in_db(<span class="kw-2">&amp;</span>connection, single_signature_records).unwrap();
         }
 
         <span class="kw">let </span>open_message_with_single_signatures = repository
@@ -2013,10 +1999,10 @@ else json_group_array( \
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>repository_get_open_message_with_single_signatures_when_signatures_not_exist() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
         disable_foreign_key_support(<span class="kw-2">&amp;</span>connection).unwrap();
-        <span class="kw">let </span>repository = OpenMessageRepository::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>repository = OpenMessageRepository::new(Arc::new(connection));
 
         <span class="kw">let </span>open_message = OpenMessageRecord::dummy();
         repository

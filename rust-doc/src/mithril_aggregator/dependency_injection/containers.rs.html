@@ -254,9 +254,9 @@
 <a href="#254" id="254">254</a>
 <a href="#255" id="255">255</a>
 <a href="#256" id="256">256</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>sqlite::Connection;
+</pre></div><pre class="rust"><code><span class="kw">use </span>sqlite::ConnectionWithFullMutex;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::{Mutex, RwLock};
+<span class="kw">use </span>tokio::sync::RwLock;
 
 <span class="kw">use </span>mithril_common::{
     api_version::APIVersionProvider,
@@ -299,7 +299,7 @@
     <span class="doccomment">/// SQLite database connection
     /// This is not a real service but is is needed to instantiate all store
     /// services. Shall be private dependency.
-    </span><span class="kw">pub </span>sqlite_connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    </span><span class="kw">pub </span>sqlite_connection: Arc&lt;ConnectionWithFullMutex&gt;,
 
     <span class="doccomment">/// Stake Store used by the StakeDistributionService
     /// It shall be a private dependency.

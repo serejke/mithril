@@ -533,23 +533,10 @@
 <a href="#533" id="533">533</a>
 <a href="#534" id="534">534</a>
 <a href="#535" id="535">535</a>
-<a href="#536" id="536">536</a>
-<a href="#537" id="537">537</a>
-<a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>sqlite::{Connection, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Value};
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::{
     entities::{Epoch, ProtocolParameters},
@@ -788,7 +775,7 @@
 
 <span class="doccomment">/// Service to deal with epoch settings (read &amp; write).
 </span><span class="kw">pub struct </span>EpochSettingStore {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 
     <span class="doccomment">/// Number of epochs before previous records will be pruned at the next call to
     /// [save_protocol_parameters][EpochSettingStore::save_protocol_parameters].
@@ -797,7 +784,7 @@
 
 <span class="kw">impl </span>EpochSettingStore {
     <span class="doccomment">/// Create a new EpochSetting service
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;, retention_limit: <span class="prelude-ty">Option</span>&lt;u64&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;, retention_limit: <span class="prelude-ty">Option</span>&lt;u64&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             connection,
             retention_limit,
@@ -812,35 +799,24 @@
         epoch: Epoch,
         protocol_parameters: ProtocolParameters,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = UpdateEpochSettingProvider::new(connection);
-        connection
-            .execute(<span class="string">&quot;begin transaction&quot;</span>)
-            .with_context(|| <span class="string">&quot;could not begin transaction to update protocol parameters&quot;</span>)
-            .map_err(AdapterError::QueryError)<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>provider = UpdateEpochSettingProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>epoch_setting_record = provider.persist(epoch, protocol_parameters).map_err(|e| {
             AdapterError::GeneralError(e.context(<span class="string">&quot;persist protocol parameters failure&quot;</span>))
         })<span class="question-mark">?</span>;
 
         <span class="comment">// Prune useless old epoch settings.
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(threshold) = <span class="self">self</span>.retention_limit {
-            <span class="kw">let _ </span>= DeleteEpochSettingProvider::new(connection)
+            <span class="kw">let _ </span>= DeleteEpochSettingProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection)
                 .prune(epoch - threshold)
                 .map_err(AdapterError::QueryError)<span class="question-mark">?
                 </span>.count();
         }
 
-        connection
-            .execute(<span class="string">&quot;commit transaction&quot;</span>)
-            .map_err(|e| AdapterError::QueryError(e.into()))<span class="question-mark">?</span>;
-
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(epoch_setting_record.protocol_parameters))
     }
 
     <span class="kw">async fn </span>get_protocol_parameters(<span class="kw-2">&amp;</span><span class="self">self</span>, epoch: Epoch) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;ProtocolParameters&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = EpochSettingProvider::new(connection);
+        <span class="kw">let </span>provider = EpochSettingProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider
             .get_by_epoch(<span class="kw-2">&amp;</span>epoch)
             .map_err(|e| AdapterError::GeneralError(e.context(<span class="string">&quot;Could not get epoch setting&quot;</span>)))<span class="question-mark">?</span>;
@@ -910,7 +886,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_epoch_setting_by_epoch() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = EpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.condition_by_epoch(<span class="kw-2">&amp;</span>Epoch(<span class="number">17</span>)).unwrap();
         <span class="kw">let </span>(filter, values) = condition.expand();
@@ -921,7 +897,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>update_epoch_setting() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = UpdateEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_update_condition(Epoch(<span class="number">1</span>), ProtocolParameters::new(<span class="number">1</span>, <span class="number">2</span>, <span class="number">1.0</span>));
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -941,7 +917,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>delete() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_delete_condition_by_epoch(Epoch(<span class="number">5</span>));
         <span class="kw">let </span>(condition, params) = condition.expand();
@@ -952,7 +928,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>prune() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_prune_condition(Epoch(<span class="number">5</span>));
         <span class="kw">let </span>(condition, params) = condition.expand();
@@ -963,7 +939,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_get_epoch_settings() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_epoch_setting_db(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]).unwrap();
 
         <span class="kw">let </span>provider = EpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -994,7 +970,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_update_epoch_setting() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_epoch_setting_db(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>[<span class="number">3</span>]).unwrap();
 
         <span class="kw">let </span>provider = UpdateEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1024,7 +1000,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_delete() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_epoch_setting_db(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>]).unwrap();
 
         <span class="kw">let </span>provider = DeleteEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1044,7 +1020,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_prune() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_epoch_setting_db(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>]).unwrap();
 
         <span class="kw">let </span>provider = DeleteEpochSettingProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1064,11 +1040,11 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>save_protocol_parameters_prune_older_epoch_settings() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">const </span>EPOCH_SETTING_PRUNE_EPOCH_THRESHOLD: u64 = <span class="number">5</span>;
         setup_epoch_setting_db(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>]).unwrap();
         <span class="kw">let </span>store = EpochSettingStore::new(
-            Arc::new(Mutex::new(connection)),
+            Arc::new(connection),
             <span class="prelude-val">Some</span>(EPOCH_SETTING_PRUNE_EPOCH_THRESHOLD),
         );
 

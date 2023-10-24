@@ -324,8 +324,6 @@
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
 <a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>std::{fs::File, io::prelude::<span class="kw-2">*</span>, io::Write, path::Path, sync::Arc};
 
@@ -535,7 +533,6 @@
     };
     <span class="kw">use </span>sqlite::Connection;
     <span class="kw">use </span>std::{fs, path::PathBuf};
-    <span class="kw">use </span>tokio::sync::Mutex;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -569,10 +566,9 @@
         Arc&lt;ProtocolGenesisVerifier&gt;,
         Arc&lt;<span class="kw">dyn </span>CertificateVerifier&gt;,
     ) {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
-        <span class="kw">let </span>certificate_store =
-            Arc::new(CertificateRepository::new(Arc::new(Mutex::new(connection))));
+        <span class="kw">let </span>certificate_store = Arc::new(CertificateRepository::new(Arc::new(connection)));
         <span class="kw">let </span>certificate_verifier = Arc::new(MithrilCertificateVerifier::new(slog_scope::logger()));
         <span class="kw">let </span>genesis_avk = create_fake_genesis_avk();
         <span class="kw">let </span>genesis_verifier = Arc::new(genesis_signer.create_genesis_verifier());

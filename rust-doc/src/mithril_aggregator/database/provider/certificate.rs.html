@@ -1409,24 +1409,11 @@
 <a href="#1409" id="1409">1409</a>
 <a href="#1410" id="1410">1410</a>
 <a href="#1411" id="1411">1411</a>
-<a href="#1412" id="1412">1412</a>
-<a href="#1413" id="1413">1413</a>
-<a href="#1414" id="1414">1414</a>
-<a href="#1415" id="1415">1415</a>
-<a href="#1416" id="1416">1416</a>
-<a href="#1417" id="1417">1417</a>
-<a href="#1418" id="1418">1418</a>
-<a href="#1419" id="1419">1419</a>
-<a href="#1420" id="1420">1420</a>
-<a href="#1421" id="1421">1421</a>
-<a href="#1422" id="1422">1422</a>
-<a href="#1423" id="1423">1423</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::{DateTime, Utc};
-<span class="kw">use </span>sqlite::{Connection, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Value};
 <span class="kw">use </span>std::{iter::repeat, sync::Arc};
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::{
     certificate_chain::{CertificateRetriever, CertificateRetrieverError},
@@ -1963,19 +1950,18 @@ order by certificate.ROWID desc&quot;#
 
 <span class="doccomment">/// Database frontend API for Certificate queries.
 </span><span class="kw">pub struct </span>CertificateRepository {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>CertificateRepository {
     <span class="doccomment">/// Instantiate a new repository
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 
     <span class="doccomment">/// Return the certificate corresponding to the given hash if any.
     </span><span class="kw">pub async fn </span>get_certificate(<span class="kw-2">&amp;</span><span class="self">self</span>, hash: <span class="kw-2">&amp;</span>str) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider.get_by_certificate_id(hash)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(cursor.next().map(|v| v.into()))
@@ -1983,8 +1969,7 @@ order by certificate.ROWID desc&quot;#
 
     <span class="doccomment">/// Return the latest certificates.
     </span><span class="kw">pub async fn </span>get_latest_certificates(<span class="kw-2">&amp;</span><span class="self">self</span>, last_n: usize) -&gt; StdResult&lt;Vec&lt;Certificate&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider.get_all()<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(cursor.take(last_n).map(|v| v.into()).collect())
@@ -1997,8 +1982,7 @@ order by certificate.ROWID desc&quot;#
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         epoch: Epoch,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;Certificate&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = MasterCertificateProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = MasterCertificateProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider.find(provider.get_master_certificate_condition(epoch))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(cursor.next().map(|c| c.into()))
@@ -2006,8 +1990,7 @@ order by certificate.ROWID desc&quot;#
 
     <span class="doccomment">/// Create a new certificate in the database.
     </span><span class="kw">pub async fn </span>create_certificate(<span class="kw-2">&amp;</span><span class="self">self</span>, certificate: Certificate) -&gt; StdResult&lt;Certificate&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
 
         provider.persist(certificate.into()).map(|r| r.into())
     }
@@ -2017,8 +2000,7 @@ order by certificate.ROWID desc&quot;#
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         certificates: Vec&lt;Certificate&gt;,
     ) -&gt; StdResult&lt;Vec&lt;Certificate&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>records: Vec&lt;CertificateRecord&gt; =
             certificates.into_iter().map(|cert| cert.into()).collect();
         <span class="kw">let </span>new_certificates = provider.persist_many(records)<span class="question-mark">?</span>;
@@ -2036,8 +2018,7 @@ order by certificate.ROWID desc&quot;#
             .map(|c| c.hash.as_str())
             .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
-        <span class="kw">let </span>connection = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = DeleteCertificateProvider::new(<span class="kw-2">&amp;</span>connection);
+        <span class="kw">let </span>provider = DeleteCertificateProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let _ </span>= provider.delete_by_ids(<span class="kw-2">&amp;</span>ids)<span class="question-mark">?</span>.collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
         <span class="prelude-val">Ok</span>(())
@@ -2208,7 +2189,7 @@ order by certificate.ROWID desc&quot;#
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_golden_master() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_certificate_db(<span class="kw-2">&amp;</span>connection, <span class="macro">vec!</span>[]).unwrap();
         insert_golden_certificate(<span class="kw-2">&amp;</span>connection);
 
@@ -2259,7 +2240,7 @@ order by certificate.ROWID desc&quot;#
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_certificate_record_by_epoch() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.condition_by_epoch(<span class="kw-2">&amp;</span>Epoch(<span class="number">17</span>)).unwrap();
         <span class="kw">let </span>(filter, values) = condition.expand();
@@ -2270,7 +2251,7 @@ order by certificate.ROWID desc&quot;#
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_certificate_record_by_certificate_id() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_certificate_id(<span class="string">&quot;certificate-123&quot;</span>)
@@ -2285,7 +2266,7 @@ order by certificate.ROWID desc&quot;#
     </span><span class="kw">fn </span>insert_certificate_condition() {
         <span class="kw">let </span>(certificates, <span class="kw">_</span>) = setup_certificate_chain(<span class="number">2</span>, <span class="number">1</span>);
         <span class="kw">let </span>certificate_record: CertificateRecord = certificates.first().unwrap().to_owned().into();
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_insert_condition(<span class="kw-2">&amp;</span>certificate_record);
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -2321,7 +2302,7 @@ order by certificate.ROWID desc&quot;#
         <span class="kw">let </span>(certificates, <span class="kw">_</span>) = setup_certificate_chain(<span class="number">2</span>, <span class="number">1</span>);
         <span class="kw">let </span>certificates_records: Vec&lt;CertificateRecord&gt; =
             certificates.into_iter().map(|c| c.into()).collect();
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_insert_many_condition(<span class="kw-2">&amp;</span>certificates_records);
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -2371,7 +2352,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
     </span><span class="kw">fn </span>test_get_certificate_records() {
         <span class="kw">let </span>(certificates, <span class="kw">_</span>) = setup_certificate_chain(<span class="number">20</span>, <span class="number">7</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_certificate_db(<span class="kw-2">&amp;</span>connection, certificates.clone()).unwrap();
 
         <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -2410,7 +2391,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
     </span><span class="kw">fn </span>test_insert_certificate_record() {
         <span class="kw">let </span>(certificates, <span class="kw">_</span>) = setup_certificate_chain(<span class="number">5</span>, <span class="number">2</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_certificate_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
         <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -2428,7 +2409,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
         <span class="kw">let </span>certificates_records: Vec&lt;CertificateRecord&gt; =
             certificates.into_iter().map(|cert| cert.into()).collect();
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_certificate_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
         <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -2441,7 +2422,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>master_certificate_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = MasterCertificateProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_master_certificate_condition(Epoch(<span class="number">10</span>));
         <span class="kw">let </span>(condition_str, parameters) = condition.expand();
@@ -2460,8 +2441,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
         <span class="kw">let </span><span class="kw-2">mut </span>deps = DependenciesBuilder::new(Configuration::new_sample());
         <span class="kw">let </span>connection = deps.get_sqlite_connection().<span class="kw">await</span>.unwrap();
         {
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
 
             <span class="kw">for </span>certificate <span class="kw">in </span>certificates.iter().rev() {
                 provider.persist(certificate.to_owned().into()).unwrap();
@@ -2487,8 +2467,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
         <span class="kw">let </span><span class="kw-2">mut </span>deps = DependenciesBuilder::new(Configuration::new_sample());
         <span class="kw">let </span>connection = deps.get_sqlite_connection().<span class="kw">await</span>.unwrap();
         {
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
 
             <span class="kw">for </span>certificate <span class="kw">in </span>certificates.iter().rev() {
                 provider.persist(certificate.to_owned().into()).unwrap();
@@ -2505,11 +2484,10 @@ protocol_message, signers, initiated_at, sealed_at) values \
     }
 
     <span class="kw">async fn </span>insert_certificate_records(
-        connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+        connection: Arc&lt;ConnectionWithFullMutex&gt;,
         records: Vec&lt;CertificateRecord&gt;,
     ) {
-        <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+        <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
 
         <span class="kw">for </span>certificate <span class="kw">in </span>records {
             provider.persist(certificate).unwrap();
@@ -2748,8 +2726,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
         <span class="kw">let </span><span class="kw-2">mut </span>deps = DependenciesBuilder::new(Configuration::new_sample());
         <span class="kw">let </span>connection = deps.get_sqlite_connection().<span class="kw">await</span>.unwrap();
         {
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+            <span class="kw">let </span>provider = InsertCertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
 
             <span class="kw">for </span>certificate <span class="kw">in </span>certificates.iter().rev() {
                 provider.persist(certificate.to_owned().into()).unwrap();
@@ -2780,8 +2757,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
         <span class="macro">assert_eq!</span>(certificates[<span class="number">4</span>].hash, certificate.hash);
         {
             <span class="kw">let </span>connection = deps.get_sqlite_connection().<span class="kw">await</span>.unwrap();
-            <span class="kw">let </span>lock = connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>lock);
+            <span class="kw">let </span>provider = CertificateRecordProvider::new(<span class="kw-2">&amp;</span>connection);
             <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider
                 .get_by_certificate_id(<span class="kw-2">&amp;</span>certificates[<span class="number">4</span>].hash)
                 .unwrap();
@@ -2795,7 +2771,7 @@ protocol_message, signers, initiated_at, sealed_at) values \
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>delete_certificates_condition_correctly_joins_given_ids() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = DeleteCertificateProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_delete_by_ids_condition(<span class="kw-2">&amp;</span>[<span class="string">&quot;a&quot;</span>, <span class="string">&quot;b&quot;</span>, <span class="string">&quot;c&quot;</span>]);
         <span class="kw">let </span>(condition, params) = condition.expand();

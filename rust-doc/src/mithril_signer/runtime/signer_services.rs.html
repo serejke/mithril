@@ -364,12 +364,10 @@
 <a href="#364" id="364">364</a>
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
-<a href="#367" id="367">367</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>sqlite::Connection;
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex};
 <span class="kw">use </span>std::{fs, sync::Arc};
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::{
     api_version::APIVersionProvider,
@@ -504,9 +502,9 @@
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Arc::new(cache_provider)))
     }
 
-    <span class="kw">async fn </span>build_sqlite_connection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Arc&lt;Mutex&lt;Connection&gt;&gt;&gt; {
+    <span class="kw">async fn </span>build_sqlite_connection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Arc&lt;ConnectionWithFullMutex&gt;&gt; {
         <span class="kw">let </span>sqlite_db_path = <span class="self">self</span>.config.get_sqlite_file()<span class="question-mark">?</span>;
-        <span class="kw">let </span>sqlite_connection = Arc::new(Mutex::new(Connection::open(sqlite_db_path)<span class="question-mark">?</span>));
+        <span class="kw">let </span>sqlite_connection = Arc::new(Connection::open_with_full_mutex(sqlite_db_path)<span class="question-mark">?</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>db_checker = DatabaseVersionChecker::new(
             slog_scope::logger(),
             ApplicationNodeType::Signer,

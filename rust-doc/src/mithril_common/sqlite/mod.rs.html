@@ -60,9 +60,6 @@
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
-<a href="#64" id="64">64</a>
-<a href="#65" id="65">65</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! SQLite module.
 //! This module provides a minimal yet useful Entity framework on top of SQLite
 //! with ability to perform any SQL query possible and hydrate results in Rust
@@ -81,16 +78,14 @@
 <span class="kw">pub use </span>provider::Provider;
 <span class="kw">pub use </span>source_alias::SourceAlias;
 
-<span class="kw">use </span>sqlite::Connection;
+<span class="kw">use </span>sqlite::ConnectionWithFullMutex;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::StdResult;
 
 <span class="doccomment">/// Do a [vacuum](https://www.sqlite.org/lang_vacuum.html) on the given connection, this will
 /// reconstruct the database file, repacking it into a minimal amount of disk space.
-</span><span class="kw">pub async fn </span>vacuum_database(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; StdResult&lt;()&gt; {
-    <span class="kw">let </span>connection = <span class="kw-2">&amp;</span>connection.lock().<span class="kw">await</span>;
+</span><span class="kw">pub async fn </span>vacuum_database(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; StdResult&lt;()&gt; {
     connection.execute(<span class="string">&quot;vacuum&quot;</span>)<span class="question-mark">?</span>;
     <span class="prelude-val">Ok</span>(())
 }
@@ -100,11 +95,10 @@
     <span class="kw">use </span><span class="kw">crate</span>::sqlite::vacuum_database;
     <span class="kw">use </span>sqlite::Connection;
     <span class="kw">use </span>std::sync::Arc;
-    <span class="kw">use </span>tokio::sync::Mutex;
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>calling_vacuum_on_an_empty_in_memory_db_should_not_fail() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap()));
+        <span class="kw">let </span>connection = Arc::new(Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap());
 
         vacuum_database(connection)
             .<span class="kw">await

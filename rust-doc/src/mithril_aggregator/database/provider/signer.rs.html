@@ -745,20 +745,12 @@
 <a href="#745" id="745">745</a>
 <a href="#746" id="746">746</a>
 <a href="#747" id="747">747</a>
-<a href="#748" id="748">748</a>
-<a href="#749" id="749">749</a>
-<a href="#750" id="750">750</a>
-<a href="#751" id="751">751</a>
-<a href="#752" id="752">752</a>
-<a href="#753" id="753">753</a>
-<a href="#754" id="754">754</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::{DateTime, Utc};
-<span class="kw">use </span>sqlite::{Connection, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Value};
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::iter::repeat;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::sqlite::{
     EntityCursor, HydrationError, Projection, Provider, SourceAlias, SqLiteEntity, WhereCondition,
@@ -1044,12 +1036,12 @@
 
 <span class="doccomment">/// Service to deal with signer (read &amp; write).
 </span><span class="kw">pub struct </span>SignerStore {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>SignerStore {
     <span class="doccomment">/// Create a new SignerStore service
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 
@@ -1059,8 +1051,7 @@
         signer_id: String,
         pool_ticker: <span class="prelude-ty">Option</span>&lt;String&gt;,
     ) -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = ImportSignerRecordProvider::new(connection);
+        <span class="kw">let </span>provider = ImportSignerRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>created_at = Utc::now();
         <span class="kw">let </span>updated_at = created_at;
         <span class="kw">let </span>signer_record = SignerRecord {
@@ -1080,8 +1071,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         pool_ticker_by_id: HashMap&lt;String, <span class="prelude-ty">Option</span>&lt;String&gt;&gt;,
     ) -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = ImportSignerRecordProvider::new(connection);
+        <span class="kw">let </span>provider = ImportSignerRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
 
         <span class="kw">let </span>created_at = Utc::now();
         <span class="kw">let </span>updated_at = created_at;
@@ -1105,8 +1095,7 @@
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>SignerRecorder <span class="kw">for </span>SignerStore {
     <span class="kw">async fn </span>record_signer_registration(<span class="kw-2">&amp;</span><span class="self">self</span>, signer_id: String) -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = RegisterSignerRecordProvider::new(connection);
+        <span class="kw">let </span>provider = RegisterSignerRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>created_at = Utc::now();
         <span class="kw">let </span>updated_at = created_at;
         <span class="kw">let </span>registered_at = <span class="prelude-val">Some</span>(created_at);
@@ -1126,8 +1115,7 @@
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>SignerGetter <span class="kw">for </span>SignerStore {
     <span class="kw">async fn </span>get_all(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StdResult&lt;Vec&lt;SignerRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignerRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignerRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider.get_all()<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(cursor.collect())
@@ -1227,7 +1215,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signer_record_by_signer_id() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_signer_id(<span class="string">&quot;signer-123&quot;</span>.to_string())
@@ -1241,7 +1229,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>insert_signer_record() {
         <span class="kw">let </span>signer_record = fake_signer_records(<span class="number">1</span>).first().unwrap().to_owned();
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = RegisterSignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_register_condition(signer_record.clone());
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -1265,7 +1253,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>update_signer_record() {
         <span class="kw">let </span>signer_records = fake_signer_records(<span class="number">2</span>);
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = ImportSignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_import_condition(signer_records.clone());
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -1295,7 +1283,7 @@
     </span><span class="kw">fn </span>test_get_signer_records() {
         <span class="kw">let </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, signer_records_fake.clone()).unwrap();
 
         <span class="kw">let </span>provider = SignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1329,7 +1317,7 @@
     </span><span class="kw">fn </span>test_insert_signer_record() {
         <span class="kw">let </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
         <span class="kw">let </span>provider = RegisterSignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1350,7 +1338,7 @@
     </span><span class="kw">fn </span>test_update_signer_record() {
         <span class="kw">let </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, signer_records_fake.clone()).unwrap();
 
         <span class="kw">let </span>provider = ImportSignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1373,7 +1361,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
         signer_records_fake.sort_by(|a, b| a.signer_id.cmp(<span class="kw-2">&amp;</span>b.signer_id));
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, signer_records_fake.clone()).unwrap();
 
         <span class="kw">let </span>provider = ImportSignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1394,10 +1382,10 @@
     </span><span class="kw">async fn </span>test_get_all_signers() {
         <span class="kw">let </span>signer_records = fake_signer_records(<span class="number">5</span>);
         <span class="kw">let </span>expected: Vec&lt;<span class="kw">_</span>&gt; = signer_records.iter().rev().cloned().collect();
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, signer_records).unwrap();
 
-        <span class="kw">let </span>store = SignerStore::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>store = SignerStore::new(Arc::new(connection));
 
         <span class="kw">let </span>stored_signers = store
             .get_all()
@@ -1411,10 +1399,10 @@
     </span><span class="kw">async fn </span>test_signer_recorder() {
         <span class="kw">let </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection));
+        <span class="kw">let </span>connection = Arc::new(connection);
         <span class="kw">let </span>store_recorder = SignerStore::new(connection.clone());
 
         <span class="kw">for </span>signer_record <span class="kw">in </span>signer_records_fake.clone() {
@@ -1422,8 +1410,7 @@
                 .record_signer_registration(signer_record.signer_id.clone())
                 .<span class="kw">await
                 </span>.expect(<span class="string">&quot;record_signer_registration should not fail&quot;</span>);
-            <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span>connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = SignerRecordProvider::new(connection);
+            <span class="kw">let </span>provider = SignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
             <span class="kw">let </span>signer_records_stored: Vec&lt;SignerRecord&gt; = provider
                 .get_by_signer_id(signer_record.signer_id)
                 .unwrap()
@@ -1442,10 +1429,10 @@
     </span><span class="kw">async fn </span>test_store_import_signer() {
         <span class="kw">let </span>signer_records_fake = fake_signer_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection));
+        <span class="kw">let </span>connection = Arc::new(connection);
         <span class="kw">let </span>store = SignerStore::new(connection.clone());
 
         <span class="kw">for </span>signer_record <span class="kw">in </span>signer_records_fake {
@@ -1456,8 +1443,7 @@
                 )
                 .<span class="kw">await
                 </span>.expect(<span class="string">&quot;import_signer should not fail&quot;</span>);
-            <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span>connection.lock().<span class="kw">await</span>;
-            <span class="kw">let </span>provider = SignerRecordProvider::new(connection);
+            <span class="kw">let </span>provider = SignerRecordProvider::new(<span class="kw-2">&amp;</span>connection);
             <span class="kw">let </span>signer_records_stored: Vec&lt;SignerRecord&gt; = provider
                 .get_by_signer_id(signer_record.signer_id)
                 .unwrap()
@@ -1482,9 +1468,9 @@
             .map(|r| (r.signer_id, r.pool_ticker))
             .collect();
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signer_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
-        <span class="kw">let </span>store = SignerStore::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>store = SignerStore::new(Arc::new(connection));
 
         store
             .import_many_signers(signers_fake.clone().into_iter().collect())

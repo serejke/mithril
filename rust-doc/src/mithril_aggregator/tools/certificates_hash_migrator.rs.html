@@ -605,7 +605,6 @@
 <a href="#605" id="605">605</a>
 <a href="#606" id="606">606</a>
 <a href="#607" id="607">607</a>
-<a href="#608" id="608">608</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::database::provider::{CertificateRepository, SignedEntityStorer};
 <span class="kw">use </span>anyhow::{anyhow, Context};
 <span class="kw">use </span>mithril_common::{entities::Certificate, StdResult};
@@ -806,20 +805,19 @@
         },
         StdResult,
     };
-    <span class="kw">use </span>sqlite::Connection;
+    <span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex};
     <span class="kw">use </span>std::{collections::HashMap, sync::Arc};
-    <span class="kw">use </span>tokio::sync::Mutex;
 
     <span class="kw">use </span><span class="kw">super</span>::CertificatesHashMigrator;
 
-    <span class="kw">fn </span>connection_with_foreign_key_support() -&gt; Connection {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+    <span class="kw">fn </span>connection_with_foreign_key_support() -&gt; ConnectionWithFullMutex {
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         apply_all_migrations_to_db(<span class="kw-2">&amp;</span>connection).unwrap();
 
         connection
     }
 
-    <span class="kw">fn </span>connection_without_foreign_key_support() -&gt; Connection {
+    <span class="kw">fn </span>connection_without_foreign_key_support() -&gt; ConnectionWithFullMutex {
         <span class="kw">let </span>connection = connection_with_foreign_key_support();
         disable_foreign_key_support(<span class="kw-2">&amp;</span>connection).unwrap();
 
@@ -855,7 +853,7 @@
     }
 
     <span class="kw">async fn </span>fill_certificates_and_signed_entities_in_db(
-        connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+        connection: Arc&lt;ConnectionWithFullMutex&gt;,
         certificates_and_signed_entity: <span class="kw-2">&amp;</span>[(Certificate, <span class="prelude-ty">Option</span>&lt;SignedEntityTypeDiscriminants&gt;)],
     ) -&gt; StdResult&lt;Vec&lt;(Certificate, <span class="prelude-ty">Option</span>&lt;SignedEntityRecord&gt;)&gt;&gt; {
         <span class="kw">let </span>certificate_repository = CertificateRepository::new(connection.clone());
@@ -1018,7 +1016,7 @@
     }
 
     <span class="kw">async fn </span>get_certificates_and_signed_entities(
-        connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+        connection: Arc&lt;ConnectionWithFullMutex&gt;,
     ) -&gt; StdResult&lt;Vec&lt;(Certificate, <span class="prelude-ty">Option</span>&lt;SignedEntityRecord&gt;)&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>result = <span class="macro">vec!</span>[];
         <span class="kw">let </span>certificate_repository = CertificateRepository::new(connection.clone());
@@ -1044,7 +1042,7 @@
     }
 
     <span class="kw">async fn </span>run_migration_test(
-        sqlite_connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+        sqlite_connection: Arc&lt;ConnectionWithFullMutex&gt;,
         certificates_and_signed_entity: Vec&lt;(Certificate, <span class="prelude-ty">Option</span>&lt;SignedEntityTypeDiscriminants&gt;)&gt;,
     ) {
         <span class="comment">// Arrange
@@ -1101,13 +1099,13 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>migrate_genesis_certificate() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection_without_foreign_key_support()));
+        <span class="kw">let </span>connection = Arc::new(connection_without_foreign_key_support());
         run_migration_test(connection, <span class="macro">vec!</span>[(dummy_genesis(<span class="string">&quot;old_hash&quot;</span>, <span class="number">1</span>, <span class="number">1</span>), <span class="prelude-val">None</span>)]).<span class="kw">await</span>;
     }
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>migrate_a_chain_of_one_genesis_and_one_mithril_stake_distribution() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection_without_foreign_key_support()));
+        <span class="kw">let </span>connection = Arc::new(connection_without_foreign_key_support());
         run_migration_test(
             connection,
             <span class="macro">vec!</span>[
@@ -1124,7 +1122,7 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>migrate_a_chain_with_one_genesis_spanning_multiple_epochs_and_multiple_signed_entities(
     ) {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection_with_foreign_key_support()));
+        <span class="kw">let </span>connection = Arc::new(connection_with_foreign_key_support());
         run_migration_test(
             connection,
             <span class="macro">vec!</span>[
@@ -1160,7 +1158,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>migrate_a_chain_with_multiple_genesis_spanning_multiple_epochs() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection_with_foreign_key_support()));
+        <span class="kw">let </span>connection = Arc::new(connection_with_foreign_key_support());
         run_migration_test(
             connection,
             <span class="macro">vec!</span>[
@@ -1194,7 +1192,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>should_fail_if_any_hash_doesnt_change() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(connection_without_foreign_key_support()));
+        <span class="kw">let </span>connection = Arc::new(connection_without_foreign_key_support());
         <span class="kw">let </span>certificate = {
             <span class="kw">let </span><span class="kw-2">mut </span>cert = dummy_genesis(<span class="string">&quot;whatever&quot;</span>, <span class="number">1</span>, <span class="number">2</span>);
             cert.hash = cert.compute_hash();

@@ -128,7 +128,6 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>tokio::sync::RwLock;
 
@@ -177,7 +176,6 @@
     <span class="kw">use </span>std::{cmp::min, sync::Arc};
 
     <span class="kw">use </span>sqlite::Connection;
-    <span class="kw">use </span>tokio::sync::Mutex;
 
     <span class="kw">use </span><span class="kw">crate</span>::store::adapter::SQLiteAdapter;
 
@@ -216,7 +214,7 @@
     }
 
     <span class="kw">async fn </span>get_adapter(data_len: u64) -&gt; SQLiteAdapter&lt;u64, String&gt; {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap()));
+        <span class="kw">let </span>connection = Arc::new(Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap());
         <span class="kw">let </span><span class="kw-2">mut </span>adapter: SQLiteAdapter&lt;u64, String&gt; =
             SQLiteAdapter::new(<span class="string">&quot;whatever&quot;</span>, connection).unwrap();
 

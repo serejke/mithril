@@ -223,11 +223,10 @@
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
 <a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>chrono::{DateTime, Utc};
-<span class="kw">use </span>sqlite::Connection;
-<span class="kw">use </span>std::sync::Mutex;
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex};
+
 <span class="kw">use </span>std::{collections::HashMap, sync::Arc};
 
 <span class="kw">use </span>mithril_common::sqlite::{
@@ -371,12 +370,12 @@
 <span class="doccomment">/// The EventPersister is the adapter to persist EventMessage turning them into
 /// Event.
 </span><span class="kw">pub struct </span>EventPersister {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>EventPersister {
     <span class="doccomment">/// Instanciate an EventPersister
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 
@@ -400,8 +399,7 @@
 
     <span class="doccomment">/// Save an EventMessage in the database.
     </span><span class="kw">pub fn </span>persist(<span class="kw-2">&amp;</span><span class="self">self</span>, message: EventMessage) -&gt; StdResult&lt;Event&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().unwrap();
-        <span class="kw">let </span>provider = EventPersisterProvider::new(connection);
+        <span class="kw">let </span>provider = EventPersisterProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>log_message = message.clone();
         <span class="kw">let </span><span class="kw-2">mut </span>rows = provider.find(<span class="self">self</span>.get_persist_parameters(message)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
@@ -428,7 +426,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>provider_sql() {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap()));
+        <span class="kw">let </span>connection = Arc::new(Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap());
         <span class="kw">let </span>persister = EventPersister::new(connection);
         <span class="kw">let </span>message = EventMessage::new(<span class="string">&quot;source&quot;</span>, <span class="string">&quot;action&quot;</span>, <span class="string">&quot;content&quot;</span>);
         <span class="kw">let </span>(parameters, values) = persister.get_persist_parameters(message).unwrap().expand();
@@ -442,7 +440,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>can_persist_event() -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap()));
+        <span class="kw">let </span>connection = Arc::new(Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap());
         <span class="kw">let </span>persister = EventPersister::new(connection);
         <span class="kw">let </span>message = EventMessage::new(<span class="string">&quot;source&quot;</span>, <span class="string">&quot;action&quot;</span>, <span class="string">&quot;content&quot;</span>);
 

@@ -503,29 +503,12 @@
 <a href="#503" id="503">503</a>
 <a href="#504" id="504">504</a>
 <a href="#505" id="505">505</a>
-<a href="#506" id="506">506</a>
-<a href="#507" id="507">507</a>
-<a href="#508" id="508">508</a>
-<a href="#509" id="509">509</a>
-<a href="#510" id="510">510</a>
-<a href="#511" id="511">511</a>
-<a href="#512" id="512">512</a>
-<a href="#513" id="513">513</a>
-<a href="#514" id="514">514</a>
-<a href="#515" id="515">515</a>
-<a href="#516" id="516">516</a>
-<a href="#517" id="517">517</a>
-<a href="#518" id="518">518</a>
-<a href="#519" id="519">519</a>
-<a href="#520" id="520">520</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>serde::{de::DeserializeOwned, Serialize};
 <span class="kw">use </span>sha2::{Digest, Sha256};
-<span class="kw">use </span>sqlite::{Connection, State, Statement};
-<span class="kw">use </span>std::ops::Deref;
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, State, Statement};
 <span class="kw">use </span>std::{marker::PhantomData, sync::Arc, thread::sleep, time::Duration};
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use super</span>::{AdapterError, StoreAdapter};
 
@@ -536,7 +519,7 @@
 
 <span class="doccomment">/// Store adapter for SQLite3
 </span><span class="kw">pub struct </span>SQLiteAdapter&lt;K, V&gt; {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
     table: String,
     key: PhantomData&lt;K&gt;,
     value: PhantomData&lt;V&gt;,
@@ -548,12 +531,9 @@
     V: DeserializeOwned,
 {
     <span class="doccomment">/// Create a new SQLiteAdapter instance.
-    </span><span class="kw">pub fn </span>new(table_name: <span class="kw-2">&amp;</span>str, connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+    </span><span class="kw">pub fn </span>new(table_name: <span class="kw-2">&amp;</span>str, connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         {
-            <span class="kw">let </span>conn = <span class="kw-2">&amp;*</span>connection
-                .try_lock()
-                .map_err(|e| AdapterError::InitializationError(e.into()))<span class="question-mark">?</span>;
-            <span class="self">Self</span>::check_table_exists(conn, table_name)<span class="question-mark">?</span>;
+            <span class="self">Self</span>::check_table_exists(<span class="kw-2">&amp;</span>connection, table_name)<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
@@ -672,8 +652,6 @@
     <span class="kw">type </span>Record = V;
 
     <span class="kw">async fn </span>store_record(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span><span class="self">Self</span>::Key, record: <span class="kw-2">&amp;</span><span class="self">Self</span>::Record) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
         <span class="kw">let </span>sql = <span class="macro">format!</span>(
             <span class="string">&quot;insert into {} (key_hash, key, value) values (?1, ?2, ?3) on conflict (key_hash) do update set value = excluded.value&quot;</span>,
             <span class="self">self</span>.table
@@ -684,7 +662,8 @@
                     .context(<span class="string">&quot;SQLite adapter error: could not serialize value before insertion&quot;</span>),
             )
         })<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>statement = connection
+        <span class="kw">let </span><span class="kw-2">mut </span>statement = <span class="self">self
+            </span>.connection
             .prepare(sql)
             .map_err(|e| AdapterError::InitializationError(e.into()))<span class="question-mark">?</span>;
         statement
@@ -704,22 +683,18 @@
     }
 
     <span class="kw">async fn </span>get_record(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span><span class="self">Self</span>::Key) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Record&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
         <span class="kw">let </span>sql = <span class="macro">format!</span>(<span class="string">&quot;select value from {} where key_hash = ?1&quot;</span>, <span class="self">self</span>.table);
-        <span class="kw">let </span>statement = <span class="self">self</span>.get_statement_for_key(connection, sql, key)<span class="question-mark">?</span>;
+        <span class="kw">let </span>statement = <span class="self">self</span>.get_statement_for_key(<span class="kw-2">&amp;</span><span class="self">self</span>.connection, sql, key)<span class="question-mark">?</span>;
 
         <span class="self">self</span>.fetch_maybe_one_value(statement)
     }
 
     <span class="kw">async fn </span>record_exists(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span><span class="self">Self</span>::Key) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
         <span class="kw">let </span>sql = <span class="macro">format!</span>(
             <span class="string">&quot;select exists(select 1 from {} where key_hash = ?1) as record_exists&quot;</span>,
             <span class="self">self</span>.table
         );
-        <span class="kw">let </span><span class="kw-2">mut </span>statement = <span class="self">self</span>.get_statement_for_key(connection, sql, key)<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>statement = <span class="self">self</span>.get_statement_for_key(<span class="kw-2">&amp;</span><span class="self">self</span>.connection, sql, key)<span class="question-mark">?</span>;
         statement
             .next()
             .map_err(|e| AdapterError::QueryError(e.into()))<span class="question-mark">?</span>;
@@ -735,13 +710,12 @@
     }
 
     <span class="kw">async fn </span>get_last_n_records(<span class="kw-2">&amp;</span><span class="self">self</span>, how_many: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;(<span class="self">Self</span>::Key, <span class="self">Self</span>::Record)&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
         <span class="kw">let </span>sql = <span class="macro">format!</span>(
             <span class="string">&quot;select cast(key as text) as key, cast(value as text) as value from {} order by ROWID desc limit ?1&quot;</span>,
             <span class="self">self</span>.table
         );
-        <span class="kw">let </span><span class="kw-2">mut </span>statement = connection
+        <span class="kw">let </span><span class="kw-2">mut </span>statement = <span class="self">self
+            </span>.connection
             .prepare(sql)
             .map_err(|e| AdapterError::InitializationError(e.into()))<span class="question-mark">?</span>;
         statement
@@ -767,17 +741,13 @@
             <span class="string">&quot;delete from {} where key_hash = ?1 returning value&quot;</span>,
             <span class="self">self</span>.table
         );
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
-        <span class="kw">let </span>statement = <span class="self">self</span>.get_statement_for_key(connection, sql, key)<span class="question-mark">?</span>;
+        <span class="kw">let </span>statement = <span class="self">self</span>.get_statement_for_key(<span class="kw-2">&amp;</span><span class="self">self</span>.connection, sql, key)<span class="question-mark">?</span>;
 
         <span class="self">self</span>.fetch_maybe_one_value(statement)
     }
 
     <span class="kw">async fn </span>get_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = <span class="self">Self</span>::Record&gt; + <span class="lifetime">&#39;_</span>&gt;&gt; {
-        <span class="kw">let </span>lock = <span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>connection = lock.deref();
-        <span class="kw">let </span>iterator = SQLiteResultIterator::new(connection, <span class="kw-2">&amp;</span><span class="self">self</span>.table)<span class="question-mark">?</span>;
+        <span class="kw">let </span>iterator = SQLiteResultIterator::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection, <span class="kw-2">&amp;</span><span class="self">self</span>.table)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(Box::new(iterator))
     }
@@ -867,7 +837,7 @@
             });
         }
         <span class="kw">let </span>tablename = tablename.unwrap_or(TABLE_NAME);
-        <span class="kw">let </span>connection = Arc::new(Mutex::new(Connection::open(filepath).unwrap()));
+        <span class="kw">let </span>connection = Arc::new(Connection::open_with_full_mutex(filepath).unwrap());
         SQLiteAdapter::new(tablename, connection).unwrap()
     }
 

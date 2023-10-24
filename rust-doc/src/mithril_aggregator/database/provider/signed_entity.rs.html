@@ -951,23 +951,12 @@
 <a href="#951" id="951">951</a>
 <a href="#952" id="952">952</a>
 <a href="#953" id="953">953</a>
-<a href="#954" id="954">954</a>
-<a href="#955" id="955">955</a>
-<a href="#956" id="956">956</a>
-<a href="#957" id="957">957</a>
-<a href="#958" id="958">958</a>
-<a href="#959" id="959">959</a>
-<a href="#960" id="960">960</a>
-<a href="#961" id="961">961</a>
-<a href="#962" id="962">962</a>
-<a href="#963" id="963">963</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>chrono::{DateTime, Utc};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>sqlite::{Connection, Value};
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex, Value};
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span>mithril_common::{
     entities::{SignedEntity, SignedEntityType, SignedEntityTypeDiscriminants, Snapshot},
@@ -1358,12 +1347,12 @@ where signed_entity_id = ?*&quot;</span>;
 
 <span class="doccomment">/// Service to deal with signed_entity (read &amp; write).
 </span><span class="kw">pub struct </span>SignedEntityStoreAdapter {
-    connection: Arc&lt;Mutex&lt;Connection&gt;&gt;,
+    connection: Arc&lt;ConnectionWithFullMutex&gt;,
 }
 
 <span class="kw">impl </span>SignedEntityStoreAdapter {
     <span class="doccomment">/// Create a new SignedEntityStoreAdapter service
-    </span><span class="kw">pub fn </span>new(connection: Arc&lt;Mutex&lt;Connection&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(connection: Arc&lt;ConnectionWithFullMutex&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ connection }
     }
 }
@@ -1371,8 +1360,7 @@ where signed_entity_id = ?*&quot;</span>;
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>SignedEntityStorer <span class="kw">for </span>SignedEntityStoreAdapter {
     <span class="kw">async fn </span>store_signed_entity(<span class="kw-2">&amp;</span><span class="self">self</span>, signed_entity: <span class="kw-2">&amp;</span>SignedEntityRecord) -&gt; StdResult&lt;()&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = InsertSignedEntityRecordProvider::new(connection);
+        <span class="kw">let </span>provider = InsertSignedEntityRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>_signed_entity_record = provider.persist(signed_entity.to_owned())<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
@@ -1382,8 +1370,7 @@ where signed_entity_id = ?*&quot;</span>;
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entity_id: <span class="kw-2">&amp;</span>str,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignedEntityRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider
             .get_by_signed_entity_id(signed_entity_id)
             .with_context(|| <span class="macro">format!</span>(<span class="string">&quot;get signed entity by id failure, id: {signed_entity_id}&quot;</span>))
@@ -1397,8 +1384,7 @@ where signed_entity_id = ?*&quot;</span>;
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         certificate_id: <span class="kw-2">&amp;</span>str,
     ) -&gt; StdResult&lt;<span class="prelude-ty">Option</span>&lt;SignedEntityRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = provider
             .get_by_certificate_id(certificate_id)
             .with_context(|| {
@@ -1416,8 +1402,7 @@ where signed_entity_id = ?*&quot;</span>;
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         certificates_ids: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str],
     ) -&gt; StdResult&lt;Vec&lt;SignedEntityRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider.get_by_certificates_ids(certificates_ids)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(cursor.collect())
@@ -1428,8 +1413,7 @@ where signed_entity_id = ?*&quot;</span>;
         signed_entity_type_id: <span class="kw-2">&amp;</span>SignedEntityTypeDiscriminants,
         total: usize,
     ) -&gt; StdResult&lt;Vec&lt;SignedEntityRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(connection);
+        <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span>cursor = provider
             .get_by_signed_entity_type(signed_entity_type_id)
             .with_context(|| {
@@ -1445,16 +1429,12 @@ where signed_entity_id = ?*&quot;</span>;
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         signed_entities: Vec&lt;SignedEntityRecord&gt;,
     ) -&gt; StdResult&lt;Vec&lt;SignedEntityRecord&gt;&gt; {
-        <span class="kw">let </span>connection = <span class="kw-2">&amp;*</span><span class="self">self</span>.connection.lock().<span class="kw">await</span>;
-        <span class="kw">let </span>provider = UpdateSignedEntityProvider::new(connection);
-        connection.execute(<span class="string">&quot;begin transaction&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>provider = UpdateSignedEntityProvider::new(<span class="kw-2">&amp;</span><span class="self">self</span>.connection);
         <span class="kw">let </span><span class="kw-2">mut </span>updated_records = <span class="macro">vec!</span>[];
 
         <span class="kw">for </span>record <span class="kw">in </span>signed_entities {
             updated_records.push(provider.persist(<span class="kw-2">&amp;</span>record)<span class="question-mark">?</span>);
         }
-
-        connection.execute(<span class="string">&quot;commit transaction&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(updated_records)
     }
@@ -1609,7 +1589,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_golden_master() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, <span class="macro">vec!</span>[]).unwrap();
         insert_golden_signed_entities(<span class="kw-2">&amp;</span>connection);
 
@@ -1660,7 +1640,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signed_entity_record_by_signed_entity_type() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_signed_entity_type(
@@ -1675,7 +1655,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signed_entity_record_by_signed_entity_id() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_signed_entity_id(<span class="string">&quot;signed-ent-123&quot;</span>)
@@ -1688,7 +1668,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signed_entity_record_by_signed_certificate_id() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider
             .condition_by_certificate_id(<span class="string">&quot;certificate_id&quot;</span>)
@@ -1701,7 +1681,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>get_signed_entity_record_by_signed_certificates_ids() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.condition_by_certificates_ids(<span class="kw-2">&amp;</span>[<span class="string">&quot;a&quot;</span>, <span class="string">&quot;b&quot;</span>, <span class="string">&quot;c&quot;</span>]);
         <span class="kw">let </span>(condition, params) = condition.expand();
@@ -1728,7 +1708,7 @@ where signed_entity_id = ?*&quot;</span>;
                 .unwrap()
                 .with_timezone(<span class="kw-2">&amp;</span>Utc),
         );
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = InsertSignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>condition = provider.get_insert_condition(signed_entity_record.clone());
         <span class="kw">let </span>(values, params) = condition.expand();
@@ -1759,7 +1739,7 @@ where signed_entity_id = ?*&quot;</span>;
     </span><span class="kw">fn </span>test_get_signed_entity_records() {
         <span class="kw">let </span>signed_entity_records = fake_signed_entity_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, signed_entity_records.clone()).unwrap();
 
         <span class="kw">let </span>provider = SignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1794,9 +1774,9 @@ where signed_entity_id = ?*&quot;</span>;
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_signed_entity_record_by_certificate_id() {
         <span class="kw">let </span>expected_record = fake_signed_entity_records(<span class="number">1</span>).remove(<span class="number">0</span>);
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, <span class="macro">vec!</span>[expected_record.clone()]).unwrap();
-        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(connection));
 
         <span class="kw">let </span>record = store
             .get_signed_entity_by_certificate_id(<span class="kw-2">&amp;</span>expected_record.certificate_id)
@@ -1809,9 +1789,9 @@ where signed_entity_id = ?*&quot;</span>;
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_get_signed_entity_record_by_certificates_ids() {
         <span class="kw">let </span>expected_records = fake_signed_entity_records(<span class="number">3</span>);
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, expected_records.clone()).unwrap();
-        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(connection));
         <span class="kw">let </span>certificates_ids: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = expected_records
             .iter()
             .map(|r| r.certificate_id.as_str())
@@ -1833,7 +1813,7 @@ where signed_entity_id = ?*&quot;</span>;
     </span><span class="kw">fn </span>test_insert_signed_entity_record() {
         <span class="kw">let </span>signed_entity_records = fake_signed_entity_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, Vec::new()).unwrap();
 
         <span class="kw">let </span>provider = InsertSignedEntityRecordProvider::new(<span class="kw-2">&amp;</span>connection);
@@ -1847,7 +1827,7 @@ where signed_entity_id = ?*&quot;</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>update_provider_condition() {
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         <span class="kw">let </span>provider = UpdateSignedEntityProvider::new(<span class="kw-2">&amp;</span>connection);
         <span class="kw">let </span>snapshots = fake_data::snapshots(<span class="number">1</span>);
         <span class="kw">let </span>snapshot = snapshots.first().unwrap().to_owned();
@@ -1890,9 +1870,9 @@ where signed_entity_id = ?*&quot;</span>;
     </span><span class="kw">async fn </span>update_only_given_entities() {
         <span class="kw">let </span><span class="kw-2">mut </span>signed_entity_records = fake_signed_entity_records(<span class="number">5</span>);
 
-        <span class="kw">let </span>connection = Connection::open(<span class="string">&quot;:memory:&quot;</span>).unwrap();
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="string">&quot;:memory:&quot;</span>).unwrap();
         setup_signed_entity_db(<span class="kw-2">&amp;</span>connection, signed_entity_records.clone()).unwrap();
-        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(Mutex::new(connection)));
+        <span class="kw">let </span>store = SignedEntityStoreAdapter::new(Arc::new(connection));
 
         <span class="kw">let </span>records_to_update: Vec&lt;SignedEntityRecord&gt; = signed_entity_records
             .drain(<span class="number">2</span>..)

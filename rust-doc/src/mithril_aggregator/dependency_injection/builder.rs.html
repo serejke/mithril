@@ -1225,11 +1225,11 @@
 <span class="kw">use </span>semver::Version;
 <span class="kw">use </span>slog::Logger;
 <span class="kw">use </span>slog_scope::debug;
-<span class="kw">use </span>sqlite::Connection;
+<span class="kw">use </span>sqlite::{Connection, ConnectionWithFullMutex};
 <span class="kw">use </span>tokio::{
     sync::{
         mpsc::{UnboundedReceiver, UnboundedSender},
-        Mutex, RwLock,
+        RwLock,
     },
     time::Duration,
 };
@@ -1280,7 +1280,7 @@
     </span><span class="kw">pub </span>configuration: Configuration,
 
     <span class="doccomment">/// SQLite database connection
-    </span><span class="kw">pub </span>sqlite_connection: <span class="prelude-ty">Option</span>&lt;Arc&lt;Mutex&lt;Connection&gt;&gt;&gt;,
+    </span><span class="kw">pub </span>sqlite_connection: <span class="prelude-ty">Option</span>&lt;Arc&lt;ConnectionWithFullMutex&gt;&gt;,
 
     <span class="doccomment">/// Stake Store used by the StakeDistributionService
     /// It shall be a private dependency.
@@ -1424,15 +1424,16 @@
         }
     }
 
-    <span class="kw">async fn </span>build_sqlite_connection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;Mutex&lt;Connection&gt;&gt;&gt; {
+    <span class="kw">async fn </span>build_sqlite_connection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;ConnectionWithFullMutex&gt;&gt; {
         <span class="kw">let </span>path = <span class="kw">match </span><span class="self">self</span>.configuration.environment {
             ExecutionEnvironment::Production =&gt; {
                 <span class="self">self</span>.configuration.get_sqlite_dir().join(SQLITE_FILE)
             }
             <span class="kw">_ </span>=&gt; <span class="self">self</span>.configuration.data_stores_directory.clone(),
         };
-        <span class="kw">let </span>connection = Connection::open(<span class="kw-2">&amp;</span>path)
-            .map(|c| Arc::new(Mutex::new(c)))
+
+        <span class="kw">let </span>connection = Connection::open_with_full_mutex(<span class="kw-2">&amp;</span>path)
+            .map(Arc::new)
             .map_err(|e| DependenciesBuilderError::Initialization {
                 message: <span class="macro">format!</span>(
                     <span class="string">&quot;SQLite initialization: could not open connection with string &#39;{}&#39;.&quot;</span>,
@@ -1440,6 +1441,7 @@
                 ),
                 error: <span class="prelude-val">Some</span>(e.into()),
             })<span class="question-mark">?</span>;
+
         <span class="comment">// Check database migrations
         </span><span class="kw">let </span><span class="kw-2">mut </span>db_checker = DatabaseVersionChecker::new(
             <span class="self">self</span>.get_logger().<span class="kw">await</span><span class="question-mark">?</span>,
@@ -1453,9 +1455,7 @@
 
         <span class="comment">// configure session
         </span>connection
-            .lock()
-            .<span class="kw">await
-            </span>.execute(<span class="string">&quot;pragma foreign_keys=true&quot;</span>)
+            .execute(<span class="string">&quot;pragma foreign_keys=true&quot;</span>)
             .map_err(|e| DependenciesBuilderError::Initialization {
                 message: <span class="string">&quot;SQLite initialization: could not enable FOREIGN KEY support.&quot;</span>.to_string(),
                 error: <span class="prelude-val">Some</span>(e.into()),
@@ -1470,7 +1470,7 @@
     }
 
     <span class="doccomment">/// Get SQLite connection
-    </span><span class="kw">pub async fn </span>get_sqlite_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;Mutex&lt;Connection&gt;&gt;&gt; {
+    </span><span class="kw">pub async fn </span>get_sqlite_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;ConnectionWithFullMutex&gt;&gt; {
         <span class="kw">if </span><span class="self">self</span>.sqlite_connection.is_none() {
             <span class="self">self</span>.sqlite_connection = <span class="prelude-val">Some</span>(<span class="self">self</span>.build_sqlite_connection().<span class="kw">await</span><span class="question-mark">?</span>);
         }
