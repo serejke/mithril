@@ -831,7 +831,52 @@
 <a href="#831" id="831">831</a>
 <a href="#832" id="832">832</a>
 <a href="#833" id="833">833</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::Context;
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+</pre></div><pre class="rust"><code><span class="doccomment">//! ## Snapshot Service
+//!
+//! This module contains the service to interact with a given Mithril Aggregator
+//! in order to list / show / download snapshots.
+//!
+//! ```no_run
+//! use std::sync::Arc;
+//! use mithril_client::common::*;
+//! use mithril_client::{dependencies::{ConfigParameters, DependenciesBuilder}, services::SnapshotService};
+//!
+//! #[tokio::main]
+//! async fn main() -&gt; StdResult&lt;()&gt; {
+//!     let mut config = ConfigParameters::default();
+//!     config
+//!         .add_parameter(&quot;genesis_verification_key&quot;, &quot;YOUR_GENESIS_VERIFICATION_KEY&quot;)
+//!         .add_parameter(&quot;aggregator_endpoint&quot;, &quot;YOUR_AGGREGATOR_ENDPOINT&quot;);
+//!     let snapshot_service = DependenciesBuilder::new(Arc::new(config))
+//!         .get_snapshot_service()
+//!         .await?;
+//!
+//!     for message in snapshot_service.list().await? {
+//!         println!(&quot;Snapshot digest = {}&quot;, message.digest);
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+</span><span class="kw">use </span>anyhow::Context;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>futures::Future;
 <span class="kw">use </span>indicatif::{MultiProgress, ProgressBar, ProgressState, ProgressStyle};
@@ -847,8 +892,6 @@
 <span class="kw">use </span>tokio::{select, time::sleep};
 
 <span class="kw">use </span>mithril_common::{
-    certificate_chain::CertificateVerifier,
-    crypto_helper::{ProtocolGenesisVerificationKey, ProtocolGenesisVerifier},
     digesters::ImmutableDigester,
     entities::{Certificate, ProtocolMessagePartKey, SignedEntity, Snapshot},
     messages::{SnapshotListItemMessage, SnapshotMessage},
@@ -857,6 +900,7 @@
 
 <span class="kw">use crate</span>::{
     aggregator_client::{AggregatorHTTPClientError, CertificateClient, SnapshotClient},
+    common::{CertificateVerifier, ProtocolGenesisVerificationKey, ProtocolGenesisVerifier},
     utils::{
         DownloadProgressReporter, ProgressOutputType, ProgressPrinter, SnapshotUnpacker,
         SnapshotUnpackerError,
@@ -1152,7 +1196,6 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>anyhow::anyhow;
     <span class="kw">use </span>chrono::{DateTime, Utc};
-    <span class="kw">use </span>config::{builder::DefaultState, ConfigBuilder};
     <span class="kw">use </span>flate2::{write::GzEncoder, Compression};
     <span class="kw">use </span>mithril_common::{
         crypto_helper::tests_setup::setup_genesis,
@@ -1172,7 +1215,7 @@
 
     <span class="kw">use crate</span>::{
         aggregator_client::{AggregatorClient, MockAggregatorHTTPClient},
-        dependencies::DependenciesBuilder,
+        dependencies::{ConfigParameters, DependenciesBuilder},
         services::mock::<span class="kw-2">*</span>,
         FromSnapshotMessageAdapter,
     };
@@ -1275,14 +1318,7 @@
     }
 
     <span class="kw">fn </span>get_dep_builder(http_client: Arc&lt;<span class="kw">dyn </span>AggregatorClient&gt;) -&gt; DependenciesBuilder {
-        <span class="kw">let </span>config_builder: ConfigBuilder&lt;DefaultState&gt; = ConfigBuilder::default();
-        <span class="kw">let </span>config = config_builder
-            .set_default(<span class="string">&quot;download_dir&quot;</span>, <span class="string">&quot;&quot;</span>)
-            .unwrap()
-            .build()
-            .unwrap();
-
-        <span class="kw">let </span><span class="kw-2">mut </span>builder = DependenciesBuilder::new(Arc::new(config));
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = DependenciesBuilder::new(Arc::new(ConfigParameters::default()));
         builder.certificate_verifier = <span class="prelude-val">Some</span>(Arc::new(MockCertificateVerifierImpl::new()));
         builder.immutable_digester = <span class="prelude-val">Some</span>(Arc::new(DumbImmutableDigester::new(<span class="string">&quot;digest&quot;</span>, <span class="bool-val">true</span>)));
         builder.aggregator_client = <span class="prelude-val">Some</span>(http_client);

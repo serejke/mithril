@@ -94,9 +94,9 @@
 <a href="#94" id="94">94</a>
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::str::FromStr;
-
-<span class="kw">use </span>chrono::DateTime;
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>chrono::DateTime;
 <span class="kw">use </span>chrono::Utc;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
@@ -136,7 +136,9 @@
             signers_with_stake: <span class="macro">vec!</span>[SignerWithStakeMessagePart::dummy()],
             hash: <span class="string">&quot;hash-123&quot;</span>.to_string(),
             certificate_hash: <span class="string">&quot;cert-hash-123&quot;</span>.to_string(),
-            created_at: DateTime::from_str(<span class="string">&quot;2023-06-13 17:05:41&quot;</span>).unwrap(),
+            created_at: DateTime::parse_from_rfc3339(<span class="string">&quot;2023-01-19T13:43:05.618857482Z&quot;</span>)
+                .unwrap()
+                .with_timezone(<span class="kw-2">&amp;</span>Utc),
             protocol_parameters: fake_data::protocol_parameters(),
         }
     }
@@ -161,7 +163,9 @@
             ],
             hash: <span class="string">&quot;hash-123&quot;</span>.to_string(),
             certificate_hash: <span class="string">&quot;cert-hash-123&quot;</span>.to_string(),
-            created_at: DateTime::from_str(<span class="string">&quot;2023-06-13T17:05:41Z&quot;</span>).unwrap(),
+            created_at: DateTime::parse_from_rfc3339(<span class="string">&quot;2023-01-19T13:43:05.618857482Z&quot;</span>)
+            .unwrap()
+            .with_timezone(<span class="kw-2">&amp;</span>Utc),
             protocol_parameters: fake_data::protocol_parameters(),
         }
     }
@@ -180,7 +184,7 @@
             ],
             &quot;hash&quot;: &quot;hash-123&quot;,
             &quot;certificate_hash&quot;: &quot;cert-hash-123&quot;,
-            &quot;created_at&quot;: &quot;2023-06-13T17:05:41Z&quot;,
+            &quot;created_at&quot;: &quot;2023-01-19T13:43:05.618857482Z&quot;,
             &quot;protocol_parameters&quot;: {&quot;k&quot;: 5, &quot;m&quot;: 100, &quot;phi_f&quot;: 0.65 }
         }&quot;#</span>;
         <span class="kw">let </span>message: MithrilStakeDistributionMessage = serde_json::from_str(json).expect(

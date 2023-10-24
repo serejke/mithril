@@ -310,7 +310,6 @@
 <a href="#310" id="310">310</a>
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
-<a href="#313" id="313">313</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>async_recursion::async_recursion;
 <span class="kw">use </span>async_trait::async_trait;
@@ -430,12 +429,11 @@
         <span class="macro">debug!</span>(<span class="string">&quot;Prepare request with version: {current_api_version}&quot;</span>);
         <span class="kw">let </span>request_builder =
             request_builder.header(MITHRIL_API_VERSION_HEADER, current_api_version);
-        <span class="kw">let </span>response =
-            request_builder.send().<span class="kw">await</span>.map_err(|e| {
-                AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(e).context(
-                    <span class="string">&quot;Cannot perform a GET against the Aggregator HTTP server (url=&#39;{url}&#39;&quot;</span>,
-                ))
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>response = request_builder.send().<span class="kw">await</span>.map_err(|e| {
+            AggregatorHTTPClientError::SubsystemError(<span class="macro">anyhow!</span>(e).context(<span class="macro">format!</span>(
+                <span class="string">&quot;Cannot perform a GET against the Aggregator HTTP server (url=&#39;{url}&#39;)&quot;
+            </span>)))
+        })<span class="question-mark">?</span>;
 
         <span class="kw">match </span>response.status() {
             StatusCode::OK =&gt; <span class="prelude-val">Ok</span>(response),

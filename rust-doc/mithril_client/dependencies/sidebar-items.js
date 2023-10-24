@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["DependenciesBuilder"]};
+window.SIDEBAR_ITEMS = {"enum":["ConfigError"],"struct":["ConfigParameters","DependenciesBuilder"]};
