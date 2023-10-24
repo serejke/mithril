@@ -76,6 +76,8 @@ mithril-stm = { path = "../mithril-stm", default-features = false, features = [
 mithril-stm = { path = "../mithril-stm", default-features = false, features = [
     "num-integer-backend",
 ] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.37"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports", "async_tokio"] }

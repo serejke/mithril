@@ -82,6 +82,10 @@ pub trait MithrilStakeDistributionService {
     /// Return a list of the certified Mithril stake distributions
     async fn list(&self) -> StdResult<Vec<MithrilStakeDistributionListItemMessage>>;
 
+    /// Download and verify the specified stake distribution (2, for wasm)
+    async fn download2_revanche(&self, hash: &str, genesis_verification_key: &str)
+        -> StdResult<()>;
+
     /// Download and verify the specified stake distribution
     async fn download(
         &self,
@@ -148,6 +152,82 @@ impl AppMithrilStakeDistributionService {
 impl MithrilStakeDistributionService for AppMithrilStakeDistributionService {
     async fn list(&self) -> StdResult<Vec<MithrilStakeDistributionListItemMessage>> {
         self.stake_distribution_client.list().await
+    }
+
+    async fn download2_revanche(
+        &self,
+        hash: &str,
+        genesis_verification_key: &str,
+    ) -> StdResult<()> {
+        let stake_distribution_entity = self
+            .stake_distribution_client
+            .get(&self.expand_eventual_artifact_hash_alias(hash).await?)
+            .await?
+            .ok_or_else(|| {
+                MithrilStakeDistributionServiceError::CouldNotFindStakeDistribution(hash.to_owned())
+            })?;
+
+        let certificate = self
+            .certificate_client
+            .get(&stake_distribution_entity.certificate_id)
+            .await
+            .with_context(|| {
+                format!(
+                    "Mithril Stake Distribution Service can not get the certificate for id: '{}'",
+                    stake_distribution_entity.certificate_id
+                )
+            })?
+            .ok_or_else(|| {
+                MithrilStakeDistributionServiceError::CertificateNotFound(
+                    stake_distribution_entity.certificate_id.clone(),
+                )
+            })?;
+
+        let genesis_verification_key =
+            ProtocolGenesisVerificationKey::from_json_hex(genesis_verification_key)
+                .with_context(|| {
+                    format!("Invalid genesis verification key '{genesis_verification_key}'")
+                })
+                .map_err(MithrilStakeDistributionServiceError::InvalidParameters)?;
+        self.certificate_verifier
+            .verify_certificate_chain(
+                certificate.clone(),
+                self.certificate_client.clone(),
+                &ProtocolGenesisVerifier::from_verification_key(genesis_verification_key),
+            )
+            .await?;
+
+        let avk = self
+            .compute_avk_from_mithril_stake_distribution(&stake_distribution_entity.artifact)
+            .await
+            .with_context(|| {
+                format!(
+                    "Mithril Stake Distribution Service can not compute avk for artifact hash '{:?}'",
+                    stake_distribution_entity.artifact.hash
+                )
+            })?
+            .to_json_hex()
+            .with_context(|| "Encoding avk error")?;
+
+        let mut protocol_message = certificate.protocol_message.clone();
+        protocol_message
+            .set_message_part(ProtocolMessagePartKey::NextAggregateVerificationKey, avk);
+
+        if !self
+            .certificate_verifier
+            .verify_protocol_message(&protocol_message, &certificate)
+        {
+            return Err(
+                MithrilStakeDistributionServiceError::CouldNotVerifyStakeDistribution {
+                    hash: hash.to_owned(),
+                    certificate_hash: certificate.hash,
+                    context: "Verification failed: messages do not match.".to_string(),
+                }
+                .into(),
+            );
+        }
+
+        Ok(())
     }
 
     async fn download(

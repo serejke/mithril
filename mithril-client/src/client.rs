@@ -24,7 +24,15 @@ use anyhow::Context;
 
 use crate::common::*;
 use crate::services::{MithrilStakeDistributionService, SnapshotService};
+
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_family = "wasm")]
+type WasmResult = Result<JsValue, JsValue>;
+
 /// Client structure that instanciates required dependencies
+#[cfg_attr(target_family = "wasm", wasm_bindgen(js_name = MithrilClient))]
 pub struct Client {
     snapshot_service: Arc<dyn SnapshotService>,
     mithril_stake_distribution_service: Arc<dyn MithrilStakeDistributionService>,
@@ -63,11 +71,79 @@ impl Client {
         self.snapshot_service.list().await
     }
 
+    /// Validate the given msd
+    pub async fn mithril_stake_distribution_validate(
+        &self,
+        hash: &str,
+        genesis_verification_key: &str,
+    ) -> StdResult<()> {
+        self.mithril_stake_distribution_service
+            .download2_revanche(hash, genesis_verification_key)
+            .await
+    }
+
     /// Call the mithril stake distribution service for the list of available mithril stake distributions
     pub async fn list_mithril_stake_distributions(
         &self,
     ) -> StdResult<MithrilStakeDistributionListMessage> {
         self.mithril_stake_distribution_service.list().await
+    }
+}
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen(js_class = MithrilClient)]
+impl Client {
+    /// Constructor for wasm
+    #[wasm_bindgen(constructor)]
+    pub async fn new_wasm(aggregator_endpoint: &str, genesis_verification_key: &str) -> Client {
+        Client::new(aggregator_endpoint, genesis_verification_key)
+            .await
+            .map_err(|err| format!("{err:?}"))
+            .unwrap()
+    }
+
+    /// Call the snapshot service to get a snapshot message from a digest
+    #[wasm_bindgen(js_name = show_snapshot)]
+    pub async fn show_snapshot_wasm(&self, digest: &str) -> WasmResult {
+        let result = self
+            .show_snapshot(digest)
+            .await
+            .map_err(|err| format!("{err:?}"))?;
+        Ok(serde_wasm_bindgen::to_value(&result)?)
+    }
+
+    /// Call the snapshot service to get the list of available snapshots
+    #[wasm_bindgen(js_name = list_snapshots)]
+    pub async fn list_snapshots_wasm(&self) -> WasmResult {
+        let result = self
+            .list_snapshots()
+            .await
+            .map_err(|err| format!("{err:?}"))?;
+        Ok(serde_wasm_bindgen::to_value(&result)?)
+    }
+
+    /// Validate the given msd
+    #[wasm_bindgen(js_name = mithril_stake_distribution_validate)]
+    pub async fn mithril_stake_distribution_validate_wasm(
+        &self,
+        hash: &str,
+        genesis_verification_key: &str,
+    ) -> Result<(), JsValue> {
+        let _ = self
+            .mithril_stake_distribution_validate(hash, genesis_verification_key)
+            .await
+            .map_err(|err| format!("{err:?}"))?;
+        Ok(())
+    }
+
+    /// Call the mithril stake distribution service for the list of available mithril stake distributions
+    #[wasm_bindgen(js_name = list_mithril_stake_distributions)]
+    pub async fn list_mithril_stake_distributions_wasm(&self) -> WasmResult {
+        let result = self
+            .list_mithril_stake_distributions()
+            .await
+            .map_err(|err| format!("{err:?}"))?;
+        Ok(serde_wasm_bindgen::to_value(&result)?)
     }
 }
 
