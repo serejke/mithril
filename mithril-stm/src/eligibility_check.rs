@@ -1,5 +1,4 @@
 use crate::stm::Stake;
-#[cfg(feature = "num-integer-backend")]
 use {
     num_bigint::{BigInt, Sign},
     num_rational::Ratio,
@@ -7,7 +6,6 @@ use {
     std::ops::Neg,
 };
 
-#[cfg(feature = "num-integer-backend")]
 /// Checks that ev is successful in the lottery. In particular, it compares the output of `phi`
 /// (a real) to the output of `ev` (a hash).  It uses the same technique used in the
 /// [Cardano ledger](https://github.com/input-output-hk/cardano-ledger/). In particular,
@@ -49,7 +47,6 @@ pub(crate) fn ev_lt_phi(phi_f: f64, ev: [u8; 64], stake: Stake, total_stake: Sta
     taylor_comparison(1000, q, x)
 }
 
-#[cfg(feature = "num-integer-backend")]
 /// Checks if cmp < exp(x). Uses error approximation for an early stop. Whenever the value being
 /// compared, `cmp`, is smaller (or greater) than the current approximation minus an `error_term`
 /// (plus an `error_term` respectively), then we stop approximating. The choice of the `error_term`
@@ -80,83 +77,4 @@ fn taylor_comparison(bound: usize, cmp: Ratio<BigInt>, x: Ratio<BigInt>) -> bool
         }
     }
     false
-}
-
-#[cfg(not(feature = "num-integer-backend"))]
-/// The crate `rug` has sufficient optimizations to not require a taylor approximation with early
-/// stop. The difference between the current implementation and the one using the optimization
-/// above is around 10% faster. We perform the computations with 117 significant bits of
-/// precision, since this is enough to represent the fraction of a single lovelace. We have that
-/// 1e6 lovelace equals 1 ada, and there is 45 billion ada in circulation. Meaning there are
-/// 4.5e16 lovelace, so 1e-17 is sufficient to represent fractions of the stake distribution. In
-/// order to keep the error in the 1e-17 range, we need to carry out the computations with 34
-/// decimal digits (in order to represent the 4.5e16 ada without any rounding errors, we need
-/// double that precision).
-pub(crate) fn ev_lt_phi(phi_f: f64, ev: [u8; 64], stake: Stake, total_stake: Stake) -> bool {
-    use rug::{integer::Order, ops::Pow, Float};
-
-    // If phi_f = 1, then we automatically break with true
-    if (phi_f - 1.0).abs() < f64::EPSILON {
-        return true;
-    }
-    let ev = rug::Integer::from_digits(&ev, Order::LsfLe);
-    let ev_max: Float = Float::with_val(117, 2).pow(512);
-    let q = ev / ev_max;
-
-    let w = Float::with_val(117, stake) / Float::with_val(117, total_stake);
-    let phi = Float::with_val(117, 1.0) - Float::with_val(117, 1.0 - phi_f).pow(w);
-
-    q < phi
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use num_bigint::{BigInt, Sign};
-    use num_rational::Ratio;
-    use proptest::prelude::*;
-    // Implementation of `ev_lt_phi` without approximation. We only get the precision of f64 here.
-    fn simple_ev_lt_phi(phi_f: f64, ev: [u8; 64], stake: Stake, total_stake: Stake) -> bool {
-        let ev_max = BigInt::from(2u8).pow(512);
-        let ev = BigInt::from_bytes_le(Sign::Plus, &ev);
-        let q = Ratio::new_raw(ev, ev_max);
-
-        let w = stake as f64 / total_stake as f64;
-        let phi = Ratio::from_float(1.0 - (1.0 - phi_f).powf(w)).unwrap();
-        q < phi
-    }
-
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
-
-        #[test]
-        /// Checking the ev_lt_phi function.
-        fn test_precision_approximation(
-            phi_f in 0.01..0.5f64,
-            ev_1 in any::<[u8; 32]>(),
-            ev_2 in any::<[u8; 32]>(),
-            total_stake in 100_000_000..1_000_000_000u64,
-            stake in 1_000_000..50_000_000u64
-        ) {
-            let mut ev = [0u8; 64];
-            ev.copy_from_slice(&[&ev_1[..], &ev_2[..]].concat());
-
-            let quick_result = simple_ev_lt_phi(phi_f, ev, stake, total_stake);
-            let result = ev_lt_phi(phi_f, ev, stake, total_stake);
-            assert_eq!(quick_result, result);
-        }
-
-        #[cfg(feature = "num-integer-backend")]
-        #[test]
-        /// Checking the early break of Taylor compuation
-        fn early_break_taylor(
-            x in -0.9..0.9f64,
-        ) {
-            let exponential = num_traits::float::Float::exp(x);
-            let cmp_n = Ratio::from_float(exponential - 2e-10_f64).unwrap();
-            let cmp_p = Ratio::from_float(exponential + 2e-10_f64).unwrap();
-            assert!(taylor_comparison(1000, cmp_n, Ratio::from_float(x).unwrap()));
-            assert!(!taylor_comparison(1000, cmp_p, Ratio::from_float(x).unwrap()));
-        }
-    }
 }
