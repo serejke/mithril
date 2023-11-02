@@ -23,3 +23,14 @@ pub mod multi_sig;
 
 #[cfg(not(feature = "benchmark-internals"))]
 mod multi_sig;
+
+use linked_list_allocator::LockedHeap;
+
+#[global_allocator]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+#[cfg(not(feature = "std"))]
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    loop {}
+}
