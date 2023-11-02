@@ -494,7 +494,7 @@ macro_rules! impl_serde {
                         formatter: &mut ::core::fmt::Formatter,
                     ) -> ::core::fmt::Result {
                         formatter
-                            .write_str(format!("a multi signature {}", stringify!($st)).as_str())
+                            .write_str("a multi signature")
                     }
 
                     fn visit_seq<A>(self, mut seq: A) -> Result<$st, A::Error>
@@ -506,12 +506,12 @@ macro_rules! impl_serde {
                             bytes[i] =
                                 seq.next_element()?.ok_or(serde::de::Error::invalid_length(
                                     i,
-                                    &format!("expected bytes{}", $size.to_string()).as_str(),
+                                    &"expected bytes",
                                 ))?;
                         }
                         <$st>::from_bytes(&bytes).map_err(|_| {
                             serde::de::Error::custom(
-                                &format!("deserialization failed [{}]", stringify!($st)).as_str(),
+                                &"deserialization failed",
                             )
                         })
                     }

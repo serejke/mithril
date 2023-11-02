@@ -1,4 +1,4 @@
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -796,7 +796,7 @@ impl CoreVerifier {
     ///     * Sort the eligible signers.
     pub fn setup(public_signers: &[(VerificationKey, Stake)]) -> Self {
         let mut total_stake: Stake = 0;
-        let mut unique_parties = HashSet::new();
+        let mut unique_parties = BTreeSet::new();
         for signer in public_signers.iter() {
             let (res, overflow) = total_stake.overflowing_add(signer.1);
             if overflow {
@@ -822,7 +822,7 @@ impl CoreVerifier {
         msg: &[u8],
     ) -> Result<(), CoreVerifierError> {
         let mut nr_indices = 0;
-        let mut unique_indices = HashSet::new();
+        let mut unique_indices = BTreeSet::new();
 
         for sig_reg in signatures {
             sig_reg
@@ -859,7 +859,7 @@ impl CoreVerifier {
         sigs: &[StmSigRegParty],
     ) -> Result<Vec<StmSigRegParty>, AggregationError> {
         let mut sig_by_index: BTreeMap<Index, &StmSigRegParty> = BTreeMap::new();
-        let mut removal_idx_by_vk: HashMap<&StmSigRegParty, Vec<Index>> = HashMap::new();
+        let mut removal_idx_by_vk: BTreeMap<&StmSigRegParty, Vec<Index>> = BTreeMap::new();
 
         for sig_reg in sigs.iter() {
             if sig_reg
@@ -900,7 +900,7 @@ impl CoreVerifier {
             }
         }
 
-        let mut dedup_sigs: HashSet<StmSigRegParty> = HashSet::new();
+        let mut dedup_sigs: BTreeSet<StmSigRegParty> = BTreeSet::new();
         let mut count: u64 = 0;
 
         for (_, &sig_reg) in sig_by_index.iter() {
