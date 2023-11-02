@@ -2365,6 +2365,7 @@ dependencies = [
  "criterion",
  "digest 0.10.7",
  "hex",
+ "libm",
  "linked_list_allocator",
  "num-bigint 0.4.4",
  "num-rational",

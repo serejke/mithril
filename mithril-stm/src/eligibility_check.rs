@@ -40,7 +40,7 @@ pub(crate) fn ev_lt_phi(phi_f: f64, ev: [u8; 64], stake: Stake, total_stake: Sta
     let q = Ratio::new_raw(ev_max.clone(), ev_max - ev);
 
     let c =
-        Ratio::from_float((1.0 - phi_f).ln()).expect("Only fails if the float is infinite or NaN.");
+        Ratio::from_float(libm::log(1.0 - phi_f)).expect("Only fails if the float is infinite or NaN.");
     let w = Ratio::new_raw(BigInt::from(stake), BigInt::from(total_stake));
     let x = (w * c).neg();
     // Now we compute a taylor function that breaks when the result is known.
