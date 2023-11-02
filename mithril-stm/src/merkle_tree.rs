@@ -1,14 +1,16 @@
 //! Creation and verification of Merkle Trees
+use alloc::vec;
+use alloc::vec::Vec;
+use core::cmp::Ordering;
+use core::marker::PhantomData;
 use crate::error::MerkleTreeError;
 use crate::multi_sig::VerificationKey;
 use crate::stm::{Stake, StmVerificationKey};
 use blake2::digest::{consts::U32, Digest, FixedOutput};
 use blake2::Blake2b;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
-use std::convert::TryFrom;
-use std::fmt::Debug;
-use std::marker::PhantomData;
+use core::convert::TryFrom;
+use core::fmt::Debug;
 
 /// The values that are committed in the Merkle Tree.
 /// Namely, a verified `VerificationKey` and its corresponding stake.
@@ -113,7 +115,7 @@ impl PartialOrd for MTLeaf {
     /// meaning that the probability of having several signatures in the same side of the tree, is higher.
     /// This allows us to produce a more efficient batch opening of the merkle tree.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(std::cmp::Ord::cmp(self, other))
+        Some(Ord::cmp(self, other))
     }
 }
 

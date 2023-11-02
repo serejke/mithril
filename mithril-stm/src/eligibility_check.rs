@@ -3,7 +3,7 @@ use {
     num_bigint::{BigInt, Sign},
     num_rational::Ratio,
     num_traits::{One, Signed},
-    std::ops::Neg,
+    core::ops::Neg,
 };
 
 /// Checks that ev is successful in the lottery. In particular, it compares the output of `phi`

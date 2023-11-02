@@ -2,6 +2,12 @@
 //! See Section 2.4 of [the paper](https://eprint.iacr.org/2021/916).
 //! This module uses the `blst` library as a backend for pairings.
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::cmp::Ordering;
+use core::fmt::{Display, Formatter};
+use core::hash::{Hash, Hasher};
+use core::iter::Sum;
 use crate::error::{blst_err_to_mithril, MultiSignatureError};
 use crate::stm::Index;
 use blake2::{digest::consts::U16, Blake2b, Blake2b512, Digest};
@@ -17,12 +23,6 @@ use blst::{blst_p1, blst_p2, p1_affines, p2_affines, BLST_ERROR};
 
 use rand_core::{CryptoRng, RngCore};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    cmp::Ordering,
-    fmt::{Display, Formatter},
-    hash::{Hash, Hasher},
-    iter::Sum,
-};
 /// String used to generate the proofs of possession.
 const POP: &[u8] = b"PoP";
 
@@ -132,7 +132,7 @@ impl VerificationKey {
 }
 
 impl Display for VerificationKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", self.to_bytes())
     }
 }
@@ -153,7 +153,7 @@ impl Eq for VerificationKey {}
 
 impl PartialOrd for VerificationKey {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(std::cmp::Ord::cmp(self, other))
+        Some(core::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -449,7 +449,7 @@ impl<'a> Sum<&'a Self> for Signature {
 
 impl PartialOrd for Signature {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(std::cmp::Ord::cmp(self, other))
+        Some(core::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -545,7 +545,7 @@ mod unsafe_helpers {
     pub(crate) fn verify_pairing(vk: &VerificationKey, pop: &ProofOfPossession) -> bool {
         unsafe {
             let g1_p = *blst_p1_affine_generator();
-            let mvk_p = std::mem::transmute::<BlstVk, blst_p2_affine>(vk.0);
+            let mvk_p = core::mem::transmute::<BlstVk, blst_p2_affine>(vk.0);
             let ml_lhs = blst_fp12::miller_loop(&mvk_p, &g1_p);
 
             let mut k2_p = blst_p1_affine::default();
@@ -579,7 +579,7 @@ mod unsafe_helpers {
 
     pub(crate) fn scalar_to_pk_in_g1(sk: &SigningKey) -> blst_p1 {
         unsafe {
-            let sk_scalar = std::mem::transmute::<&BlstSk, &blst_scalar>(&sk.0);
+            let sk_scalar = core::mem::transmute::<&BlstSk, &blst_scalar>(&sk.0);
             let mut out = blst_p1::default();
             blst_sk_to_pk_in_g1(&mut out, sk_scalar);
             out
@@ -591,7 +591,7 @@ mod unsafe_helpers {
             let mut projective_p2 = blst_p2::default();
             blst_p2_from_affine(
                 &mut projective_p2,
-                &std::mem::transmute::<BlstVk, blst_p2_affine>(vk.0),
+                &core::mem::transmute::<BlstVk, blst_p2_affine>(vk.0),
             );
             projective_p2
         }
@@ -602,7 +602,7 @@ mod unsafe_helpers {
             let mut projective_p1 = blst_p1::default();
             blst_p1_from_affine(
                 &mut projective_p1,
-                &std::mem::transmute::<BlstSig, blst_p1_affine>(*sig),
+                &core::mem::transmute::<BlstSig, blst_p1_affine>(*sig),
             );
             projective_p1
         }
@@ -612,7 +612,7 @@ mod unsafe_helpers {
         unsafe {
             let mut affine_p2 = blst_p2_affine::default();
             blst_p2_to_affine(&mut affine_p2, grouped_vks);
-            std::mem::transmute::<blst_p2_affine, BlstVk>(affine_p2)
+            core::mem::transmute::<blst_p2_affine, BlstVk>(affine_p2)
         }
     }
 
@@ -620,7 +620,7 @@ mod unsafe_helpers {
         unsafe {
             let mut affine_p1 = blst_p1_affine::default();
             blst_p1_to_affine(&mut affine_p1, grouped_sigs);
-            std::mem::transmute::<blst_p1_affine, BlstSig>(affine_p1)
+            core::mem::transmute::<blst_p1_affine, BlstSig>(affine_p1)
         }
     }
 }

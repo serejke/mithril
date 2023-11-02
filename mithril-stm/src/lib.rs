@@ -5,6 +5,7 @@
 //! Implementation of Stake-based Threshold Multisignatures
 
 extern crate core;
+extern crate alloc;
 
 mod eligibility_check;
 mod error;

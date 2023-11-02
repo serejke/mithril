@@ -1,5 +1,6 @@
 //! Crate specific errors
 
+use alloc::boxed::Box;
 use crate::merkle_tree::{BatchPath, Path};
 use blake2::digest::{Digest, FixedOutput};
 use {

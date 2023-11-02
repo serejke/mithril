@@ -1,4 +1,7 @@
 //! Key registration functionality.
+use alloc::boxed::Box;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use super::stm::Stake;
 use crate::error::RegisterError;
 use crate::merkle_tree::{MTLeaf, MerkleTree};
@@ -6,7 +9,6 @@ use crate::multi_sig::{VerificationKey, VerificationKeyPoP};
 use blake2::digest::{Digest, FixedOutput};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Stores a registered party with its public key and the associated stake.
 pub type RegParty = MTLeaf;
