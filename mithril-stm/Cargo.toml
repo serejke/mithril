@@ -39,19 +39,6 @@ proptest = "1.3.1"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 
-[[bench]]
-name = "multi_sig"
-harness = false
-required-features = ["benchmark-internals"]
-
-[[bench]]
-name = "stm"
-harness = false
-
-[[bench]]
-name = "size_benches"
-harness = false
-
 [features]
 portable = [
     "blst/portable",
