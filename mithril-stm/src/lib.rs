@@ -4,8 +4,16 @@
 #![doc = include_str!("../README.md")]
 //! Implementation of Stake-based Threshold Multisignatures
 
-extern crate core;
 extern crate alloc;
+
+extern crate blake2;
+extern crate blst;
+extern crate linked_list_allocator;
+extern crate num_bigint;
+extern crate num_rational;
+extern crate num_traits;
+extern crate rand_core;
+extern crate serde;
 
 mod eligibility_check;
 mod error;

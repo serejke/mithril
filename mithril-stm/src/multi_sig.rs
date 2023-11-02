@@ -2,6 +2,15 @@
 //! See Section 2.4 of [the paper](https://eprint.iacr.org/2021/916).
 //! This module uses the `blst` library as a backend for pairings.
 
+use multi_sig::unsafe_helpers::verify_pairing;
+use multi_sig::unsafe_helpers::compress_p1;
+use multi_sig::unsafe_helpers::uncompress_p1;
+use multi_sig::unsafe_helpers::scalar_to_pk_in_g1;
+use multi_sig::unsafe_helpers::vk_from_p2_affine;
+use multi_sig::unsafe_helpers::sig_to_p1;
+use multi_sig::unsafe_helpers::p2_affine_to_vk;
+use multi_sig::unsafe_helpers::p1_affine_to_sig;
+
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -11,7 +20,7 @@ use core::iter::Sum;
 use crate::error::{blst_err_to_mithril, MultiSignatureError};
 use crate::stm::Index;
 use blake2::{digest::consts::U16, Blake2b, Blake2b512, Digest};
-use unsafe_helpers::*;
+use self::unsafe_helpers::*;
 
 // We use `min_sig` resulting in signatures of 48 bytes and public keys of
 // 96. We can switch that around if desired by using `min_vk`.

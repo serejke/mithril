@@ -1,12 +1,12 @@
 [package]
 name = "mithril-stm"
 version = "0.3.8"
-edition = { workspace = true }
-authors = { workspace = true }
-documentation = { workspace = true }
-homepage = { workspace = true }
-license = { workspace = true }
-repository = { workspace = true }
+# edition = { workspace = true }
+# authors = { workspace = true }
+# documentation = { workspace = true }
+# homepage = { workspace = true }
+# license = { workspace = true }
+# repository = { workspace = true }
 description = "A Rust implementation of Mithril Stake-based Threshold Multisignatures (STMs)."
 categories = ["cryptography"]
 include = ["**/*.rs", "Cargo.toml", "README.md", ".gitignore"]
