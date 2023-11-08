@@ -1,5 +1,6 @@
 //! Crate specific errors
 
+use alloc::boxed::Box;
 use crate::merkle_tree::{BatchPath, Path};
 use blake2::digest::{Digest, FixedOutput};
 use {
@@ -8,7 +9,7 @@ use {
 };
 
 /// Error types for multi signatures.
-#[derive(Debug, thiserror::Error, Eq, PartialEq)]
+#[derive(Debug, thiserror_no_std::Error, Eq, PartialEq)]
 pub enum MultiSignatureError {
     /// Invalid Single signature
     #[error("Invalid single signature")]
@@ -32,7 +33,7 @@ pub enum MultiSignatureError {
 }
 
 /// Errors which can be output by Mithril single signature verification.
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror_no_std::Error)]
 pub enum StmSignatureError {
     /// There is an index out of bounds
     #[error("Received index, {0}, is higher than what the security parameter allows, {1}.")]
@@ -60,7 +61,7 @@ pub enum StmSignatureError {
 }
 
 /// Errors which can be output by Mithril aggregate verification.
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror_no_std::Error)]
 pub enum StmAggregateSignatureError<D: Digest + FixedOutput> {
     /// The IVK is invalid after aggregating the keys
     #[error("Aggregated key does not correspond to the expected key.")]
@@ -84,7 +85,7 @@ pub enum StmAggregateSignatureError<D: Digest + FixedOutput> {
 }
 
 /// Errors which can be output by `CoreVerifier`.
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror_no_std::Error)]
 pub enum CoreVerifierError {
     /// No quorum was found
     #[error("No Quorum was found. Expected {0} signatures but got {1}")]
@@ -104,7 +105,7 @@ pub enum CoreVerifierError {
 }
 
 /// Error types for aggregation.
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror_no_std::Error)]
 pub enum AggregationError {
     /// Not enough signatures were collected, got this many instead.
     #[error("Not enough signatures. Got only {0} out of {1}.")]
@@ -116,7 +117,7 @@ pub enum AggregationError {
 }
 
 /// Error types related to merkle trees.
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror_no_std::Error)]
 pub enum MerkleTreeError<D: Digest + FixedOutput> {
     /// Serialization error
     #[error("Serialization of a merkle tree failed")]
@@ -132,7 +133,7 @@ pub enum MerkleTreeError<D: Digest + FixedOutput> {
 }
 
 /// Errors which can be outputted by key registration.
-#[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, Clone, thiserror_no_std::Error, PartialEq, Eq)]
 pub enum RegisterError {
     /// This key has already been registered by a participant
     #[error("This key has already been registered.")]

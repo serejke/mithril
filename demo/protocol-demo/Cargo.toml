@@ -26,9 +26,7 @@ mithril-stm = { path = "../../mithril-stm" }
 
 [target.'cfg(windows)'.dependencies]
 # Windows doesn't support rug backend, fallback to num-integer
-mithril-stm = { path = "../../mithril-stm", default-features = false, features = [
-    "num-integer-backend",
-] }
+mithril-stm = { path = "../../mithril-stm", default-features = false }
 
 [features]
 portable = ["mithril-common/portable", "mithril-stm/portable"]

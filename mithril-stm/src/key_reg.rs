@@ -1,12 +1,13 @@
 //! Key registration functionality.
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use super::stm::Stake;
 use crate::error::RegisterError;
 use crate::merkle_tree::{MTLeaf, MerkleTree};
 use crate::multi_sig::{VerificationKey, VerificationKeyPoP};
 use blake2::digest::{Digest, FixedOutput};
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Stores a registered party with its public key and the associated stake.
 pub type RegParty = MTLeaf;
@@ -16,7 +17,7 @@ pub type RegParty = MTLeaf;
 // todo: replace with KeyReg
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyReg {
-    keys: HashMap<VerificationKey, Stake>,
+    keys: BTreeMap<VerificationKey, Stake>,
 }
 
 /// Structure generated out of a closed registration containing the registered parties, total stake, and the merkle tree.
@@ -36,7 +37,7 @@ impl KeyReg {
     /// todo: remove this init function
     pub fn init() -> Self {
         Self {
-            keys: HashMap::new(),
+            keys: BTreeMap::new(),
         }
     }
 
@@ -44,7 +45,7 @@ impl KeyReg {
     /// # Error
     /// The function fails when the proof of possession is invalid or when the key is already registered.
     pub fn register(&mut self, stake: Stake, pk: VerificationKeyPoP) -> Result<(), RegisterError> {
-        if let Entry::Vacant(e) = self.keys.entry(pk.vk) {
+        if let alloc::collections::btree_map::Entry::Vacant(e) = self.keys.entry(pk.vk) {
             if pk.check().is_ok() {
                 e.insert(stake);
                 return Ok(());
